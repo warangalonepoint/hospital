@@ -1,74 +1,98 @@
-// js/store.js (v21) — ultra-simple PIN login
-export const KEY = 'charan:hospital:v21';
+/* Dr. Charan PWA – Local store helpers (demo) */
 
-const DEMO_USERS = [
-  { id: 'u1', name: 'Dr. Charan', role: 'doctor',     pin: '4321' },
-  { id: 'u2', name: 'Supervisor', role: 'supervisor', pin: '1111' },
-  { id: 'u3', name: 'Patient',    role: 'patient',    pin: '2222' },
-];
+// ---- PINs & session ----
+const PIN_KEY = 'pins';
+const SESSION_KEY = 'session';
+const INV_KEY = 'invoices';
+const STAFF_KEY = 'staff';
+const PATIENT_KEY = 'patients';
+const BOOKINGS_KEY = 'bookings';
 
-function load() {
-  const raw = localStorage.getItem(KEY);
-  if (raw) { try { return JSON.parse(raw); } catch {} }
-  const db = { users: DEMO_USERS, user: null, invoices: [], lastInvoiceNo: 1000 };
-  localStorage.setItem(KEY, JSON.stringify(db));
-  return db;
+export function getPins(){
+  const d = { doctor:'4321', supervisor:'1111', patient:'2222' };
+  try{
+    const s = JSON.parse(localStorage.getItem(PIN_KEY) || '{}');
+    return {...d, ...s};
+  }catch{ return d; }
 }
-function save(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
-
-// Auth
-export function authenticatePin(pin){
-  const db = load();
-  const u = db.users.find(x => x.pin === String(pin).trim());
-  if(!u) return null;
-  db.user = { id: u.id, name: u.name, role: u.role };
-  save(db);
-  return db.user;
+export function setPin(role, pin){
+  const p = getPins(); p[role]=String(pin||'').trim(); localStorage.setItem(PIN_KEY, JSON.stringify(p));
+  return p;
 }
-export function currentUser(){ return (load().user)||null; }
-export function logout(){ const db=load(); db.user=null; save(db); }
+export function verifyPin(pin){
+  const p = getPins(); const map = Object.entries(p).find(([,v])=>String(v)===String(pin));
+  return map ? map[0] : null; // role or null
+}
 
-// Tiny guards for pages
+export function setSession(role){ localStorage.setItem(SESSION_KEY, JSON.stringify({role, ts:Date.now()})); }
+export function getSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch{ return null; } }
+export function logout(){ localStorage.removeItem(SESSION_KEY); }
+
 export function requireRole(role){
-  const u=currentUser();
-  if(!u){ location.href='login.html'; return null; }
-  if(role && u.role!==role){
-    // bounce them to the right home
-    if(u.role==='doctor') location.href='dashboard.html';
-    else if(u.role==='supervisor') location.href='admin.html';
-    else location.href='portal.html';
-    return null;
-  }
-  return u;
+  const s=getSession();
+  if(!s || s.role!==role){ return null; }
+  return s;
 }
+export function role(){ const s=getSession(); return s?.role || null; }
 
-// ----- minimal billing helpers the dashboard tile expects -----
-export function listInvoices(opts={}){
-  const db=load(); let rows=db.invoices.slice();
-  const {from,to}=opts;
-  if(from) rows=rows.filter(r => (r.date||'')>=from);
-  if(to)   rows=rows.filter(r => (r.date||'')<=to);
-  return rows;
-}
-export function listSales(){ // flatten lines
-  const rows=[]; for(const inv of listInvoices()){
-    for(const it of (inv.items||[])){
-      const qty=+it.qty||0, price=+it.price||0;
-      rows.push({date:inv.date,item:it.item,qty,price,amount:+(qty*price).toFixed(2),invoice:inv.number});
+// ---- Sample data (invoices) ----
+function seed(){
+  if(!localStorage.getItem(INV_KEY)){
+    const today = new Date();
+    const invs=[];
+    for(let i=0;i<14;i++){
+      const d=new Date(today); d.setDate(today.getDate()-i);
+      const date=d.toISOString().slice(0,10);
+      const lines=[
+        {item:'Paracetamol 650', qty:Math.ceil(Math.random()*3), price:20},
+        {item:'Amoxicillin 500', qty:Math.ceil(Math.random()*2), price:55},
+      ];
+      const total = lines.reduce((s,l)=>s+l.qty*l.price,0);
+      invs.push({id:`INV-${i+1}`, date, lines, total, paid:total});
     }
-  } return rows;
+    localStorage.setItem(INV_KEY, JSON.stringify(invs.reverse()));
+  }
+  if(!localStorage.getItem(STAFF_KEY)){
+    localStorage.setItem(STAFF_KEY, JSON.stringify([{name:'Supervisor', phone:'9000000001', role:'supervisor'}]));
+  }
+  if(!localStorage.getItem(PATIENT_KEY)){
+    localStorage.setItem(PATIENT_KEY, JSON.stringify([{name:'Ravi Kumar', phone:'9000000002', notes:'—'}]));
+  }
+  if(!localStorage.getItem(BOOKINGS_KEY)){
+    const today=new Date().toISOString().slice(0,10);
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify([
+      {date:today, time:'10:30', patient:'Ravi Kumar', reason:'Fever'},
+      {date:today, time:'11:15', patient:'Sindhu Rao', reason:'BP Check'}
+    ]));
+  }
 }
+seed();
+
+export function listInvoices(){ try{ return JSON.parse(localStorage.getItem(INV_KEY)||'[]'); }catch{ return []; } }
+export function addInvoice(inv){ const arr=listInvoices(); arr.push(inv); localStorage.setItem(INV_KEY, JSON.stringify(arr)); }
+
 export async function totalsToday(){
-  const t=new Date().toISOString().slice(0,10);
-  return listInvoices({from:t,to:t}).reduce((s,i)=>s+(+i.total||0),0);
+  const invs=listInvoices(); const today=new Date().toISOString().slice(0,10);
+  return invs.filter(i=>i.date===today).reduce((s,i)=>s+(+i.total||0),0);
 }
 export async function totalsMonth(){
-  const m=new Date().toISOString().slice(0,7);
-  return listInvoices().filter(i=>(i.date||'').startsWith(m))
-    .reduce((s,i)=>s+(+i.total||0),0);
+  const invs=listInvoices(); const d=new Date(), ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  return invs.filter(i=>i.date.startsWith(ym)).reduce((s,i)=>s+(+i.total||0),0);
 }
 export async function topItemName(){
-  const agg={}; for(const r of listSales()){ agg[r.item]=(agg[r.item]||0)+(+r.amount||0); }
-  let top='–',best=-1; for(const[k,v] of Object.entries(agg)){ if(v>best){best=v; top=k;} }
-  return top;
+  const invs=listInvoices(); const map={};
+  invs.forEach(inv=>inv.lines.forEach(l=>{ map[l.item]=(map[l.item]||0)+l.qty; }));
+  const top = Object.entries(map).sort((a,b)=>b[1]-a[1])[0];
+  return top ? top[0] : null;
 }
+
+/* ----- Staff & Patients (Settings) ----- */
+export function listStaff(){ try{return JSON.parse(localStorage.getItem(STAFF_KEY)||'[]')}catch{return[]}}
+export function addStaff(s){ const arr=listStaff(); arr.push(s); localStorage.setItem(STAFF_KEY, JSON.stringify(arr)); }
+
+export function listPatients(){ try{return JSON.parse(localStorage.getItem(PATIENT_KEY)||'[]')}catch{return[]}}
+export function addPatient(p){ const arr=listPatients(); arr.push(p); localStorage.setItem(PATIENT_KEY, JSON.stringify(arr)); }
+
+/* ----- Bookings ----- */
+export function listBookings(){ try{return JSON.parse(localStorage.getItem(BOOKINGS_KEY)||'[]')}catch{return[]}}
+export function addBooking(b){ const arr=listBookings(); arr.push(b); localStorage.setItem(BOOKINGS_KEY, JSON.stringify(arr)); }
