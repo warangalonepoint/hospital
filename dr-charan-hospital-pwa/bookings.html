@@ -3,177 +3,139 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Bookings – Supervisor</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
+  <title>Bookings / Tokens</title>
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=22"/>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Top actions -->
+  <!-- Fixed Actions -->
   <div class="fixed-actions">
-    <button class="chip" onclick="location.href='admin.html'">← Supervisor</button>
-    <button class="chip" onclick="location.href='dashboard.html'">Doctor</button>
+    <a class="chip" href="admin.html">← Supervisor</a>
+    <a class="chip" href="dashboard.html">Doctor</a>
     <button class="chip" id="logoutBtn">Logout</button>
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
   <!-- Create Booking -->
-  <section class="section section--blue">
-    <div class="section__head">
-      <h2>Create Booking (Token)</h2>
-    </div>
+  <section class="section">
+    <h2>Create Booking (Token)</h2>
 
-    <div class="card section__body">
-      <form id="bookingForm" class="form-grid">
-        <label>Patient Name
-          <input id="bkName" class="input" placeholder="Full name" required>
-        </label>
-        <label>Phone
-          <input id="bkPhone" class="input" placeholder="10-digit" minlength="10" maxlength="10" inputmode="numeric" required>
-        </label>
+    <div class="kpi panel--blue mt12">
+      <label class="muted">Patient Name</label>
+      <input id="bName" class="input" placeholder="Full name"/>
+      <label class="muted">Phone</label>
+      <input id="bPhone" class="input" placeholder="10-digit" inputmode="numeric" maxlength="10"/>
+      <label class="muted">Visit Date</label>
+      <input id="bDate" class="input" type="date"/>
+      <label class="muted">Time</label>
+      <input id="bTime" class="input" type="time"/>
+      <label class="muted">Reason / Notes</label>
+      <input id="bNote" class="input" placeholder="Reason or short note"/>
 
-        <label>Visit Date
-          <input id="bkDate" class="input" type="date" required>
-        </label>
-        <label>Time
-          <input id="bkTime" class="input" type="time" required>
-        </label>
-
-        <label class="col-span-2">Reason / Notes
-          <input id="bkNote" class="input" placeholder="Reason or short note">
-        </label>
-
-        <div class="row">
-          <button class="btn" type="submit">Create Token</button>
-          <button class="chip" type="button" id="waShare">Share via WhatsApp</button>
-        </div>
-        <p class="muted" style="margin-top:8px">Supervisor creates tokens. Doctor sees them in Patients/Bookings views.</p>
-      </form>
+      <div class="chips mt12">
+        <button class="btn" id="createBtn">Create Token</button>
+        <button class="chip chip--mint" id="waBtn">Share via WhatsApp</button>
+      </div>
+      <p class="muted mt8">Supervisor creates tokens. Doctor sees them on Patients/Bookings views.</p>
     </div>
   </section>
 
-  <!-- Upcoming list -->
-  <section class="section section--purple">
-    <div class="section__head">
+  <!-- Today / Upcoming list -->
+  <section class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <h2>Upcoming Tokens</h2>
-      <div class="pill-group">
-        <button class="pill pill--on" data-filter="today">Today</button>
-        <button class="pill" data-filter="all">All</button>
-        <button class="pill pill--danger" id="clearList">Clear List</button>
+      <div class="chips">
+        <button class="chip chip--blue" id="filterToday">Today</button>
+        <button class="chip chip--lilac" id="filterAll">All</button>
+        <button class="chip chip--peach" id="clearList">Clear List</button>
       </div>
     </div>
 
-    <div class="card section__body">
-      <table class="table" id="tokensTable">
-        <thead>
-          <tr><th>#</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <table class="table mt12" id="tbl">
+      <thead>
+        <tr><th>#</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </section>
 
-<script type="module">
-  // --- Theme toggle
-  const t = document.getElementById('themeToggle');
-  if(localStorage.theme){ document.documentElement.dataset.theme = localStorage.theme; t.textContent = localStorage.theme==='light'?'🌞':'🌙'; }
-  t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent = next==='light'?'🌞':'🌙'; };
+  <script>
+    // Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
+    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'}
 
-  // --- Guard: supervisor only
-  try{
-    const s = JSON.parse(localStorage.getItem('session')||'{}');
-    if(s.role!=='supervisor'){ location.href='login.html'; }
-  }catch{ location.href='login.html'; }
+    // Guard (supervisor can create; doctor can view)
+    (()=>{
+      const s=JSON.parse(localStorage.getItem('session')||'null');
+      if(!s || !['supervisor','doctor'].includes(s.role)) location.replace('login.html');
+    })();
 
-  // --- Clear cache + logout
-  document.getElementById('clearCacheBtn').onclick = async ()=>{
-    localStorage.clear();
-    if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-    alert('Cache cleared'); location.reload();
-  };
-  document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    // Actions
+    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
+    clearCacheBtn.onclick=async()=>{try{const keep=localStorage.getItem('session');localStorage.clear();if(keep)localStorage.setItem('session',keep); if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))} alert('Cache cleared.');location.reload()}catch{}}
 
-  // --- Helpers
-  const fmtDate = d=> new Date(d).toISOString().slice(0,10);
-  const todayStr = fmtDate(new Date());
+    // Data helpers
+    function bookings(){try{return JSON.parse(localStorage.getItem('bookings')||'[]')}catch{return []}}
+    function saveBookings(arr){localStorage.setItem('bookings',JSON.stringify(arr))}
+    function pad(n){return n<10?'0'+n:n}
 
-  const getBookings = ()=> JSON.parse(localStorage.getItem('bookings')||'[]');
-  const setBookings = (list)=> localStorage.setItem('bookings', JSON.stringify(list));
+    // Defaults (date/time)
+    const now=new Date();
+    bDate.value = now.toISOString().slice(0,10);
+    bTime.value = pad(now.getHours())+':'+pad(now.getMinutes());
 
-  // --- Defaults
-  const d = new Date();
-  document.getElementById('bkDate').value = fmtDate(d);
-  document.getElementById('bkTime').value = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    // Create token
+    createBtn.onclick=()=>{
+      const name=bName.value.trim();
+      const phone=bPhone.value.trim();
+      const date=bDate.value;
+      const time=bTime.value;
+      const note=bNote.value.trim();
 
-  // --- Create booking
-  const form = document.getElementById('bookingForm');
-  form.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const rec = {
-      id: 'bk_'+Date.now(),
-      name: bkName.value.trim(),
-      phone: bkPhone.value.trim(),
-      date: bkDate.value,
-      time: bkTime.value,
-      note: bkNote.value.trim(),
-      createdAt: Date.now(),
-      served: false
+      if(!name || !date || !time) return alert('Name, date and time are required.');
+      const list=bookings();
+      const token={id:Date.now(), name, phone, date, time, note, createdAt:new Date().toISOString(), status:'booked'};
+      list.push(token); saveBookings(list);
+      render(); alert('Token created.');
+      bName.value=''; bPhone.value=''; bNote.value='';
     };
-    const list = getBookings();
-    list.push(rec);
-    setBookings(list);
+
+    // Share via WhatsApp
+    waBtn.onclick=()=>{
+      const name=bName.value.trim()||'Patient';
+      const d=bDate.value; const tt=bTime.value;
+      const txt=`Hello ${name}, your appointment is booked for ${d} at ${tt} at Dr. Charan Hospital.`;
+      const url='https://wa.me/?text='+encodeURIComponent(txt);
+      window.open(url,'_blank');
+    };
+
+    // Render table
+    function render(mode='today'){
+      const tbody=document.querySelector('#tbl tbody'); tbody.innerHTML='';
+      let list=bookings();
+      if(mode==='today'){
+        const today=new Date().toISOString().slice(0,10);
+        list=list.filter(x=>x.date===today);
+      }
+      list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time) );
+      list.forEach((x,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i+1}</td><td>${x.name}</td><td>${x.phone||''}</td><td>${x.date}</td><td>${x.time}</td><td>${x.note||''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    filterToday.onclick=()=>render('today');
+    filterAll.onclick=()=>render('all');
+    clearList.onclick=()=>{
+      if(confirm('Clear all stored tokens on this device?')){ saveBookings([]); render(); }
+    };
     render();
-    form.reset();
-    bkDate.value = todayStr;
-    alert('Token created');
-  });
-
-  // WhatsApp share (last token)
-  document.getElementById('waShare').onclick=()=>{
-    const list = getBookings();
-    if(!list.length){ alert('Create a token first'); return; }
-    const b = list[list.length-1];
-    const msg = `Dr. Charan Hospital Token%nName: ${b.name}%nWhen: ${b.date} ${b.time}%nNote: ${b.note||'-'}`;
-    const u = 'https://wa.me/?text='+encodeURIComponent(msg.replace(/%n/g,"\n"));
-    window.open(u,'_blank');
-  };
-
-  // --- Table render with filters
-  let curFilter = 'today';
-  document.querySelectorAll('.pill-group .pill[data-filter]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.pill-group .pill').forEach(b=>b.classList.remove('pill--on'));
-      btn.classList.add('pill--on');
-      curFilter = btn.dataset.filter;
-      render();
-    });
-  });
-
-  document.getElementById('clearList').onclick=()=>{
-    if(confirm('Clear all tokens?')){ setBookings([]); render(); }
-  };
-
-  function render(){
-    const body = document.querySelector('#tokensTable tbody');
-    body.innerHTML = '';
-    let list = getBookings().sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
-    if(curFilter==='today'){ list = list.filter(b=>b.date===todayStr); }
-    list.forEach((b,i)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i+1}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.date}</td><td>${b.time}</td><td>${b.note||''}</td>`;
-      body.appendChild(tr);
-    });
-  }
-  render();
-
-  // SW register silently
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
-</script>
+  </script>
 </body>
 </html>
