@@ -1,257 +1,299 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Analytics – Dr. Charan Hospital</title>
+
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=14"/>
-  <style>
-    .seg {display:inline-flex;gap:6px;background:var(--surface);padding:6px;border:1px solid var(--border);border-radius:999px}
-    .seg button{border:none;padding:8px 12px;border-radius:999px;background:transparent}
-    .seg .on{background:var(--primary);color:#fff}
-    .kpis{display:grid;gap:10px;grid-template-columns:repeat(4,1fr)}
-    .kpi{padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface-2)}
-    .kpi .n{font-size:22px;font-weight:700}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
-    .muted{color:var(--muted)}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:10px;border-top:1px solid var(--border);text-align:left}
-    .floating-actions{position:absolute;left:14px;bottom:14px;z-index:10;display:flex;gap:8px}
-    .banner{position:relative}
-  </style>
+  <link rel="stylesheet" href="styles.css"/>
+
+  <!-- Local Chart.js (offline-first) -->
+  <script defer src="assets/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="banner clean"></header>
-  <div class="floating-actions">
-    <a href="dashboard.html" class="chip">← Dashboard</a>
+  <!-- Banner -->
+  <header class="banner" role="img" aria-label="Dr. Charan Hospital">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+  </header>
+
+  <!-- Top actions (kept small, under banner) -->
+  <div class="top-actions container">
+    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <span class="spacer"></span>
+    <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </div>
-  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
-  <main class="container n8">
+  <main class="container">
+    <!-- Filters -->
     <section class="card">
-      <div class="toolbar">
-        <div class="seg" id="seg">
-          <button data-mode="day"   class="on">Daily</button>
-          <button data-mode="week">Weekly</button>
-          <button data-mode="month">Monthly</button>
-          <button data-mode="year">Yearly</button>
+      <h2>Sales Analytics</h2>
+      <div class="filters">
+        <div class="seg">
+          <button class="seg-btn is-active" data-range="today">Today</button>
+          <button class="seg-btn" data-range="7d">7D</button>
+          <button class="seg-btn" data-range="30d">30D</button>
+          <button class="seg-btn" data-range="ytd">YTD</button>
+          <button class="seg-btn" data-range="custom">Custom</button>
         </div>
-        <input id="pickDay"   type="date"/>
-        <input id="pickMonth" type="month" style="display:none"/>
-        <input id="pickYear"  type="number" min="2000" max="2099" step="1" style="width:100px;display:none"/>
-        <button id="prev" class="chip">◀</button>
-        <button id="next" class="chip">▶</button>
-        <span id="label" class="muted"></span>
-        <button id="exportCsv" class="chip">Export CSV</button>
-      </div>
-
-      <div class="kpis">
-        <div class="kpi"><div class="n" id="kTotal">0</div><div class="muted">Total ₹ (period)</div></div>
-        <div class="kpi"><div class="n" id="kInv">0</div><div class="muted">Invoices</div></div>
-        <div class="kpi"><div class="n" id="kAvg">0</div><div class="muted">Avg ₹/invoice</div></div>
-        <div class="kpi"><div class="n" id="kTop">–</div><div class="muted">Top Item</div></div>
-      </div>
-
-      <canvas id="mainChart" height="200" style="width:100%;margin:16px 0"></canvas>
-
-      <div class="tile-grid" style="grid-template-columns:1fr 1fr">
-        <div class="card" style="margin:0">
-          <h4 style="margin:0 0 6px">This vs Last Period</h4>
-          <div class="kpis" style="grid-template-columns:repeat(2,1fr)">
-            <div class="kpi"><div class="n" id="thisTotal">0</div><div class="muted">This Period ₹</div></div>
-            <div class="kpi"><div class="n" id="lastTotal">0</div><div class="muted">Last Period ₹</div></div>
-          </div>
-        </div>
-        <div class="card" style="margin:0">
-          <h4 style="margin:0 0 6px">Revenue by Item</h4>
-          <canvas id="donut" height="200" style="width:100%"></canvas>
+        <div class="dates" id="customDates" style="display:none">
+          <label>From <input type="date" id="fromDate"></label>
+          <label>To <input type="date" id="toDate"></label>
+          <button class="btn" id="applyBtn">Apply</button>
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px">
-        <h4 style="margin:0 0 6px">Top Items (period)</h4>
-        <table class="table" id="itemsTable">
-          <thead><tr><th>Item</th><th>Qty</th><th>Revenue ₹</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-num" id="kpiTotal">0.00</div>
+          <div class="kpi-label">Total ₹</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiAvg">0.00</div>
+          <div class="kpi-label">Avg / Day ₹</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiInvoices">0</div>
+          <div class="kpi-label">Invoices</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiTop">—</div>
+          <div class="kpi-label">Top Item</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts">
+        <div class="chart-card">
+          <h4>Revenue by Day</h4>
+          <canvas id="lineByDay"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Top Items</h4>
+          <canvas id="pieItems"></canvas>
+        </div>
       </div>
     </section>
   </main>
 
-  <script type="module">
-    import { requireRole, listInvoices, listSales } from './js/store.js?v=21';
-    requireRole('doctor');
+  <script>
+    /* -------------------------
+       Access guard: doctor or supervisor
+    -------------------------- */
+    (function guard() {
+      try {
+        const s = JSON.parse(localStorage.getItem('session') || '{}');
+        if (!s.role) location.replace('login.html');
+        if (!['doctor','supervisor'].includes(s.role)) location.replace('login.html');
+      } catch { location.replace('login.html'); }
+    })();
 
-    // --- UI helpers ---
-    const seg=document.getElementById('seg');
-    const day=document.getElementById('pickDay');
-    const mon=document.getElementById('pickMonth');
-    const year=document.getElementById('pickYear');
-    const label=document.getElementById('label');
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
-    document.getElementById('clearCacheBtn').onclick=async()=>{ localStorage.clear(); if('caches'in window){(await caches.keys()).map(k=>caches.delete(k))}; alert('Cache cleared'); location.reload(); };
+    /* -------------------------
+       Theme toggle
+    -------------------------- */
+    const html = document.documentElement;
+    const themeBtn = document.getElementById('themeToggle');
+    function applyTheme(t){ html.dataset.theme=t; themeBtn.textContent=t==='light'?'🌞':'🌙'; localStorage.theme=t; }
+    applyTheme(localStorage.theme || 'light');
+    themeBtn.onclick = ()=> applyTheme((html.dataset.theme||'light')==='light'?'dark':'light');
 
-    // --- period state ---
-    let mode='day';
-    day.value = new Date().toISOString().slice(0,10);
-    mon.value = new Date().toISOString().slice(0,7);
-    year.value = new Date().getFullYear();
-
-    seg.addEventListener('click',e=>{
-      if(e.target.tagName!=='BUTTON') return;
-      seg.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
-      e.target.classList.add('on');
-      mode = e.target.dataset.mode;
-      day.style.display = mode==='day'?'':'none';
-      mon.style.display = mode==='month' || mode==='week' ? '' : 'none';
-      year.style.display = mode==='year' ? '' : 'none';
-      if(mode==='week'){ if(!mon.value) mon.value=new Date().toISOString().slice(0,7); }
-      render();
-    });
-
-    document.getElementById('prev').onclick=()=>{ shift(-1); render(); };
-    document.getElementById('next').onclick=()=>{ shift(1); render(); };
-    day.onchange=mon.onchange=year.onchange=render;
-
-    function shift(delta){
-      if(mode==='day'){
-        const d=new Date(day.value); d.setDate(d.getDate()+delta); day.value=d.toISOString().slice(0,10);
-      }else if(mode==='week' || mode==='month'){
-        const [y,m]=mon.value.split('-').map(n=>+n); const d=new Date(y,m-1,1); d.setMonth(d.getMonth()+delta); mon.value=d.toISOString().slice(0,7);
-      }else{
-        year.value = (+year.value||new Date().getFullYear()) + delta;
-      }
-    }
-
-    // --- data slicing ---
-    function sliceInvoices(){
-      const invs = listInvoices();
-      if(mode==='day'){
-        const d=day.value;
-        label.textContent = d;
-        return invs.filter(i=>i.date===d);
-      }
-      if(mode==='week'){
-        const ym = mon.value; // YYYY-MM
-        // group by ISO week inside the month
-        return invs.filter(i=> (i.date||'').startsWith(ym));
-      }
-      if(mode==='month'){
-        const ym = mon.value;
-        label.textContent = ym;
-        return invs.filter(i=> (i.date||'').startsWith(ym));
-      }
-      const yy = String(year.value);
-      label.textContent = yy;
-      return invs.filter(i=> (i.date||'').startsWith(yy));
-    }
-
-    // --- charts (vanilla canvas) ---
-    function drawBars(canvas, labels, data){
-      const c=canvas, ctx=c.getContext('2d'); c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
-      const W=c.clientWidth, H=c.clientHeight, pad=24; ctx.clearRect(0,0,W,H);
-      const border=getComputedStyle(document.documentElement).getPropertyValue('--border')||'#e9edf5';
-      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
-      const max=Math.max(10,...data); const slot=(W-pad*2)/labels.length, bw=slot*0.7, base=H-pad;
-      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#5166ff';
-      const muted=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#738';
-      labels.forEach((lb,i)=>{ const x=pad+i*slot+(slot-bw)/2; const h=Math.round((data[i]/max)*(H-pad*2));
-        ctx.fillStyle=primary; ctx.fillRect(x,base-h,bw,h); ctx.fillStyle=muted; ctx.font='11px system-ui'; ctx.textAlign='center'; ctx.fillText(lb,x+bw/2,H-6);
-      });
-    }
-    function drawDonut(canvas, slices){
-      const c=canvas, ctx=c.getContext('2d'); c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
-      const W=c.clientWidth, H=c.clientHeight, cx=W/2, cy=H/2, r=Math.min(W,H)/2-12; ctx.clearRect(0,0,W,H);
-      const colors=['#5b8cff','#65d6ad','#f39c9c','#f7c948','#8a7ff5','#56ccf2','#ff9f43','#00c4cc'];
-      const tot=slices.reduce((s,x)=>s+x.value,0)||1; let ang=-Math.PI/2;
-      slices.forEach((s,i)=>{ const a=2*Math.PI*(s.value/tot); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,ang,ang+a); ctx.closePath(); ctx.fillStyle=colors[i%colors.length]; ctx.fill(); ang+=a; });
-      // hole
-      ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.arc(cx,cy,r*0.55,0,2*Math.PI); ctx.fill(); ctx.globalCompositeOperation='source-over';
-    }
-
-    // --- render ---
-    function render(){
-      const invs=sliceInvoices();
-      // KPIs
-      const total=invs.reduce((s,i)=>s+(+i.total||0),0);
-      const count=invs.length;
-      const avg=count? total/count : 0;
-      const sales=listSales().filter(r=> invs.some(i=>i.number===r.invoice));
-      const agg={}; for(const r of sales){ agg[r.item]=(agg[r.item]||0)+(+r.amount||0); }
-      let top='–',best=-1; for(const [k,v] of Object.entries(agg)){ if(v>best){best=v; top=k;} }
-      kTotal.textContent=total.toFixed(2); kInv.textContent=count; kAvg.textContent=avg.toFixed(2); kTop.textContent=top;
-
-      // This vs Last period
-      const {thisTotal,lastTotal}=compareTotals();
-      document.getElementById('thisTotal').textContent=thisTotal.toFixed(2);
-      document.getElementById('lastTotal').textContent=lastTotal.toFixed(2);
-
-      // Bars
-      const labels=[], data=[];
-      if(mode==='day'){
-        // hours (simple 4 buckets)
-        const buckets=[0,0,0,0]; invs.forEach(i=>{ const h=12; buckets[0]+=+i.total||0; }); // keep simple for demo
-        ['AM','Noon','PM','Eve'].forEach((l,i)=>{ labels.push(l); data.push(buckets[i]); });
-      }else if(mode==='week'){
-        // 4 weeks inside month
-        const week=[0,0,0,0]; invs.forEach(i=>{ const d=new Date(i.date).getDate(); const idx=Math.min(3,Math.floor((d-1)/7)); week[idx]+=+i.total||0; });
-        ['W1','W2','W3','W4'].forEach((l,i)=>{ labels.push(l); data.push(week[i]); });
-      }else if(mode==='month'){
-        const ym=mon.value; const daysInMonth=new Date(+ym.slice(0,4),+ym.slice(5)+0,0).getDate();
-        for(let d=1; d<=daysInMonth; d++){ const k=String(d).padStart(2,'0'); labels.push(k); data.push(invs.filter(i=>i.date.endsWith('-'+k)).reduce((s,x)=>s+(+x.total||0),0)); }
-      }else{
-        const yy=String(year.value);
-        for(let m=1;m<=12;m++){ const k=String(m).padStart(2,'0'); labels.push(k); data.push(listInvoices().filter(i=>i.date.startsWith(`${yy}-${k}`)).reduce((s,x)=>s+(+x.total||0),0)); }
-      }
-      drawBars(document.getElementById('mainChart'), labels, data);
-
-      // Donut
-      const slices=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,value])=>({name,value}));
-      drawDonut(document.getElementById('donut'), slices);
-
-      // Table
-      const tb=document.querySelector('#itemsTable tbody'); tb.innerHTML='';
-      const rows=Object.entries(agg).map(([item,rev])=>{
-        const qty=sales.filter(s=>s.item===item).reduce((s,x)=>s+(+x.qty||0),0);
-        return {item,qty,rev};
-      }).sort((a,b)=>b.rev-a.rev).slice(0,20);
-      rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.item}</td><td>${r.qty}</td><td>₹${r.rev.toFixed(2)}</td>`; tb.appendChild(tr); });
-    }
-
-    function compareTotals(){
-      const invs=listInvoices();
-      if(mode==='day'){
-        const d=new Date(day.value); const cur=invs.filter(i=>i.date===day.value);
-        const prevDate=new Date(d); prevDate.setDate(d.getDate()-1);
-        const prev=invs.filter(i=>i.date===prevDate.toISOString().slice(0,10));
-        return {thisTotal:sum(cur), lastTotal:sum(prev)};
-      }
-      if(mode==='week' || mode==='month'){
-        const ym=mon.value, [y,m]=ym.split('-').map(Number);
-        const cur=invs.filter(i=> (i.date||'').startsWith(ym));
-        const prevMonth=new Date(y,m-2,1).toISOString().slice(0,7);
-        const prev=invs.filter(i=> (i.date||'').startsWith(prevMonth));
-        return {thisTotal:sum(cur), lastTotal:sum(prev)};
-      }
-      const yy=String(year.value); const cur=invs.filter(i=> (i.date||'').startsWith(yy));
-      const prev=invs.filter(i=> (i.date||'').startsWith(String(+yy-1)));
-      return {thisTotal:sum(cur), lastTotal:sum(prev)};
-    }
-    function sum(rows){ return rows.reduce((s,i)=>s+(+i.total||0),0); }
-
-    document.getElementById('exportCsv').onclick=()=>{
-      const sales=listSales().filter(r=> sliceInvoices().some(i=>i.number===r.invoice));
-      const head=['date','item','qty','price','amount','invoice'];
-      const csv=[head,...sales.map(r=>[r.date,r.item,r.qty,r.price,r.amount,r.invoice])].map(a=>a.join(',')).join('\n');
-      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='analytics_period.csv'; a.click();
+    /* -------------------------
+       Actions
+    -------------------------- */
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem('session');
+      location.href = 'login.html';
+    };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      try {
+        const session = localStorage.getItem('session');
+        localStorage.clear(); if (session) localStorage.setItem('session', session);
+        if ('caches' in window) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+        if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      } catch { alert('Could not fully clear cache.'); }
     };
 
-    render();
-    addEventListener('resize', render);
+    /* -------------------------
+       Data helpers
+    -------------------------- */
+    function fmtINR(n){ return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function dateStr(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10); }
+
+    function seedIfEmpty(){
+      const raw = localStorage.getItem('invoices');
+      if (raw) return;
+      const items = ['Paracetamol 650','Amoxicillin','Cough Syrup','Vitamin D','Ibuprofen','Antacid'];
+      const today = new Date();
+      const arr = [];
+      for (let i=0;i<30;i++){
+        const d = new Date(today); d.setDate(today.getDate()-i);
+        const lines = Array.from({length: 2 + (i%3)}, () => {
+          const name = items[Math.floor(Math.random()*items.length)];
+          const qty = 1 + Math.floor(Math.random()*3);
+          const price = 60 + Math.floor(Math.random()*240);
+          return {name, qty, price};
+        });
+        arr.push({date: dateStr(d), lines, paid:true});
+      }
+      localStorage.setItem('invoices', JSON.stringify(arr));
+    }
+    seedIfEmpty();
+
+    function getInvoices(){ try{ const a=JSON.parse(localStorage.getItem('invoices')||'[]'); return Array.isArray(a)?a:[]; }catch{ return []; } }
+
+    /* -------------------------
+       Range handling
+    -------------------------- */
+    const segBtns = [...document.querySelectorAll('.seg-btn')];
+    const customDates = document.getElementById('customDates');
+    const fromInput = document.getElementById('fromDate');
+    const toInput = document.getElementById('toDate');
+    const applyBtn = document.getElementById('applyBtn');
+
+    function setActive(btn){
+      segBtns.forEach(b=>b.classList.toggle('is-active', b===btn));
+    }
+
+    function getRange(kind){
+      const today = new Date();
+      let from, to;
+      if (kind==='today'){ from = to = today; }
+      else if (kind==='7d'){ to=today; from = new Date(today); from.setDate(today.getDate()-6); }
+      else if (kind==='30d'){ to=today; from = new Date(today); from.setDate(today.getDate()-29); }
+      else if (kind==='ytd'){ to=today; from = new Date(today.getFullYear(),0,1); }
+      else { // custom
+        const f = fromInput.value, t = toInput.value;
+        if (!f || !t) return null;
+        from = new Date(f+'T00:00:00'); to = new Date(t+'T00:00:00');
+      }
+      return { from: dateStr(from), to: dateStr(to) };
+    }
+
+    segBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        setActive(btn);
+        const k = btn.dataset.range;
+        customDates.style.display = k==='custom' ? 'flex' : 'none';
+        if (k!=='custom') render(k);
+      });
+    });
+    applyBtn.onclick = ()=> render('custom');
+
+    /* -------------------------
+       Summaries + charts
+    -------------------------- */
+    let lineChart, pieChart;
+
+    function summarize(range){
+      const invoices = getInvoices();
+      const mapByDate = new Map(); // date -> total
+      const byItem = new Map();    // item -> total
+      let total = 0, invCount = 0;
+
+      for (const inv of invoices){
+        if (!inv.date || inv.date < range.from || inv.date > range.to) continue;
+        const t = (inv.lines||[]).reduce((s,l)=> s + (l.qty||0)*(l.price||0), 0);
+        invCount += 1;
+        total += t;
+        mapByDate.set(inv.date, (mapByDate.get(inv.date)||0) + t);
+        for (const l of inv.lines||[]){
+          const k = l.name || 'Item';
+          const amt = (l.qty||0)*(l.price||0);
+          byItem.set(k, (byItem.get(k)||0) + amt);
+        }
+      }
+
+      let topItem = '—';
+      if (byItem.size){
+        topItem = [...byItem.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+      }
+      return { total, invCount, byItem, mapByDate, topItem };
+    }
+
+    function buildLabels(range){
+      const labels = [];
+      const d0 = new Date(range.from+'T00:00:00');
+      const d1 = new Date(range.to+'T00:00:00');
+      for (let d=new Date(d0); d<=d1; d.setDate(d.getDate()+1)){
+        labels.push({ key: dateStr(d), label: d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) });
+      }
+      return labels;
+    }
+
+    function render(kind='today'){
+      const range = getRange(kind);
+      if (!range) return;
+
+      // KPIs
+      const sum = summarize(range);
+      const dayLabels = buildLabels(range);
+      const dayValues = dayLabels.map(x=> sum.mapByDate.get(x.key) || 0);
+
+      document.getElementById('kpiTotal').textContent = fmtINR(sum.total);
+      const days = Math.max(1, dayLabels.length);
+      document.getElementById('kpiAvg').textContent = fmtINR(sum.total / days);
+      document.getElementById('kpiInvoices').textContent = sum.invCount;
+      document.getElementById('kpiTop').textContent = sum.topItem;
+
+      // Line chart
+      const lineCtx = document.getElementById('lineByDay').getContext('2d');
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: dayLabels.map(x=>x.label),
+          datasets: [{
+            data: dayValues,
+            borderWidth: 2,
+            tension: .3,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          plugins: { legend: { display:false }, tooltip: { callbacks:{ label:(c)=>'₹'+fmtINR(c.parsed.y) } } },
+          scales: { y: { ticks: { callback: v=>'₹'+fmtINR(v) } } }
+        }
+      });
+
+      // Pie chart
+      const pieCtx = document.getElementById('pieItems').getContext('2d');
+      if (pieChart) pieChart.destroy();
+      const labels = [...sum.byItem.keys()];
+      const vals = [...sum.byItem.values()];
+      pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: labels.length?labels:['No data'],
+          datasets: [{ data: vals.length?vals:[1], borderWidth:0 }]
+        },
+        options: {
+          plugins: {
+            legend: { position:'bottom' },
+            tooltip: { callbacks:{ label:(c)=> '₹'+fmtINR(c.parsed) } }
+          }
+        }
+      });
+    }
+
+    // Initialize
+    if (window.Chart) render('today');
+    else document.addEventListener('DOMContentLoaded', ()=>{
+      const iv=setInterval(()=>{ if(window.Chart){ clearInterval(iv); render('today'); }}, 30);
+    });
   </script>
+
+  <style>
+    /* tiny page-specific helpers reusing your palette */
+    .filters{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
+    .seg{display:flex; gap:6px; background:var(--card); padding:6px; border-radius:999px}
+    .seg-btn{border:0; padding:8px 14px; border-radius:999px; background:transparent; color:var(--text); font-weight:600}
+    .seg-btn.is-active{background:var(--brand-500); color:#fff}
+    .dates{display:flex; gap:8px; align-items:center}
+    .spacer{flex:1}
+  </style>
 </body>
 </html>
