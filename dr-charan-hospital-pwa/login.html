@@ -42,19 +42,43 @@
   <footer class="footer">PWA Demo • Works offline</footer>
 
   <script>
-    // Theme toggle
-    const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.setAttribute('data-theme', localStorage.theme); tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙'; }
-    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+  // Theme toggle
+  const tbtn=document.getElementById('themeToggle');
+  if(localStorage.theme){
+    document.documentElement.setAttribute('data-theme', localStorage.theme);
+    tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
+  }
+  tbtn.onclick=()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=cur==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.theme=next;
+    tbtn.textContent=next==='light'?'🌞':'🌙';
+  };
 
-    // Inline login – no external deps
-    const USERS=[{role:'doctor',pin:'4321',name:'Dr. Rao'},{role:'supervisor',pin:'1111',name:'Supervisor'},{role:'patient',pin:'2222',name:'Patient'}];
-    const KEY='onestop_hospital_demo_v5';
-    function base(){return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}}
-    function saveUser(u){ const db=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(base())); db.user={role:u.role,name:u.name}; localStorage.setItem(KEY,JSON.stringify(db)); }
-    document.getElementById('loginBtn').onclick=()=>{ const role=document.getElementById('role').value; const pin=document.getElementById('pin').value.trim(); const u=USERS.find(x=>x.role===role&&x.pin===pin); if(!u){alert('Invalid PIN');return;} saveUser(u); location.href= role==='patient' ? 'portal.html?v=5' : 'dashboard.html?v=5'; };
+  // PIN-only auth
+  const PINS = {
+    "4321": { role:"doctor", name:"Dr. Rao" },
+    "1111": { role:"supervisor", name:"Supervisor" },
+    "2222": { role:"patient", name:"Patient" }
+  };
 
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
+  const KEY='onestop_hospital_demo_v5';
+  function base(){return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}}
+  function saveUser(u){
+    const db=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(base()));
+    db.user=u; localStorage.setItem(KEY,JSON.stringify(db));
+  }
+
+  document.getElementById('loginBtn').onclick=()=>{
+    const pin=document.getElementById('pin').value.trim();
+    const u=PINS[pin];
+    if(!u){ alert("Invalid PIN"); return; }
+    saveUser(u);
+    location.href = u.role==="patient" ? "portal.html?v=6" : "dashboard.html?v=6";
+  };
+
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
   </script>
 </body>
 </html>
