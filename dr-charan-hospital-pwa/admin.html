@@ -1,1 +1,81 @@
-<!doctype html><html><body><h1>Admin Placeholder</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin – Dr. Charan Hospital</title>
+  <link rel="icon" href="assets/logo.png"/><link rel="stylesheet" href="styles.css?v=5"/>
+</head>
+<body>
+  <header class="banner">
+    <div class="brand">
+      <img src="assets/logo.png" alt="Logo">
+      <div>
+        <h1 class="title">Dr. Charan Hospital</h1>
+        <p class="subtitle">Admin</p>
+      </div>
+    </div>
+    <a class="chip" id="themeToggle">🌙</a>
+  </header>
+
+  <main class="container">
+    <section class="card grid3">
+      <div class="field"><label>Date</label><input type="date" id="date"></div>
+      <div class="field"><label>Search</label><input id="q" placeholder="name / reason / slot"></div>
+      <div class="field" style="align-items:end"><button class="btn ghost" id="exportCsv">Export CSV</button></div>
+    </section>
+
+    <section class="card" id="summary"></section>
+
+    <section class="card table-wrap">
+      <table class="table" id="tbl">
+        <thead><tr><th>Time</th><th>Token</th><th>Name</th><th>Reason</th><th>Contact</th><th>Reminder</th><th>Call</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="footer"><a class="chip" href="login.html?v=5">← Back</a></footer>
+
+  <script type="module">
+    import { getBookingsByDate, markReminder, telLink, exportBookingsCsv } from './js/store.js?v=5';
+
+    // Theme
+    const tbtn=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.setAttribute('data-theme', localStorage.theme); tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙'; }
+    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+
+    const date=document.getElementById('date'); const q=document.getElementById('q');
+    const tbody=document.querySelector('#tbl tbody'); const summary=document.getElementById('summary');
+    date.valueAsDate=new Date();
+
+    const render=()=>{
+      const d=date.value; const rows=getBookingsByDate(d);
+      const filter=q.value.toLowerCase();
+      const filtered=rows.filter(r=>`${r.name} ${r.reason} ${r.slot}`.toLowerCase().includes(filter));
+      tbody.innerHTML='';
+      for(const r of filtered){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${r.slot}</td><td>${r.token}</td><td>${r.name}</td><td>${r.reason}</td><td>${r.contact}</td>
+        <td><button class="chip ${r.reminder==='✔️'?'ok':''}" data-id="${r.id}">${r.reminder||'Send WA'}</button></td>
+        <td><a class="chip" href="${telLink(r.contact)}">Call</a></td>`;
+        tbody.appendChild(tr);
+      }
+      summary.innerHTML = `<div class="grid3">
+        <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Bookings</div></div>
+        <div class="stat"><div class="num">${new Set(rows.map(b=>b.slot)).size}</div><div class="lbl">Slots</div></div>
+        <div class="stat"><div class="num">${rows.filter(b=>b.reminder==='✔️').length}</div><div class="lbl">Reminders</div></div>
+      </div>`;
+    };
+
+    date.addEventListener('change',render); q.addEventListener('input',render);
+    document.addEventListener('click',(e)=>{ const b=e.target.closest('button.chip'); if(!b) return;
+      if(markReminder(b.dataset.id)){ b.textContent='✔️'; b.classList.add('ok'); }
+    });
+    document.getElementById('exportCsv').onclick=()=>{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([exportBookingsCsv(date.value)],{type:'text/csv'}));
+      a.download=`bookings_${date.value}.csv`; a.click();
+    };
+    render();
+  </script>
+</body>
+</html>
