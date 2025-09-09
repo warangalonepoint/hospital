@@ -1,148 +1,201 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Doctor Dashboard – Dr. Charan Hospital</title>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=16"/>
+  <link rel="stylesheet" href="styles.css?v=14"/>
+  <style>
+    .floating-actions{position:fixed;top:14px;left:14px;z-index:1000;display:flex;gap:8px;flex-wrap:wrap}
+  </style>
 </head>
 <body>
-  <!-- Banner -->
-  <header class="banner">
-    <!-- small logo overlay (optional: replace with your logo.png if you want) -->
-    <img class="logo" src="assets/logo.png" alt="Dr. Charan Hospital">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
-    <div class="floating-actions">
-      <a href="login.html" id="logoutBtn" class="chip">Logout</a>
-      <button id="clearCacheBtn" class="chip">Clear Cache</button>
-    </div>
-  </header>
+  <header class="banner clean"></header>
 
-  <main class="container">
-    <!-- Tiles -->
-    <section class="card" style="padding:18px">
+  <!-- Always-visible controls -->
+  <div class="floating-actions">
+    <button id="logout" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
+
+  <main class="container n8">
+    <section class="card">
       <div class="tile-grid">
-        <a class="tile lilac" href="analytics.html">
+        <a class="tile analytics" id="openAnalytics">
           <div class="title">Analytics</div>
           <div class="sub">KPIs & weekly sales</div>
         </a>
 
-        <a class="tile ice" href="pharmacy-report.html" id="pharmaTile">
+        <!-- Pharmacy: live stats from Billing -->
+        <a class="tile pharma" href="admin.html?v=15">
           <div class="title">Pharmacy</div>
-          <div class="sub" id="pharmaMeta">Today ₹0.00 • MTD ₹0.00 • Top: –</div>
+          <div class="sub" id="pharmaMeta">Sales & invoices</div>
         </a>
 
-        <a class="tile mint" href="patient.html">
-          <div class="title">Bookings</div>
-          <div class="sub">Quick patient slots</div>
-        </a>
-
-        <a class="tile peach" href="portal.html">
-          <div class="title">Patients</div>
-          <div class="sub">Reminders & history</div>
-        </a>
-
-        <a class="tile mint" href="admin.html">
-          <div class="title">Staff</div>
-          <div class="sub">Roster & status</div>
-        </a>
-
-        <a class="tile lilac" href="settings.html">
-          <div class="title">Settings</div>
-          <div class="sub">PINs, Staff, Patients</div>
-        </a>
+        <a class="tile bookings" href="patient.html?v=15"><div class="title">Bookings</div><div class="sub">Quick patient slots</div></a>
+        <a class="tile patients" href="portal.html?v=15"><div class="title">Patients</div><div class="sub">Reminders & history</div></a>
+        <a class="tile staff" href="#"><div class="title">Staff</div><div class="sub">Roster & status</div></a>
+        <a class="tile settings" href="settings.html?v=14"><div class="title">Settings</div><div class="sub">PINs, Staff, Patients</div></a>
       </div>
     </section>
 
-    <!-- KPIs + mini chart -->
-    <section class="card" style="margin-top:16px;padding:18px">
-      <h3 style="margin:0 0 8px">Sales Analytics</h3>
-      <div class="kpis">
-        <div class="kpi"><div class="n" id="kToday">0.00</div><div class="muted">Today ₹</div></div>
-        <div class="kpi"><div class="n" id="kMonth">0.00</div><div class="muted">This Month ₹</div></div>
-        <div class="kpi"><div class="n" id="kTop">–</div><div class="muted">Top Item</div></div>
+    <section class="card" id="analyticsPanel">
+      <h3 style="margin-top:0">Sales Analytics</h3>
+      <div class="tile-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat"><div class="num" id="totalToday">0</div><div class="lbl">Today ₹</div></div>
+        <div class="stat"><div class="num" id="totalMonth">0</div><div class="lbl">This Month ₹</div></div>
+        <div class="stat"><div class="num" id="topItem">–</div><div class="lbl">Top Item</div></div>
       </div>
-
-      <div class="chart-card">
-        <canvas id="miniChart" height="170" style="width:100%"></canvas>
+      <canvas id="salesChart" height="180" style="width:100%;margin-top:16px"></canvas>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <a class="btn" href="admin.html?v=15">Open Pharmacy</a>
+        <button class="btn ghost" id="exportSales">Export Sales CSV</button>
       </div>
     </section>
   </main>
 
+  <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
+    Role-based demo • Doctor has full access
+  </footer>
+
   <script type="module">
-    import { requireRole, totalsToday, totalsMonth, topItemName, listInvoices } from './js/store.js?v=21';
+    import * as S from './js/store.js?v=14';
 
-    // gate
-    const u=requireRole('doctor'); if(!u) { location.href='login.html'; }
+    // Theme toggle
+    const tbtn=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.setAttribute('data-theme', localStorage.theme);
+      tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
+    }
+    tbtn.onclick=()=>{ 
+      const cur=document.documentElement.getAttribute('data-theme')||'light';
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next); 
+      localStorage.theme=next; 
+      tbtn.textContent=next==='light'?'🌞':'🌙'; 
+    };
 
-    // theme
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    // Auth guard
+    const u = (JSON.parse(localStorage.getItem(S.KEY)||'{}')).user;
+    if(!u){ location.href='login.html?v=15'; }
 
-    // clear cache
+    // Logout / Clear cache
+    document.getElementById('logout').onclick=()=>{
+      const db=JSON.parse(localStorage.getItem(S.KEY)||'{}');
+      db.user=null; localStorage.setItem(S.KEY, JSON.stringify(db));
+      location.href='login.html?v=15';
+    };
     document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
         localStorage.clear();
-        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+        if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
         alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch(e){ alert('Could not fully clear. Try hard reload.'); }
+      }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
     };
 
-    // KPIs + tile meta
-    async function refreshKPIs(){
-      const t=await totalsToday();
-      const m=await totalsMonth();
-      const top=await topItemName();
-      document.getElementById('kToday').textContent=t.toFixed(2);
-      document.getElementById('kMonth').textContent=m.toFixed(2);
-      document.getElementById('kTop').textContent=top||'–';
-      document.getElementById('pharmaMeta').textContent = `Today ₹${t.toFixed(2)} • MTD ₹${m.toFixed(2)} • Top: ${top||'–'}`;
-      drawMini();
+    // Pharmacy tile meta: Today, MTD, counts, avg/invoice, MTD top item, Last invoice #
+    async function renderPharmacyTile(){
+      const today = new Date().toISOString().slice(0,10);
+      const month = today.slice(0,7); // YYYY-MM
+
+      const allInvs = S.listInvoices() || [];
+      const invsToday = S.listInvoices({from: today, to: today}) || [];
+      const invsMTD = allInvs.filter(i => (i.date||'').startsWith(month));
+
+      const totalToday = +(await S.totalsToday?.() || 0);
+      const totalMonth = +(await S.totalsMonth?.() || 0);
+      const mtdCount = invsMTD.length;
+      const mtdAvg = mtdCount ? (totalMonth / mtdCount) : 0;
+
+      // MTD top item (by revenue) from derived sales
+      const sales = S.listSales?.() || [];
+      const mtdSales = sales.filter(r => (r.date||'').startsWith(month));
+      const agg = {};
+      for(const r of mtdSales){
+        const amt = (Number(r.qty)||0) * (Number(r.price)||0);
+        agg[r.item] = (agg[r.item]||0) + amt;
+      }
+      let mtdTopItem = '–', topAmt = -1;
+      for(const [k,v] of Object.entries(agg)){ if(v>topAmt){ topAmt=v; mtdTopItem=k; } }
+
+      const lastInvNo = (allInvs[0]?.number) || '—';
+
+      document.getElementById('pharmaMeta').textContent =
+        `Today ₹${totalToday.toFixed(2)} • ${invsToday.length} inv | `
+        + `MTD ₹${totalMonth.toFixed(2)} • ${mtdCount} inv • Avg ₹${mtdAvg.toFixed(2)} | `
+        + `Top: ${mtdTopItem} | Last: ${lastInvNo}`;
     }
 
-    // mini bar chart (last 7 days)
-    function drawMini(){
-      const c=document.getElementById('miniChart'), ctx=c.getContext('2d');
+    // Export Sales CSV
+    document.getElementById('exportSales').onclick=()=>{
+      const rows = S.listSales?.() || [];
+      const head=['date','item','qty','price','amount','invoice'];
+      const body=(rows||[]).map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
+      const csv=[head,...body].map(r=>r.join(',')).join('\n');
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='pharma_sales.csv'; a.click();
+    };
+
+    // KPIs
+    async function renderKPIs(){
+      const t1 = (await S.totalsToday?.() || 0).toFixed(2);
+      const t2 = (await S.totalsMonth?.() || 0).toFixed(2);
+      const top = await S.topItemName?.() || '–';
+      document.getElementById('totalToday').textContent = t1;
+      document.getElementById('totalMonth').textContent = t2;
+      document.getElementById('topItem').textContent = top;
+    }
+
+    // 7-day bar chart
+    async function renderChart(){
+      const rows = await S.listSales?.() || [];
+      const fmt = (d)=>d.toISOString().slice(5,10); // MM-DD
+      const days=[]; const today=new Date();
+      for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(fmt(d)); }
+      const totals=Object.fromEntries(days.map(k=>[k,0]));
+      for(const r of rows){
+        if(!r.date) continue;
+        const key=r.date.slice(5,10);
+        if(key in totals) totals[key]+= (Number(r.qty)||0)*(Number(r.price)||0);
+      }
+      const labels=days, data=days.map(k=>totals[k]);
+
+      const c=document.getElementById('salesChart');
+      const ctx=c.getContext('2d');
       c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
+
       const W=c.clientWidth, H=c.clientHeight, pad=24;
       ctx.clearRect(0,0,W,H);
-      const border=getComputedStyle(document.documentElement).getPropertyValue('--border')||'#e9edf5';
-      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
 
-      const invs=listInvoices(); const today=new Date();
-      const labels=[], data=[];
-      for(let i=6;i>=0;i--){
-        const d=new Date(today); d.setDate(today.getDate()-i);
-        const key=d.toISOString().slice(0,10);
-        labels.push(key.slice(5)); // MM-DD
-        data.push(invs.filter(x=>x.date===key).reduce((s,r)=>s+(+r.total||0),0));
-      }
+      const border=getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e9edf5';
+      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
 
-      const max=Math.max(10,...data);
-      const slot=(W-pad*2)/labels.length, bw=slot*0.6, base=H-pad;
-      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#5166ff';
+      const max=Math.max(10, ...data);
+      const slot=(W - pad*2)/labels.length;
+      const bw=slot*0.7;
+      const base=H - pad;
 
-      data.forEach((v,i)=>{
-        const h=Math.round((v/max)*(H-pad*2));
-        const x=pad+i*slot+(slot-bw)/2;
-        ctx.fillStyle=primary;
-        ctx.fillRect(x,base-h,bw,h);
+      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#5166ff';
+      const muted=getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#737b8c';
+      labels.forEach((lb,i)=>{
+        const x=pad + i*slot + (slot-bw)/2;
+        const h=Math.round((data[i]/max) * (H - pad*2));
+        ctx.fillStyle=primary; ctx.fillRect(x, base-h, bw, h);
+        ctx.fillStyle=muted; ctx.font='11px system-ui'; ctx.textAlign='center';
+        ctx.fillText(lb, x+bw/2, H-6);
       });
-
-      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#7b8';
-      ctx.font='11px system-ui'; ctx.textAlign='center';
-      labels.forEach((lb,i)=>{ const x=pad+i*slot+slot/2; ctx.fillText(lb,x,H-6); });
     }
 
-    refreshKPIs();
-    addEventListener('resize', drawMini);
+    await renderKPIs();
+    await renderPharmacyTile();
+    await renderChart();
+    addEventListener('resize', renderChart);
 
-    // register SW quietly
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    document.getElementById('openAnalytics')?.addEventListener('click',()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'}));
   </script>
 </body>
 </html>
