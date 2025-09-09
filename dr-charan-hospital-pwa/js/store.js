@@ -1,103 +1,214 @@
-// v5 storage + data helpers
-export const KEY='onestop_hospital_demo_v5';
+// ===== Onestop Hospital Demo Store (v12) =====
+// Adds multi-item invoices while keeping old APIs working.
 
-function load(){
-  try{ return JSON.parse(localStorage.getItem(KEY)) || {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}; }
-  catch{ return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}; }
-}
-function save(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
+export const KEY = 'onestop_hospital_demo_v5';
 
-export function currentUser(){ return load().user; }
-export function logout(){ const db=load(); db.user=null; save(db); }
-export function guard(user){ if(user?.role!=='doctor'){ const el=document.querySelector('[data-tab="upload"]'); if(el) el.style.display='none'; } }
+function emptyDB(){
+  return {
+    user: null,
+    // legacy
+    sales: [],
+    // new billing
+    invoices: [] // [{id, number, ts, date, patientName, patientPhone, doctorName, items:[{id,name,batch,expiry,qty,rate,discountAbs,discountPct,gstPct,amount}], discAbs, discPct, roundOff, total, paid, balance, status}]
+  };
+}
+function dbLoad(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || emptyDB(); }
+  catch { return emptyDB(); }
+}
+function dbSave(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
 
-// Slots & bookings
-export function initSlotsForDate(date){
-  const db=load();
-  const def=['09:00 AM','09:15 AM','09:30 AM','09:45 AM','10:00 AM','10:15 AM','10:30 AM','10:45 AM','11:00 AM','11:15 AM','11:30 AM','11:45 AM','12:00 PM','12:15 PM','12:30 PM','05:00 PM','05:15 PM','05:30 PM','05:45 PM','06:00 PM','06:15 PM','06:30 PM','06:45 PM'];
-  if(!db.slots[date]) db.slots[date]=def;
-  save(db);
-}
-export function getAvailableSlots(date){
-  const db=load(); if(!db.slots[date]) return [];
-  const booked=new Set(db.bookings.filter(b=>b.date===date).map(b=>b.slot));
-  return db.slots[date].filter(s=>!booked.has(s));
-}
-export function nextTokenForDate(date){
-  const db=load(); const tokens=db.bookings.filter(b=>b.date===date).map(b=>b.token);
-  return (Math.max(0,...tokens)||0)+1;
-}
-export function saveBooking({name,contact,reason,date,slot,token}){
-  const db=load(); const id=crypto.randomUUID();
-  const rec={id,ts:Date.now(),name,contact,reason,date,slot,token,reminder:''};
-  db.bookings.push(rec); save(db); return rec;
-}
-export function getBookingsByDate(date){
-  return load().bookings.filter(b=>b.date===date).sort((a,b)=> a.slot.localeCompare(b.slot));
-}
-export function recordsForContact(contact){
-  return load().bookings.filter(b=>b.contact===contact).map(b=>({date:b.date,slot:b.slot,dx:b.reason}));
-}
-export function markReminder(id){
-  const db=load(); const b=db.bookings.find(x=>x.id===id); if(!b) return false; b.reminder='✔️'; save(db); return true;
-}
-export function exportBookingsCsv(date){
-  const rows=getBookingsByDate(date);
-  const head=['Timestamp','Date','Slot','Token','Patient Name','Reason','Contact','Reminder'];
-  const body=rows.map(r=>[ new Date(r.ts).toLocaleString(), r.date, r.slot, r.token, r.name, r.reason, r.contact, r.reminder ]);
-  return [head,...body].map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
-}
-export function telLink(num){ return `tel:+91${num}`; }
+// ===== Auth helpers (unchanged API) =====
+export function currentUser(){ return dbLoad().user; }
+export function logout(){ const db=dbLoad(); db.user=null; dbSave(db); }
 
-// Pharmacy sales
-export function addSale({date,item,invoice,qty,price}){
-  const db=load(); db.sales.push({id:crypto.randomUUID(),date,item,invoice,qty:+qty,price:+price}); save(db);
+// ===== Invoice helpers =====
+function nextInvoiceNumber(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const seq = Math.floor(Math.random()*90000)+10000; // demo-safe
+  return `DCH-${y}${m}-${seq}`;
 }
-export function listSales(){ return load().sales.sort((a,b)=> a.date.localeCompare(b.date)); }
+export function newDraftInvoice(meta={}){
+  const db = dbLoad();
+  const inv = {
+    id: crypto.randomUUID(),
+    number: nextInvoiceNumber(),
+    ts: Date.now(),
+    date: new Date().toISOString().slice(0,10),
+    patientName: meta.patientName||'',
+    patientPhone: meta.patientPhone||'',
+    doctorName: meta.doctorName||'',
+    items: [],
+    discAbs: 0,
+    discPct: 0,
+    roundOff: 0,
+    total: 0,
+    paid: 0,
+    balance: 0,
+    status: 'draft' // 'final'
+  };
+  db.invoices.push(inv);
+  dbSave(db);
+  return inv;
+}
+export function getInvoice(id){
+  return dbLoad().invoices.find(i=>i.id===id) || null;
+}
+export function listInvoices({from, to}={}){
+  const rows = dbLoad().invoices.slice();
+  if(from || to){
+    return rows.filter(r=>{
+      const d = r.date;
+      if(from && d < from) return false;
+      if(to && d > to) return false;
+      return true;
+    }).sort((a,b)=> (a.date+b.number).localeCompare(b.date+b.number));
+  }
+  return rows.sort((a,b)=> b.ts - a.ts);
+}
+export function addLine(invoiceId, line){
+  const db=dbLoad();
+  const inv=db.invoices.find(x=>x.id===invoiceId);
+  if(!inv) throw new Error('Invoice not found');
+  const ln = {
+    id: crypto.randomUUID(),
+    name: (line.name||'').trim(),
+    batch: (line.batch||'').trim(),
+    expiry: (line.expiry||'').trim(),
+    qty: +line.qty||0,
+    rate: +line.rate||0,
+    discountAbs: +line.discountAbs||0,
+    discountPct: +line.discountPct||0,
+    gstPct: +line.gstPct||0
+  };
+  ln.amount = calcLineAmount(ln);
+  inv.items.push(ln);
+  computeTotals(inv);
+  dbSave(db);
+  return ln;
+}
+export function updateLine(invoiceId, lineId, patch){
+  const db=dbLoad();
+  const inv=db.invoices.find(x=>x.id===invoiceId); if(!inv) throw new Error('Invoice not found');
+  const ln=inv.items.find(i=>i.id===lineId); if(!ln) throw new Error('Line not found');
+  Object.assign(ln, patch);
+  ln.amount = calcLineAmount(ln);
+  computeTotals(inv);
+  dbSave(db);
+}
+export function removeLine(invoiceId, lineId){
+  const db=dbLoad();
+  const inv=db.invoices.find(x=>x.id===invoiceId); if(!inv) throw new Error('Invoice not found');
+  inv.items = inv.items.filter(i=>i.id!==lineId);
+  computeTotals(inv);
+  dbSave(db);
+}
+export function setInvoiceDiscounts(invoiceId, {discAbs=0, discPct=0}={}){
+  const db=dbLoad();
+  const inv=db.invoices.find(x=>x.id===invoiceId); if(!inv) throw new Error('Invoice not found');
+  inv.discAbs = +discAbs||0;
+  inv.discPct = +discPct||0;
+  computeTotals(inv);
+  dbSave(db);
+}
+export function finalizeInvoice(invoiceId, {paid=0}={}){
+  const db=dbLoad();
+  const inv=db.invoices.find(x=>x.id===invoiceId); if(!inv) throw new Error('Invoice not found');
+  computeTotals(inv);
+  inv.paid = +paid||0;
+  inv.balance = Math.max(0, +(inv.total - inv.paid).toFixed(2));
+  inv.status = 'final';
+  dbSave(db);
+  return inv;
+}
+
+// ===== Calculations =====
+function calcLineAmount(ln){
+  const base = ln.qty * ln.rate;
+  const discPctAmt = base * (ln.discountPct/100);
+  const afterDisc = base - discPctAmt - (ln.discountAbs||0);
+  const tax = afterDisc * (ln.gstPct/100);
+  return +(Math.max(0, afterDisc + tax).toFixed(2));
+}
+function computeTotals(inv){
+  const sumLines = inv.items.reduce((t,i)=> t + calcLineAmount(i), 0);
+  const afterPct = sumLines * (1 - (inv.discPct||0)/100);
+  const afterAbs = afterPct - (inv.discAbs||0);
+  // round to 2 decimals; keep a small roundOff if needed
+  const rounded = Math.round(afterAbs*100)/100;
+  inv.roundOff = +(rounded - afterAbs).toFixed(2);
+  inv.total = +rounded.toFixed(2);
+  inv.balance = Math.max(0, +(inv.total - (inv.paid||0)).toFixed(2));
+  return inv;
+}
+
+// ===== CSV (optional compatibility) =====
+export function exportInvoicesCsv(){
+  const head = ['number','date','patient','phone','doctor','lines','total','paid','balance','status'];
+  const rows = listInvoices().map(i=>[i.number,i.date,i.patientName,i.patientPhone,i.doctorName,i.items.length,i.total,i.paid,i.balance,i.status]);
+  return [head, ...rows].map(r=>r.join(',')).join('\n');
+}
+export function exportInvoiceLinesCsv(){
+  const head = ['invoice','date','item','batch','expiry','qty','rate','discPct','discAbs','gstPct','amount'];
+  const out = [];
+  for(const inv of listInvoices()){
+    for(const ln of inv.items){
+      out.push([inv.number, inv.date, ln.name, ln.batch, ln.expiry, ln.qty, ln.rate, ln.discountPct, ln.discountAbs, ln.gstPct, calcLineAmount(ln)]);
+    }
+  }
+  return [head, ...out].map(r=>r.join(',')).join('\n');
+}
+
+// ===== Legacy compat: analytics from invoices (fallback to old sales) =====
+export function listSales(){
+  // derive from invoice lines for compatibility
+  const rows=[];
+  for(const inv of dbLoad().invoices){
+    for(const ln of inv.items){
+      rows.push({date: inv.date, item: ln.name, qty: ln.qty, price: ln.rate, invoice: inv.number});
+    }
+  }
+  // include legacy sales if any
+  return rows.concat(dbLoad().sales||[]).sort((a,b)=> a.date.localeCompare(b.date));
+}
 export function salesCsv(){
-  const rows=listSales(); const head=['date','item','qty','price','amount','invoice'];
-  const body=rows.map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice]);
+  const rows=listSales();
+  const head=['date','item','qty','price','amount','invoice'];
+  const body=rows.map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
   return [head,...body].map(r=>r.join(',')).join('\n');
-}
-export function groupInvoices(){
-  const g={}; for(const r of listSales()){ g[r.invoice]??=[]; g[r.invoice].push(r); } return g;
 }
 export function totalsToday(){
   const d=new Date().toISOString().slice(0,10);
-  return listSales().filter(r=>r.date===d).reduce((t,r)=>t+r.qty*r.price,0);
+  const invs=listInvoices({from:d,to:d});
+  const sum = invs.filter(i=>i.status==='final' || i.items.length) // count drafts too for demo
+    .reduce((t,i)=> t + (i.total||0), 0);
+  // fallback to legacy sales if no invoices
+  if(sum>0) return sum;
+  const sales = (dbLoad().sales||[]).filter(r=>r.date===d).reduce((t,r)=>t+r.qty*r.price,0);
+  return sales;
 }
 export function totalsMonth(){
   const m=new Date().toISOString().slice(0,7);
-  return listSales().filter(r=>r.date.startsWith(m)).reduce((t,r)=>t+r.qty*r.price,0);
+  const invs=listInvoices().filter(i=>i.date?.startsWith(m));
+  const sum = invs.reduce((t,i)=> t + (i.total||0), 0);
+  if(sum>0) return sum;
+  const sales = (dbLoad().sales||[]).filter(r=>r.date?.startsWith(m)).reduce((t,r)=>t+r.qty*r.price,0);
+  return sales;
 }
 export function topItemName(){
-  const m={}; for(const r of listSales()){ m[r.item]=(m[r.item]||0)+r.qty*r.price; }
-  let best=null,amt=0; for(const [k,v] of Object.entries(m)){ if(v>amt){amt=v; best=k;} } return best;
-}
-
-// Patients panel (separate list for notes)
-export function addPatient({date,slot,name,contact,dx}){
-  const db=load(); const p={id:crypto.randomUUID(),date,slot,name,contact,dx,reminder:''}; db.patients.push(p); save(db);
-}
-export function listPatients(){ return load().patients.sort((a,b)=> (a.date+a.slot).localeCompare(b.date+b.slot)); }
-export function waLink(contact,msg){ return `https://wa.me/91${contact}?text=${msg}`; }
-
-// Staff roster
-export function addRoster({date,name,shift,status}){
-  const db=load(); db.roster.push({id:crypto.randomUUID(),date,name,shift,status}); save(db);
-}
-export function listRoster(){ return load().roster.sort((a,b)=> a.date.localeCompare(b.date)); }
-
-// CSV import for 5y sales
-export function importSalesCsv(txt){
-  try{
-    const lines=txt.trim().split(/\r?\n/); const [h,*rows]=lines; const cols=h.split(',').map(s=>s.trim());
-    const map=(arr)=>{const o={}; cols.forEach((k,i)=>o[k]=arr[i]); return o;};
-    let count=0; for(const line of rows){ const c=line.split(',').map(s=>s.trim()); const r=map(c);
-      addSale({date:r.date,item:r.item,invoice:r.invoice||'CSV',qty:+r.qty,price:+r.price}); count++; }
-    return {ok:true,count};
-  }catch(e){ return {ok:false,error:e?.message}; }
-}
-export function downloadSalesTemplate(){
-  return 'date,item,qty,price,invoice\n2025-09-01,Paracetamol 650,10,2.50,INV-1001\n2025-09-02,Azithromycin 500,5,12.00,INV-1002';
+  const map={};
+  for(const inv of listInvoices()){
+    for(const ln of inv.items){
+      map[ln.name] = (map[ln.name]||0) + calcLineAmount(ln);
+    }
+  }
+  let best=null,amt=0;
+  for(const [k,v] of Object.entries(map)){ if(v>amt){ amt=v; best=k; } }
+  if(best) return best;
+  // fallback
+  const m2={}; for(const r of dbLoad().sales||[]){ m2[r.item]=(m2[r.item]||0)+r.qty*r.price; }
+  for(const [k,v] of Object.entries(m2)){ if(v>amt){ amt=v; best=k; } }
+  return best;
 }
