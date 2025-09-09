@@ -1,0 +1,64 @@
+-- create_invoice_with_items(items JSONB)
+create or replace function create_invoice_with_items(
+  inv jsonb, items jsonb
+) returns uuid
+language plpgsql
+as $$
+declare
+  new_id uuid := gen_random_uuid();
+  it jsonb;
+  total numeric := 0;
+begin
+  -- create invoice shell
+  insert into invoices (id, invoice_no, invoice_date, patient_name, patient_phone, doctor_name,
+                        discount_pct, discount_rs, total_rs, paid_rs, balance_rs, created_by)
+  values (
+    new_id,
+    coalesce(inv->>'invoice_no','INV-'||extract(epoch from now())::bigint),
+    coalesce((inv->>'invoice_date')::date, current_date),
+    inv->>'patient_name',
+    inv->>'patient_phone',
+    inv->>'doctor_name',
+    coalesce((inv->>'discount_pct')::numeric,0),
+    coalesce((inv->>'discount_rs')::numeric,0),
+    0, 0, 0,
+    null
+  );
+
+  -- items
+  for it in select * from jsonb_array_elements(items)
+  loop
+    insert into invoice_items (invoice_id, item_name, batch, expiry, qty, price_rs, amount_rs)
+    values (
+      new_id,
+      it->>'item_name',
+      it->>'batch',
+      (it->>'expiry')::date,
+      (it->>'qty')::int,
+      (it->>'price_rs')::numeric,
+      ((it->>'qty')::int * (it->>'price_rs')::numeric)
+    );
+  end loop;
+
+  -- totals
+  select sum(amount_rs) into total from invoice_items where invoice_id = new_id;
+
+  update invoices
+     set total_rs = total,
+         paid_rs = coalesce((inv->>'paid_rs')::numeric, 0),
+         balance_rs = total - coalesce((inv->>'discount_rs')::numeric,0) - coalesce((inv->>'paid_rs')::numeric,0)
+   where id = new_id;
+
+  return new_id;
+end $$;
+
+-- sales_summary(range_start, range_end)
+create or replace function sales_summary(r_from date, r_to date)
+returns table(day date, total_rs numeric, inv_count bigint)
+language sql
+as $$
+  select invoice_date::date, sum(total_rs), count(*)
+  from invoices
+  where invoice_date between r_from and r_to
+  group by 1 order by 1;
+$$;
