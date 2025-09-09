@@ -1,80 +1,232 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Admin – Dr. Charan Hospital</title>
-  <link rel="icon" href="assets/logo.png"/><link rel="stylesheet" href="styles.css?v=5"/>
+  <title>Pharmacy – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="stylesheet" href="styles.css?v=10"/>
 </head>
 <body>
-  <header class="banner">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Logo">
-      <div>
-        <h1 class="title">Dr. Charan Hospital</h1>
-        <p class="subtitle">Admin</p>
-      </div>
-    </div>
-    <a class="chip" id="themeToggle">🌙</a>
-  </header>
+  <!-- Banner (image already has logo/title) -->
+  <header class="banner clean"></header>
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
-  <main class="container">
-    <section class="card grid3">
-      <div class="field"><label>Date</label><input type="date" id="date"></div>
-      <div class="field"><label>Search</label><input id="q" placeholder="name / reason / slot"></div>
-      <div class="field" style="align-items:end"><button class="btn ghost" id="exportCsv">Export CSV</button></div>
+  <main class="container n8">
+    <!-- Top actions -->
+    <section class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="dashboard.html?v=11" class="chip">← Back to Dashboard</a>
+        <button id="clearCacheBtn" class="btn">Clear Cache</button>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+      <div class="subtitle">Manage sales & invoices</div>
     </section>
 
-    <section class="card" id="summary"></section>
+    <!-- Sales entry -->
+    <section class="card">
+      <h3 style="margin:0 0 10px">Add Sale</h3>
+      <form id="saleForm" class="tile-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Date</label><input type="date" name="date" required/></div>
+        <div class="field"><label>Item</label><input name="item" placeholder="Paracetamol 650" required/></div>
+        <div class="field"><label>Invoice #</label><input name="invoice" placeholder="INV-001" required/></div>
+        <div class="field"><label>Qty</label><input name="qty" type="number" min="1" value="1" required/></div>
+        <div class="field"><label>Price (₹)</label><input name="price" type="number" min="0" step="0.01" required/></div>
+        <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Add Sale</button></div>
+      </form>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button id="exportSales" class="btn ghost">Export Sales CSV</button>
+        <button id="downloadTemplate" class="btn ghost">Download CSV Template</button>
+        <label class="chip" style="cursor:pointer">
+          Import CSV
+          <input id="csvFile" type="file" accept=".csv" style="display:none">
+        </label>
+      </div>
+    </section>
 
-    <section class="card table-wrap">
-      <table class="table" id="tbl">
-        <thead><tr><th>Time</th><th>Token</th><th>Name</th><th>Reason</th><th>Contact</th><th>Reminder</th><th>Call</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <!-- Sales table -->
+    <section class="card">
+      <h3 style="margin:0 0 10px">Sales</h3>
+      <div class="table-wrap">
+        <table class="table" id="salesTbl">
+          <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th><th>Invoice</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Invoices (derived) -->
+    <section class="card">
+      <h3 style="margin:0 0 10px">Invoices</h3>
+      <div class="table-wrap">
+        <table class="table" id="invTbl">
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Lines</th><th>Total ₹</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
-  <footer class="footer"><a class="chip" href="login.html?v=5">← Back</a></footer>
+  <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
+    Pharmacy module • Sales & invoices
+  </footer>
 
   <script type="module">
-    import { getBookingsByDate, markReminder, telLink, exportBookingsCsv } from './js/store.js?v=5';
-
-    // Theme
+    // ===== Theme toggle =====
     const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.setAttribute('data-theme', localStorage.theme); tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙'; }
-    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+    if(localStorage.theme){document.documentElement.setAttribute('data-theme',localStorage.theme);tbtn.textContent=localStorage.theme==='light'?'🌞':'🌙';}
+    tbtn.onclick=()=>{const cur=document.documentElement.getAttribute('data-theme')||'light';const next=cur==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.theme=next;tbtn.textContent=next==='light'?'🌞':'🌙';};
 
-    const date=document.getElementById('date'); const q=document.getElementById('q');
-    const tbody=document.querySelector('#tbl tbody'); const summary=document.getElementById('summary');
-    date.valueAsDate=new Date();
+    // ===== Local store helpers (compatible with existing key/schema) =====
+    const KEY='onestop_hospital_demo_v5';
+    function ensureDB(){
+      const empty={bookings:[],slots:{},sales:[],patients:[],roster:[],user:null};
+      let db; try{ db=JSON.parse(localStorage.getItem(KEY)||'null'); }catch{ db=null; }
+      if(!db) { db=empty; localStorage.setItem(KEY,JSON.stringify(db)); }
+      if(!Array.isArray(db.sales)) db.sales=[];
+      return db;
+    }
+    function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
+    function addSale(row){
+      const db=ensureDB();
+      db.sales.push(row);
+      saveDB(db);
+    }
+    function removeSale(idx){
+      const db=ensureDB();
+      db.sales.splice(idx,1);
+      saveDB(db);
+    }
+    function listSales(){ return ensureDB().sales || []; }
 
-    const render=()=>{
-      const d=date.value; const rows=getBookingsByDate(d);
-      const filter=q.value.toLowerCase();
-      const filtered=rows.filter(r=>`${r.name} ${r.reason} ${r.slot}`.toLowerCase().includes(filter));
-      tbody.innerHTML='';
-      for(const r of filtered){
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${r.slot}</td><td>${r.token}</td><td>${r.name}</td><td>${r.reason}</td><td>${r.contact}</td>
-        <td><button class="chip ${r.reminder==='✔️'?'ok':''}" data-id="${r.id}">${r.reminder||'Send WA'}</button></td>
-        <td><a class="chip" href="${telLink(r.contact)}">Call</a></td>`;
-        tbody.appendChild(tr);
+    // ===== Auth guard (doctor/supervisor only) =====
+    const user=(ensureDB().user);
+    if(!user || user.role==='patient'){ location.href='login.html?v=11'; }
+
+    // ===== Clear Cache & Logout =====
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      localStorage.clear();
+      if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+      if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs) await r.unregister();}
+      alert('Cache cleared. Reloading…'); location.reload(true);
+    };
+    document.getElementById('logoutBtn').onclick=()=>{
+      const db=ensureDB(); db.user=null; saveDB(db); location.href='login.html?v=11';
+    };
+
+    // ===== CSV helpers =====
+    function toCSV(rows){
+      const head=['date','item','qty','price','invoice'];
+      const body=rows.map(r=>[r.date,r.item,r.qty,r.price,r.invoice||'']);
+      return [head,...body].map(r=>r.join(',')).join('\n');
+    }
+    function parseCSV(text){
+      const lines=text.trim().split(/\r?\n/);
+      const [h,...rest]=lines;
+      // expect date,item,qty,price,invoice
+      return rest.map(l=>{
+        const [date,item,qty,price,invoice] = l.split(',');
+        return { date, item, qty:Number(qty||0), price:Number(price||0), invoice:invoice||'' };
+      });
+    }
+
+    // ===== UI wiring =====
+    const saleForm=document.getElementById('saleForm');
+    saleForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fd=new FormData(saleForm);
+      const row = {
+        date: fd.get('date'),
+        item: fd.get('item')?.trim(),
+        qty: Number(fd.get('qty')||0),
+        price: Number(fd.get('price')||0),
+        invoice: (fd.get('invoice')||'').trim()
+      };
+      if(!row.date || !row.item || !row.invoice || row.qty<=0 || row.price<0){
+        alert('Please fill all fields correctly.'); return;
       }
-      summary.innerHTML = `<div class="grid3">
-        <div class="stat"><div class="num">${rows.length}</div><div class="lbl">Bookings</div></div>
-        <div class="stat"><div class="num">${new Set(rows.map(b=>b.slot)).size}</div><div class="lbl">Slots</div></div>
-        <div class="stat"><div class="num">${rows.filter(b=>b.reminder==='✔️').length}</div><div class="lbl">Reminders</div></div>
-      </div>`;
+      addSale(row);
+      saleForm.reset();
+      render();
+    });
+
+    // CSV export / template / import
+    document.getElementById('exportSales').onclick=()=>{
+      const csv=toCSV(listSales());
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='pharma_sales.csv'; a.click();
+    };
+    document.getElementById('downloadTemplate').onclick=()=>{
+      const csv='date,item,qty,price,invoice\n2025-01-02,Paracetamol 650,2,12.50,INV-0001';
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='pharma_template.csv'; a.click();
+    };
+    document.getElementById('csvFile').onchange=async(e)=>{
+      const f=e.target.files?.[0]; if(!f) return;
+      const text=await f.text();
+      const rows=parseCSV(text);
+      const db=ensureDB();
+      db.sales = db.sales.concat(rows);
+      saveDB(db);
+      render();
+      alert(`Imported ${rows.length} rows`);
+      e.target.value='';
     };
 
-    date.addEventListener('change',render); q.addEventListener('input',render);
-    document.addEventListener('click',(e)=>{ const b=e.target.closest('button.chip'); if(!b) return;
-      if(markReminder(b.dataset.id)){ b.textContent='✔️'; b.classList.add('ok'); }
-    });
-    document.getElementById('exportCsv').onclick=()=>{
-      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([exportBookingsCsv(date.value)],{type:'text/csv'}));
-      a.download=`bookings_${date.value}.csv`; a.click();
-    };
+    // ===== Render sales table & invoices =====
+    function renderSales(){
+      const tbody=document.querySelector('#salesTbl tbody');
+      tbody.innerHTML='';
+      const rows=listSales();
+      rows.forEach((r,i)=>{
+        const amount=(r.qty*r.price);
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.date||''}</td>
+          <td>${r.item||''}</td>
+          <td>${r.qty||0}</td>
+          <td>${Number(r.price||0).toFixed(2)}</td>
+          <td>${amount.toFixed(2)}</td>
+          <td>${r.invoice||''}</td>
+          <td><button class="chip" data-del="${i}">Delete</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      // delete handlers
+      tbody.querySelectorAll('button[data-del]').forEach(btn=>{
+        btn.onclick=()=>{ removeSale(Number(btn.dataset.del)); render(); };
+      });
+    }
+
+    function renderInvoices(){
+      const tbody=document.querySelector('#invTbl tbody');
+      tbody.innerHTML='';
+      const rows=listSales();
+      // group by invoice
+      const map=new Map();
+      for(const r of rows){
+        if(!r.invoice) continue;
+        const prev=map.get(r.invoice)||{invoice:r.invoice,date:r.date,lines:0,total:0};
+        prev.lines += 1;
+        prev.total += (Number(r.qty)||0)*(Number(r.price)||0);
+        // keep earliest date
+        if(!prev.date || (r.date && r.date<prev.date)) prev.date=r.date;
+        map.set(r.invoice, prev);
+      }
+      Array.from(map.values()).sort((a,b)=> (a.invoice>b.invoice?1:-1)).forEach(inv=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${inv.invoice}</td>
+          <td>${inv.date||''}</td>
+          <td>${inv.lines}</td>
+          <td>${inv.total.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function render(){ renderSales(); renderInvoices(); }
     render();
   </script>
 </body>
