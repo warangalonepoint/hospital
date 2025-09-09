@@ -1,13 +1,45 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>PIN Login – Dr. Charan Hospital</title>
-
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=24" />
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=20"/>
+  <style>
+    /* Page polish (scoped) */
+    .login-card {
+      background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.0)) var(--card-bg);
+      border: 1px solid rgba(0,0,0,.06);
+    }
+    .login-title { font-size: 22px; margin-bottom: 14px; }
+    .field { display: grid; gap: 8px; margin: 12px 0; }
+    .label { font-size: 13px; color: var(--muted); }
+    .pin-wrap { position: relative; }
+    .pin-wrap .input {
+      padding-left: 44px;
+      height: 48px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.10);
+      background: var(--card-bg);
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .pin-wrap .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    .pin-icon {
+      position: absolute; inset: 0 auto 0 12px; width: 22px; height: 22px; margin: auto 0;
+      opacity: .65;
+    }
+    .action-row { display:flex; gap:10px; align-items:center; margin-top:10px; }
+    .btn { height: 44px; padding: 0 18px; border-radius: 12px; }
+    .chip { height: 44px; padding: 0 14px; border-radius: 999px; }
+    .help { margin-top: 12px; }
+  </style>
 </head>
 <body>
   <!-- Banner -->
@@ -15,51 +47,57 @@
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Login card -->
+  <!-- Login -->
   <section class="login-wrap">
     <div class="login-card">
       <h1 class="login-title">PIN Login</h1>
 
-      <form id="loginForm">
-        <label for="pin" class="muted" style="display:block;margin:6px 0 6px">Enter PIN</label>
-        <input 
-          id="pin" 
-          name="pin" 
-          class="input" 
-          type="password" 
-          inputmode="numeric" 
-          autocomplete="one-time-code" 
-          minlength="4" maxlength="6" 
-          placeholder="4–6 digits" 
-          required 
-        />
-        <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+      <form id="loginForm" autocomplete="one-time-code">
+        <div class="field">
+          <label class="label" for="pin">Enter PIN</label>
+          <div class="pin-wrap">
+            <!-- lock icon -->
+            <svg class="pin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-width="1.8" d="M17 11V8a5 5 0 0 0-10 0v3" />
+              <rect x="4.5" y="11" width="15" height="9" rx="2.2" stroke-width="1.8"/>
+              <circle cx="12" cy="15.5" r="1.6" fill="currentColor"/>
+            </svg>
+            <input id="pin" name="pin" class="input" type="password"
+                   inputmode="numeric" minlength="4" maxlength="6"
+                   placeholder="4–6 digits" required />
+          </div>
+        </div>
+
+        <div class="action-row">
           <button class="btn" type="submit">Login</button>
           <button class="chip" type="button" id="clearCacheBtn">Clear Cache</button>
         </div>
-        <p class="help">Demo: 4321 (Doctor) · 1111 (Supervisor) · 2222 (Patient)</p>
+
+        <p class="help">Demo: <strong>4321</strong> (Doctor) · <strong>1111</strong> (Supervisor) · <strong>2222</strong> (Patient)</p>
       </form>
     </div>
   </section>
 
   <script type="module">
-    // ---- Theme toggle ----
+    // Theme toggle
     const t = document.getElementById('themeToggle');
-    function applyTheme(mode){
-      document.documentElement.dataset.theme = mode;
-      t.textContent = mode === 'light' ? '🌞' : '🌙';
-      localStorage.theme = mode;
+    if (localStorage.theme) {
+      document.documentElement.dataset.theme = localStorage.theme;
+      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
     }
-    applyTheme(localStorage.theme || 'light');
     t.onclick = () => {
       const cur = document.documentElement.dataset.theme || 'light';
-      applyTheme(cur === 'light' ? 'dark' : 'light');
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      localStorage.theme = next;
+      t.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
-    // ---- Clear cache ----
+    // Clear cache + storage (dev helper)
     document.getElementById('clearCacheBtn').onclick = async () => {
       try {
         localStorage.clear();
+        sessionStorage.clear();
         if ('caches' in window) {
           const ks = await caches.keys();
           await Promise.all(ks.map(k => caches.delete(k)));
@@ -69,32 +107,28 @@
           for (const r of regs) await r.unregister();
         }
         alert('Cache cleared. Reloading…');
-        location.reload(true);
+        location.reload();
       } catch(e) {
-        alert('Could not fully clear. Try hard reload.');
+        alert('Could not fully clear. Try a hard reload.');
       }
     };
 
-    // ---- Login form ----
+    // Login routing (kept simple & identical pins)
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const pin = (document.getElementById('pin').value || '').trim();
       const roles = { '4321':'doctor', '1111':'supervisor', '2222':'patient' };
       const role = roles[pin];
-
-      if (!role) {
-        alert('Invalid PIN');
-        return;
-      }
+      if (!role) { alert('Invalid PIN'); return; }
 
       localStorage.setItem('session', JSON.stringify({ role, ts: Date.now() }));
-
+      // route by role
       if (role === 'doctor') location.href = 'dashboard.html';
-      else if (role === 'supervisor') location.href = 'admin.html';
+      else if (role === 'supervisor') location.href = 'bookings.html';
       else location.href = 'portal.html';
     });
 
-    // ---- Service Worker ----
+    // Register SW (quiet)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(()=>{});
     }
