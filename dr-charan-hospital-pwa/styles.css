@@ -207,3 +207,26 @@ html[data-theme="dark"] .fixed-actions .chip { border-color: rgba(255,255,255,0.
     transform:none;
   }
 }
+/* === Sales Analytics compact layout === */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.kpi {
+  padding: 12px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.kpi h4 {
+  font-size: 0.9rem;    /* smaller label */
+  margin-bottom: 6px;
+}
+
+.kpi .num {
+  font-size: 1.2rem;    /* smaller value font */
+  font-weight: 600;
+}
