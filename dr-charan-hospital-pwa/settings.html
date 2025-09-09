@@ -3,80 +3,249 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Settings – Dr. Charan</title>
-  <link rel="stylesheet" href="styles.css?v=20"/>
+  <title>Settings – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=26"/>
 </head>
 <body>
+  <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <main class="container">
+  <!-- Fixed actions -->
+  <div class="fixed-actions">
+    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+
+  <main class="section" style="max-width:1100px">
+    <!-- PINs -->
     <section class="card">
-      <h3 class="section-title">Settings</h3>
-      <p class="muted">Only Doctor can edit PINs, Staff, and Patients.</p>
+      <h2 style="font-size:18px;margin-bottom:8px">PINs</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <div><label class="muted">Doctor PIN</label><input id="pinDoctor" class="input" inputmode="numeric" maxlength="6"/></div>
+        <div><label class="muted">Supervisor PIN</label><input id="pinSupervisor" class="input" inputmode="numeric" maxlength="6"/></div>
+        <div><label class="muted">Patient PIN</label><input id="pinPatient" class="input" inputmode="numeric" maxlength="6"/></div>
+      </div>
+      <div style="margin-top:10px"><button id="savePins" class="btn">Save PINs</button></div>
+      <p class="help" style="margin-top:6px">These control PIN-based logins. Keep them private.</p>
+    </section>
 
-      <!-- PINs -->
-      <div class="card" style="margin-top:12px">
-        <h4 style="margin:0 0 10px">Edit PINs</h4>
-        <div class="grid-2">
-          <input id="pDoc" class="input" placeholder="Doctor PIN"/>
-          <input id="pSup" class="input" placeholder="Supervisor PIN"/>
-          <input id="pPat" class="input" placeholder="Patient PIN"/>
-        </div>
-        <div style="margin-top:10px"><button id="savePins" class="btn">Save PINs</button></div>
+    <!-- Staff -->
+    <section class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Staff</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <input id="sName" class="input" placeholder="Name"/>
+        <input id="sRole" class="input" placeholder="Role (Nurse, Frontdesk…)"/>
+        <input id="sPhone" class="input" inputmode="numeric" maxlength="10" placeholder="Phone"/>
+        <select id="sStatus" class="input">
+          <option value="Active">Active</option>
+          <option value="On Duty">On Duty</option>
+          <option value="Off">Off</option>
+        </select>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="addStaff" class="chip">Add/Update Staff</button>
+        <button id="clearStaff" class="chip">Clear Staff</button>
       </div>
 
-      <!-- Staff -->
-      <div class="card" style="margin-top:16px">
-        <h4 style="margin:0 0 10px">Staff</h4>
-        <div class="grid-2">
-          <input id="sName" class="input" placeholder="Name"/>
-          <input id="sPhone" class="input" placeholder="Phone"/>
-        </div>
-        <div style="margin-top:10px"><button id="addStaff" class="btn">Add Staff</button></div>
-        <div id="staffList" style="margin-top:10px"></div>
+      <table class="table" id="staffTable" style="margin-top:10px">
+        <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Status</th><th style="width:120px">Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Patients -->
+    <section class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Patients</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <input id="pName" class="input" placeholder="Name"/>
+        <input id="pPhone" class="input" inputmode="numeric" maxlength="10" placeholder="Phone"/>
+        <input id="pNotes" class="input" placeholder="Notes / Treatment / Next visit reminder"/>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="addPatient" class="chip">Add/Update Patient</button>
+        <button id="clearPatients" class="chip">Clear Patients</button>
       </div>
 
-      <!-- Patients -->
-      <div class="card" style="margin-top:16px">
-        <h4 style="margin:0 0 10px">Patients</h4>
-        <div class="grid-2">
-          <input id="ptName" class="input" placeholder="Name"/>
-          <input id="ptPhone" class="input" placeholder="Phone"/>
-        </div>
-        <input id="ptNotes" class="input" style="margin-top:10px" placeholder="Notes / treatment / reminders"/>
-        <div style="margin-top:10px"><button id="addPatient" class="btn">Add Patient</button></div>
-        <div id="patientList" style="margin-top:10px"></div>
+      <table class="table" id="patientsTable" style="margin-top:10px">
+        <thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th style="width:120px">Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Backup / Restore -->
+    <section class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Backup / Restore</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="exportBtn" class="chip">Export JSON</button>
+        <label class="chip" style="cursor:pointer">
+          Import JSON <input id="importFile" type="file" accept="application/json" style="display:none">
+        </label>
       </div>
     </section>
   </main>
 
   <script type="module">
-    import { role, getPins, setPin, listStaff, addStaff, listPatients, addPatient } from './js/store.js?v=21';
+    /* ---------- Role: doctor only ---------- */
+    const sess = JSON.parse(localStorage.getItem('session')||'null');
+    if(!sess || sess.role!=='doctor') location.replace('login.html');
 
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    /* ---------- Theme ---------- */
+    const t = document.getElementById('themeToggle');
+    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
+    setTheme(localStorage.theme || 'light');
+    t.onclick = () => setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
 
-    const canEdit = role()==='doctor';
-    document.querySelectorAll('input, button').forEach(el=>{
-      if(el.id && (el.id.startsWith('p')||el.id.startsWith('s')||el.id.startsWith('pt')||el.id.startsWith('add')||el.id==='savePins')){
-        if(!canEdit) el.disabled=true;
+    /* ---------- Logout/Clear ---------- */
+    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      try{ const s=localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session',s);
+        if('caches'in window){const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch{}
+    };
+
+    /* ---------- Storage helpers ---------- */
+    const get = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(f)); }catch{ return f; } };
+    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    /* ---------- PINs ---------- */
+    const pinInputs = {
+      doctor: document.getElementById('pinDoctor'),
+      supervisor: document.getElementById('pinSupervisor'),
+      patient: document.getElementById('pinPatient')
+    };
+    function loadPins(){
+      const pins = get('pins', { doctor:'4321', supervisor:'1111', patient:'2222' });
+      pinInputs.doctor.value = pins.doctor;
+      pinInputs.supervisor.value = pins.supervisor;
+      pinInputs.patient.value = pins.patient;
+    }
+    loadPins();
+
+    document.getElementById('savePins').onclick = ()=>{
+      const pins = {
+        doctor: (pinInputs.doctor.value||'').trim(),
+        supervisor: (pinInputs.supervisor.value||'').trim(),
+        patient: (pinInputs.patient.value||'').trim()
+      };
+      if(!/^\d{4,6}$/.test(pins.doctor) || !/^\d{4,6}$/.test(pins.supervisor) || !/^\d{4,6}$/.test(pins.patient)){
+        alert('PINs must be 4–6 digits.'); return;
       }
-    });
+      set('pins', pins);
+      alert('PINs saved.');
+    };
 
-    const pins=getPins(); pDoc.value=pins.doctor; pSup.value=pins.supervisor; pPat.value=pins.patient;
+    /* ---------- Staff ---------- */
+    const sName = document.getElementById('sName');
+    const sRole = document.getElementById('sRole');
+    const sPhone = document.getElementById('sPhone');
+    const sStatus = document.getElementById('sStatus');
+    const staffTable = document.querySelector('#staffTable tbody');
 
-    function renderStaff(){ staffList.innerHTML = listStaff().map(s=>`<div class="stat"><div class="k" style="font-size:18px">${s.name}</div><div class="muted">${s.phone} • ${s.role||''}</div></div>`).join(''); }
-    function renderPatients(){ patientList.innerHTML = listPatients().map(p=>`<div class="stat"><div class="k" style="font-size:18px">${p.name}</div><div class="muted">${p.phone} • ${p.notes||'—'}</div></div>`).join(''); }
+    function loadStaff(){ return get('staff', []); }
+    function saveStaff(arr){ set('staff', arr); }
+    function renderStaff(){
+      const arr = loadStaff();
+      staffTable.innerHTML = '';
+      arr.forEach((st,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${st.name||''}</td><td>${st.role||''}</td><td>${st.phone||''}</td><td>${st.status||''}</td>
+                        <td><button class="chip" data-i="${idx}" data-a="edit">Edit</button>
+                            <button class="chip" data-i="${idx}" data-a="del">Delete</button></td>`;
+        staffTable.appendChild(tr);
+      });
+    }
+    renderStaff();
 
-    savePins.onclick=()=>{ if(!canEdit) return; setPin('doctor', pDoc.value); setPin('supervisor', pSup.value); setPin('patient', pPat.value); alert('PINs updated'); };
-    addStaff.onclick=()=>{ if(!canEdit) return; if(!sName.value) return alert('Name?'); addStaff({name:sName.value, phone:sPhone.value, role:'staff'}); sName.value=sPhone.value=''; renderStaff(); };
-    addPatient.onclick=()=>{ if(!canEdit) return; if(!ptName.value) return alert('Name?'); addPatient({name:ptName.value, phone:ptPhone.value, notes:ptNotes.value}); ptName.value=ptPhone.value=ptNotes.value=''; renderPatients(); };
+    document.getElementById('addStaff').onclick = ()=>{
+      const obj = { name:sName.value.trim(), role:sRole.value.trim(), phone:sPhone.value.trim(), status:sStatus.value };
+      if(!obj.name) return alert('Name required');
+      const arr = loadStaff();
+      const i = arr.findIndex(x => x.phone && x.phone===obj.phone);
+      if(i>=0) arr[i]=obj; else arr.push(obj);
+      saveStaff(arr); renderStaff(); sName.value=''; sRole.value=''; sPhone.value='';
+    };
+    document.getElementById('clearStaff').onclick = ()=>{ if(confirm('Clear all staff?')){ saveStaff([]); renderStaff(); } };
+    staffTable.onclick = (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const i = +btn.dataset.i; const a = btn.dataset.a;
+      const arr = loadStaff();
+      if(a==='edit'){ const st = arr[i]; sName.value=st.name||''; sRole.value=st.role||''; sPhone.value=st.phone||''; sStatus.value=st.status||'Active'; }
+      if(a==='del'){ arr.splice(i,1); saveStaff(arr); renderStaff(); }
+    };
 
-    renderStaff(); renderPatients();
+    /* ---------- Patients ---------- */
+    const pName = document.getElementById('pName');
+    const pPhone = document.getElementById('pPhone');
+    const pNotes = document.getElementById('pNotes');
+    const patientsTable = document.querySelector('#patientsTable tbody');
+
+    function loadPatients(){ return get('patients', []); }
+    function savePatients(arr){ set('patients', arr); }
+    function renderPatients(){
+      const arr = loadPatients();
+      patientsTable.innerHTML='';
+      arr.forEach((p,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${p.name||''}</td><td>${p.phone||''}</td><td>${p.notes||''}</td>
+                        <td><button class="chip" data-i="${idx}" data-a="editP">Edit</button>
+                            <button class="chip" data-i="${idx}" data-a="delP">Delete</button></td>`;
+        patientsTable.appendChild(tr);
+      });
+    }
+    renderPatients();
+
+    document.getElementById('addPatient').onclick = ()=>{
+      const obj = { name:pName.value.trim(), phone:pPhone.value.trim(), notes:pNotes.value.trim() };
+      if(!obj.name) return alert('Name required');
+      const arr = loadPatients();
+      const i = arr.findIndex(x => x.phone && x.phone===obj.phone);
+      if(i>=0) arr[i]=obj; else arr.push(obj);
+      savePatients(arr); renderPatients(); pName.value=''; pPhone.value=''; pNotes.value='';
+    };
+    document.getElementById('clearPatients').onclick = ()=>{ if(confirm('Clear all patients?')){ savePatients([]); renderPatients(); } };
+    patientsTable.onclick = (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const i = +btn.dataset.i; const a = btn.dataset.a;
+      const arr = loadPatients();
+      if(a==='editP'){ const p = arr[i]; pName.value=p.name||''; pPhone.value=p.phone||''; pNotes.value=p.notes||''; }
+      if(a==='delP'){ arr.splice(i,1); savePatients(arr); renderPatients(); }
+    };
+
+    /* ---------- Backup / Restore ---------- */
+    document.getElementById('exportBtn').onclick = ()=>{
+      const blob = new Blob([JSON.stringify({
+        pins:get('pins',{}), staff:loadStaff(), patients:loadPatients(), invoices:get('invoices',[]), bookings:get('bookings',[])
+      }, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `dr-charan-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    };
+    document.getElementById('importFile').onchange = async (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const text = await f.text();
+      try{
+        const data = JSON.parse(text);
+        if(data.pins) set('pins', data.pins);
+        if(Array.isArray(data.staff)) set('staff', data.staff);
+        if(Array.isArray(data.patients)) set('patients', data.patients);
+        if(Array.isArray(data.invoices)) set('invoices', data.invoices);
+        if(Array.isArray(data.bookings)) set('bookings', data.bookings);
+        alert('Import complete.');
+        loadPins(); renderStaff(); renderPatients();
+      }catch{ alert('Invalid file.'); }
+      e.target.value = '';
+    };
+
+    // SW register
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
-
