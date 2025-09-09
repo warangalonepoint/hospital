@@ -1,25 +1,26 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=15"/>
-  <style>
-    .tile-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
-  </style>
+  <link rel="stylesheet" href="styles.css?v=16"/>
 </head>
 <body>
-  <header class="banner clean"></header>
-  <div class="floating-actions">
-    <a href="login.html" id="logout" class="chip">Logout</a>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </div>
-  <button id="themeToggle" class="chip floating-toggle">🌙</button>
+  <!-- Banner -->
+  <header class="banner">
+    <!-- small logo overlay (optional: replace with your logo.png if you want) -->
+    <img class="logo" src="assets/logo.png" alt="Dr. Charan Hospital">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <div class="floating-actions">
+      <a href="login.html" id="logoutBtn" class="chip">Logout</a>
+      <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    </div>
+  </header>
 
-  <main class="container n8">
-
+  <main class="container">
     <!-- Tiles -->
     <section class="card" style="padding:18px">
       <div class="tile-grid">
@@ -55,7 +56,7 @@
       </div>
     </section>
 
-    <!-- KPIs -->
+    <!-- KPIs + mini chart -->
     <section class="card" style="margin-top:16px;padding:18px">
       <h3 style="margin:0 0 8px">Sales Analytics</h3>
       <div class="kpis">
@@ -68,17 +69,18 @@
         <canvas id="miniChart" height="170" style="width:100%"></canvas>
       </div>
     </section>
-
   </main>
 
   <script type="module">
     import { requireRole, totalsToday, totalsMonth, topItemName, listInvoices } from './js/store.js?v=21';
-    const u=requireRole('doctor'); if(!u) return;
+
+    // gate
+    const u=requireRole('doctor'); if(!u) { location.href='login.html'; }
 
     // theme
-    const tb=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; tb.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    tb.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; tb.textContent=next==='light'?'🌞':'🌙'; };
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
     // clear cache
     document.getElementById('clearCacheBtn').onclick=async()=>{
@@ -95,13 +97,14 @@
       const t=await totalsToday();
       const m=await totalsMonth();
       const top=await topItemName();
-      kToday.textContent=t.toFixed(2);
-      kMonth.textContent=m.toFixed(2);
-      kTop.textContent=top||'–';
+      document.getElementById('kToday').textContent=t.toFixed(2);
+      document.getElementById('kMonth').textContent=m.toFixed(2);
+      document.getElementById('kTop').textContent=top||'–';
       document.getElementById('pharmaMeta').textContent = `Today ₹${t.toFixed(2)} • MTD ₹${m.toFixed(2)} • Top: ${top||'–'}`;
       drawMini();
     }
 
+    // mini bar chart (last 7 days)
     function drawMini(){
       const c=document.getElementById('miniChart'), ctx=c.getContext('2d');
       c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
@@ -110,15 +113,13 @@
       const border=getComputedStyle(document.documentElement).getPropertyValue('--border')||'#e9edf5';
       ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
 
-      // last 7 days totals
       const invs=listInvoices(); const today=new Date();
       const labels=[], data=[];
       for(let i=6;i>=0;i--){
         const d=new Date(today); d.setDate(today.getDate()-i);
         const key=d.toISOString().slice(0,10);
         labels.push(key.slice(5)); // MM-DD
-        const sum=invs.filter(x=>x.date===key).reduce((s,r)=>s+(+r.total||0),0);
-        data.push(sum);
+        data.push(invs.filter(x=>x.date===key).reduce((s,r)=>s+(+r.total||0),0));
       }
 
       const max=Math.max(10,...data);
@@ -139,9 +140,8 @@
 
     refreshKPIs();
     addEventListener('resize', drawMini);
-  </script>
 
-  <script>
+    // register SW quietly
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
