@@ -6,35 +6,50 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=32"/>
+  <link rel="stylesheet" href="styles.css?v=33"/>
   <style>
+    /* --- layout frame --- */
+    .container{max-width:1080px;margin:0 auto;padding:0 10px}
     .section{margin:12px}
     .tint{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.08)}
-    .tint-blue{background: color-mix(in srgb, #2563eb 20%, var(--card-bg))}
-    .tint-green{background: color-mix(in srgb, #22c55e 18%, var(--card-bg))}
+    /* light tints */
+    .tint-blue{background:linear-gradient(0deg,rgba(37,99,235,.10),rgba(37,99,235,.10)),var(--card-bg)}
+    .tint-green{background:linear-gradient(0deg,rgba(34,197,94,.10),rgba(34,197,94,.10)),var(--card-bg)}
+    /* dark tints: slightly lighter overlays for readability */
     html[data-theme="dark"] .tint{border-color:rgba(255,255,255,.10)}
+    html[data-theme="dark"] .tint-blue{background:linear-gradient(0deg,rgba(59,130,246,.22),rgba(59,130,246,.22)),var(--card-bg)}
+    html[data-theme="dark"] .tint-green{background:linear-gradient(0deg,rgba(34,197,94,.20),rgba(34,197,94,.20)),var(--card-bg)}
 
     .filters{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    .chip{height:40px;padding:0 14px;border-radius:999px;background:var(--card-bg);border:1px solid rgba(0,0,0,.08)}
-    html[data-theme="dark"] .chip{border-color:rgba(255,255,255,.12)}
+    .chip{height:40px;padding:0 14px;border-radius:999px;background:var(--card-bg);border:1px solid rgba(0,0,0,.10)}
+    html[data-theme="dark"] .chip{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+    .chip.is-active{background:var(--accent);color:#fff;border-color:transparent}
 
-    table{width:100%;border-collapse:collapse;margin-top:10px;background:var(--card-bg);border-radius:12px;overflow:hidden}
+    /* tables */
+    .table-wrap{margin-top:10px;border-radius:12px;overflow:hidden;background:var(--card-bg);box-shadow:var(--shadow)}
+    table{width:100%;border-collapse:collapse}
     th,td{padding:10px;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px;text-align:left;vertical-align:top}
-    th{background:rgba(0,0,0,.04)}
-    html[data-theme="dark"] th{background:rgba(255,255,255,.06)}
+    th{background:rgba(0,0,0,.04);font-weight:600}
+    html[data-theme="dark"] th{background:rgba(255,255,255,.08);border-bottom-color:rgba(255,255,255,.08)}
+    html[data-theme="dark"] td{border-bottom-color:rgba(255,255,255,.08)}
+    /* zebra rows for readability */
+    tbody tr:nth-child(odd){background:rgba(0,0,0,.02)}
+    html[data-theme="dark"] tbody tr:nth-child(odd){background:rgba(255,255,255,.03)}
 
+    /* inputs */
     .input, textarea, select{
-      width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px;background:var(--card-bg)
+      width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px;background:var(--card-bg);color:var(--fg)
     }
     html[data-theme="dark"] .input, html[data-theme="dark"] textarea, html[data-theme="dark"] select{
-      border-color:rgba(255,255,255,.12)
+      border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.06)
     }
     .row-actions{display:flex;gap:8px;flex-wrap:wrap}
-
-    /* small helpers */
     .muted{color:var(--muted);font-size:12px}
     .right{margin-left:auto}
     .nowrap{white-space:nowrap}
+
+    /* tighten banner margin on large screens */
+    .banner{max-width:1120px;margin-left:auto;margin-right:auto}
   </style>
 </head>
 <body>
@@ -44,50 +59,56 @@
   </header>
 
   <!-- Actions under banner -->
-  <nav class="fixed-actions">
+  <nav class="fixed-actions container">
     <a href="dashboard.html" class="chip">← Dashboard</a>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </nav>
 
-  <!-- Upcoming (from supervisor tokens) -->
-  <section class="section tint tint-blue">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between">
-      <h2>Upcoming Patients</h2>
-      <span class="muted right">Source: Bookings created by Supervisor</span>
-    </div>
+  <main class="container">
+    <!-- Upcoming (from supervisor tokens) -->
+    <section class="section tint tint-blue">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between">
+        <h2>Upcoming Patients</h2>
+        <span class="muted right">Source: Bookings created by Supervisor</span>
+      </div>
 
-    <div class="filters">
-      <button class="chip" data-filter="today">Today</button>
-      <button class="chip" data-filter="all">All</button>
-      <input id="searchTxt" class="input" placeholder="Search name/phone" style="max-width:220px">
-    </div>
+      <div class="filters">
+        <button class="chip is-active" data-filter="today">Today</button>
+        <button class="chip" data-filter="all">All</button>
+        <input id="searchTxt" class="input" placeholder="Search name/phone" style="max-width:240px">
+      </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th class="nowrap">Token</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th><th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="upcomingBody"></tbody>
-    </table>
-  </section>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nowrap">Token</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="upcomingBody"></tbody>
+        </table>
+      </div>
+    </section>
 
-  <!-- Served & follow-ups -->
-  <section class="section tint tint-green">
-    <h2>Served Patients & Follow-ups</h2>
-    <table>
-      <thead>
-        <tr>
-          <th class="nowrap">Token</th><th>Name</th><th>Date</th>
-          <th style="width:36%">Treatment Notes</th>
-          <th class="nowrap">Next Visit</th>
-          <th>Save</th><th>Delete</th>
-        </tr>
-      </thead>
-      <tbody id="servedBody"></tbody>
-    </table>
-  </section>
+    <!-- Served & follow-ups -->
+    <section class="section tint tint-green">
+      <h2>Served Patients & Follow-ups</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nowrap">Token</th><th>Name</th><th>Date</th>
+              <th style="width:36%">Treatment Notes</th>
+              <th class="nowrap">Next Visit</th>
+              <th>Save</th><th>Delete</th>
+            </tr>
+          </thead>
+          <tbody id="servedBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
   <script type="module">
     // ===== Theme toggle =====
@@ -110,19 +131,17 @@
     const getServed    = () => JSON.parse(localStorage.getItem('servedPatients')||'[]');
     const saveServed   = (arr) => localStorage.setItem('servedPatients', JSON.stringify(arr));
 
-    // Default reminder date (+7 days)
-    const plusDays = (iso, n=7) => {
-      const d=new Date(iso); d.setDate(d.getDate()+n);
-      return d.toISOString().slice(0,10);
-    };
+    const plusDays = (iso, n=7) => { const d=new Date(iso); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
 
     // ===== Upcoming list =====
     let curFilter='today', query='';
+    function setActiveChip(){
+      document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('is-active', b.dataset.filter===curFilter));
+    }
     function renderUpcoming(){
       let list = getBookings().filter(b=>!b.served);
       if(curFilter==='today') list = list.filter(b=>b.date===todayISO);
       if(query) list = list.filter(b => (b.name+b.phone+(b.note||'')).toLowerCase().includes(query));
-
       list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time) || a.token - b.token);
 
       const rows = list.map(b=>`
@@ -133,41 +152,21 @@
           <td>${b.date}</td>
           <td>${b.time}</td>
           <td>${b.note||''}</td>
-          <td>
-            <div class="row-actions">
-              <button class="btn serveBtn" data-id="${b.id}">Serve</button>
-            </div>
-          </td>
+          <td><div class="row-actions"><button class="btn serveBtn" data-id="${b.id}">Serve</button></div></td>
         </tr>`).join('');
-
       document.getElementById('upcomingBody').innerHTML = rows || `<tr><td colspan="7" class="muted">No bookings</td></tr>`;
-
-      document.querySelectorAll('.serveBtn').forEach(btn=>{
-        btn.onclick=()=>servePatient(btn.dataset.id);
-      });
+      document.querySelectorAll('.serveBtn').forEach(btn=> btn.onclick=()=>servePatient(btn.dataset.id));
+      setActiveChip();
     }
-
     function servePatient(id){
       const books = getBookings();
       const rec   = books.find(x=>x.id===id);
       if(!rec) return;
-
-      // Mark served in bookings (local)
-      rec.served = true;
-      saveBookings(books);
-
-      // Add to servedPatients with empty notes + default reminder (+7d)
+      rec.served = true; saveBookings(books);
       const served = getServed();
-      served.push({
-        id: rec.id, token: rec.token, name: rec.name, phone: rec.phone,
-        date: rec.date, time: rec.time, note: rec.note||'',
-        treatment: '', reminderISO: plusDays(todayISO, 7)
-      });
+      served.push({ id: rec.id, token: rec.token, name: rec.name, phone: rec.phone, date: rec.date, time: rec.time, note: rec.note||'', treatment: '', reminderISO: plusDays(todayISO, 7) });
       saveServed(served);
-
-      renderUpcoming();
-      renderServed();
-      // notify dashboard badge if open
+      renderUpcoming(); renderServed();
       window.dispatchEvent(new StorageEvent('storage', { key: 'servedPatients' }));
     }
 
@@ -184,49 +183,26 @@
           <td><button class="btn" data-save="${p.id}">Save</button></td>
           <td><button class="chip" data-del="${p.id}">Delete</button></td>
         </tr>`).join('');
-
       document.getElementById('servedBody').innerHTML = rows || `<tr><td colspan="7" class="muted">None yet</td></tr>`;
-
-      // Save actions
       document.querySelectorAll('[data-save]').forEach(btn=>{
         btn.onclick=()=>{
-          const id = btn.dataset.save;
-          const all= getServed();
-          const rec= all.find(x=>x.id===id);
-          if(!rec) return;
-          rec.treatment   = (document.querySelector(`[data-note="${id}"]`)?.value||'').trim();
-          rec.reminderISO = (document.querySelector(`[data-rem="${id}"]`)?.value||'').trim();
-          saveServed(all);
-          alert('Saved');
-          window.dispatchEvent(new StorageEvent('storage', { key: 'servedPatients' }));
+          const id=btn.dataset.save; const all=getServed(); const rec=all.find(x=>x.id===id); if(!rec) return;
+          rec.treatment=(document.querySelector(`[data-note="${id}"]`)?.value||'').trim();
+          rec.reminderISO=(document.querySelector(`[data-rem="${id}"]`)?.value||'').trim();
+          saveServed(all); alert('Saved'); window.dispatchEvent(new StorageEvent('storage',{key:'servedPatients'}));
         };
       });
-
-      // Delete actions
       document.querySelectorAll('[data-del]').forEach(btn=>{
-        btn.onclick=()=>{
-          const id = btn.dataset.del;
-          if(!confirm('Delete this served record?')) return;
-          const all = getServed().filter(x=>x.id!==id);
-          saveServed(all);
-          renderServed();
-          window.dispatchEvent(new StorageEvent('storage', { key: 'servedPatients' }));
-        };
+        btn.onclick=()=>{ const id=btn.dataset.del; if(!confirm('Delete this served record?'))return; saveServed(getServed().filter(x=>x.id!==id)); renderServed(); window.dispatchEvent(new StorageEvent('storage',{key:'servedPatients'})); };
       });
     }
 
     // Filters & search
-    document.querySelectorAll('[data-filter]').forEach(btn=>{
-      btn.onclick=()=>{ curFilter = btn.dataset.filter; renderUpcoming(); };
-    });
-    document.getElementById('searchTxt').oninput=(e)=>{
-      query = (e.target.value||'').toLowerCase().trim();
-      renderUpcoming();
-    };
+    document.querySelectorAll('[data-filter]').forEach(btn=> btn.onclick=()=>{ curFilter=btn.dataset.filter; renderUpcoming(); });
+    document.getElementById('searchTxt').oninput=(e)=>{ query=(e.target.value||'').toLowerCase().trim(); renderUpcoming(); };
 
     // Init
-    renderUpcoming();
-    renderServed();
+    renderUpcoming(); renderServed();
 
     // SW
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}) }
