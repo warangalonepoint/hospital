@@ -3,10 +3,24 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Patients – Doctor</title>
+  <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=22"/>
+  <link rel="stylesheet" href="styles.css?v=27"/>
+  <style>
+    .section{margin:12px}
+    .tint{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.06)}
+    .tint-blue{background: color-mix(in srgb, #2563eb 14%, var(--card-bg))}
+    .tint-green{background: color-mix(in srgb, #22c55e 14%, var(--card-bg))}
+    .tint-rose{background: color-mix(in srgb, #f43f5e 14%, var(--card-bg))}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    .chip{height:40px;padding:0 14px;border-radius:999px;background:var(--card-bg);border:1px solid rgba(0,0,0,.06)}
+    table{width:100%;border-collapse:collapse;margin-top:10px;background:var(--card-bg);border-radius:12px;overflow:hidden}
+    th,td{padding:10px;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px;text-align:left}
+    th{background:rgba(0,0,0,.04)}
+    html[data-theme="dark"] th{background:rgba(255,255,255,.06)}
+    textarea{width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px}
+  </style>
 </head>
 <body>
   <!-- Banner -->
@@ -14,164 +28,110 @@
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Top actions -->
-  <div class="fixed-actions">
-    <button class="chip" onclick="location.href='dashboard.html'">← Dashboard</button>
-    <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
-  </div>
+  <!-- Actions -->
+  <nav class="fixed-actions">
+    <a href="dashboard.html" class="chip">← Dashboard</a>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </nav>
 
-  <!-- Upcoming (from supervisor tokens) -->
-  <section class="section section--peach">
-    <div class="section__head">
-      <h2>Upcoming Patients</h2>
-      <div class="pill-group">
-        <button class="pill pill--on" data-filter="today">Today</button>
-        <button class="pill" data-filter="all">All</button>
-        <input id="searchTxt" class="input" placeholder="Search name/phone" style="max-width:220px;margin-left:8px">
-      </div>
+  <!-- Patients -->
+  <section class="section tint tint-blue">
+    <h2>Upcoming Patients</h2>
+    <div class="filters">
+      <button class="chip" data-filter="today">Today</button>
+      <button class="chip" data-filter="all">All</button>
     </div>
-
-    <div class="card section__body">
-      <table class="table" id="upTable">
-        <thead>
-          <tr><th>#</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th><th>Action</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <table>
+      <thead>
+        <tr><th>Token</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th><th>Action</th></tr>
+      </thead>
+      <tbody id="upcomingBody"></tbody>
+    </table>
   </section>
 
-  <!-- Served & notes -->
-  <section class="section section--mint">
-    <div class="section__head"><h2>Served Patients & Notes</h2></div>
-    <div class="card section__body">
-      <table class="table" id="servedTable">
-        <thead>
-          <tr><th>#</th><th>Name</th><th>Phone</th><th>Visit</th><th>Notes</th><th>Next Visit</th><th>Save</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <section class="section tint tint-green">
+    <h2>Served Patients</h2>
+    <table>
+      <thead>
+        <tr><th>Token</th><th>Name</th><th>Date</th><th>Treatment Notes</th><th>Reminder</th></tr>
+      </thead>
+      <tbody id="servedBody"></tbody>
+    </table>
   </section>
 
-<script type="module">
-  // Theme
-  const t=document.getElementById('themeToggle');
-  if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-  t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+  <script type="module">
+    // --- Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
+    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const nxt=cur==='light'?'dark':'light';document.documentElement.dataset.theme=nxt;localStorage.theme=nxt;t.textContent=nxt==='light'?'🌞':'🌙'}
 
-  // Guard
-  try{
-    const s = JSON.parse(localStorage.getItem('session')||'{}');
-    if(s.role!=='doctor'){ location.href='login.html'; }
-  }catch{ location.href='login.html'; }
+    // --- Guard: doctor only
+    const sess=JSON.parse(localStorage.getItem('session')||'{}');
+    if(sess.role!=='doctor'){location.replace('login.html')}
 
-  // Buttons
-  document.getElementById('clearCacheBtn').onclick=async()=>{
-    localStorage.clear();
-    if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-    alert('Cache cleared'); location.reload();
-  };
-  document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    // --- Actions
+    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
+    clearCacheBtn.onclick=async()=>{localStorage.clear();if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))};location.reload()}
 
-  // Data stores
-  const getBookings = ()=> JSON.parse(localStorage.getItem('bookings')||'[]');
-  const setBookings = v => localStorage.setItem('bookings', JSON.stringify(v));
-  const getServed   = ()=> JSON.parse(localStorage.getItem('servedPatients')||'[]');
-  const setServed   = v => localStorage.setItem('servedPatients', JSON.stringify(v));
+    // --- Data
+    const bookings=()=>JSON.parse(localStorage.getItem('bookings')||'[]');
+    const served=()=>JSON.parse(localStorage.getItem('servedPatients')||'[]');
+    const saveServed=(arr)=>localStorage.setItem('servedPatients',JSON.stringify(arr));
+    const today=new Date().toISOString().slice(0,10);
 
-  const todayStr = new Date().toISOString().slice(0,10);
-  let curFilter = 'today', search = '';
-
-  // Render upcoming
-  function renderUpcoming(){
-    let list = getBookings().filter(b=>!b.served);
-    if(curFilter==='today') list = list.filter(b=>b.date===todayStr);
-    if(search) list = list.filter(b=> (b.name+b.phone+b.note).toLowerCase().includes(search));
-    list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
-
-    const body = document.querySelector('#upTable tbody');
-    body.innerHTML='';
-    list.forEach((b,i)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td>${b.name}</td>
-        <td>${b.phone}</td>
-        <td>${b.date}</td>
-        <td>${b.time}</td>
-        <td>${b.note||''}</td>
-        <td><button class="chip" data-serve="${b.id}">Mark Served</button></td>`;
-      body.appendChild(tr);
-    });
-  }
-
-  // Render served
-  function renderServed(){
-    const list = getServed().sort((a,b)=> b.servedAt - a.servedAt);
-    const body = document.querySelector('#servedTable tbody');
-    body.innerHTML='';
-    list.forEach((p,i)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td>${p.name}</td>
-        <td>${p.phone}</td>
-        <td>${p.date} ${p.time}</td>
-        <td><input class="input" value="${p.treatment||''}" data-note="${p.id}" placeholder="Treatment / Medicines / Notes"></td>
-        <td><input class="input" type="date" value="${p.nextVisit||''}" data-next="${p.id}"></td>
-        <td><button class="btn" data-save="${p.id}">Save</button></td>`;
-      body.appendChild(tr);
-    });
-  }
-
-  // Actions
-  document.addEventListener('click', (e)=>{
-    const id = e.target.dataset.serve;
-    if(id){
-      const list = getBookings();
-      const idx = list.findIndex(x=>x.id===id);
-      if(idx>-1){
-        const b = list[idx];
-        b.served = true;
-        setBookings(list);
-        const served = getServed();
-        served.push({ id:b.id, name:b.name, phone:b.phone, date:b.date, time:b.time, note:b.note||'', treatment:'', nextVisit:'', servedAt:Date.now() });
-        setServed(served);
-        renderUpcoming(); renderServed();
-      }
+    function renderUpcoming(filter='today'){
+      const all=bookings();
+      let list=all;
+      if(filter==='today'){list=all.filter(b=>b.date===today)}
+      upcomingBody.innerHTML=list.map(b=>`
+        <tr>
+          <td>${b.token}</td>
+          <td>${b.name}</td>
+          <td>${b.phone}</td>
+          <td>${b.date}</td>
+          <td>${b.time}</td>
+          <td>${b.note||''}</td>
+          <td><button class="chip serveBtn" data-id="${b.id}">Serve</button></td>
+        </tr>`).join('')||`<tr><td colspan="7">No bookings</td></tr>`;
+      document.querySelectorAll('.serveBtn').forEach(btn=>{
+        btn.onclick=()=>servePatient(btn.dataset.id);
+      });
     }
-    const saveId = e.target.dataset.save;
-    if(saveId){
-      const served = getServed();
-      const s = served.find(x=>x.id===saveId);
-      if(s){
-        s.treatment = document.querySelector(`input[data-note="${saveId}"]`).value.trim();
-        s.nextVisit  = document.querySelector(`input[data-next="${saveId}"]`).value;
-        setServed(served);
-        alert('Saved');
-      }
+
+    function renderServed(){
+      const list=served();
+      servedBody.innerHTML=list.map(p=>`
+        <tr>
+          <td>${p.token}</td>
+          <td>${p.name}</td>
+          <td>${p.date}</td>
+          <td>${p.treatment||''}</td>
+          <td>${p.reminder||''}</td>
+        </tr>`).join('')||`<tr><td colspan="5">None yet</td></tr>`;
     }
-  });
 
-  document.querySelectorAll('.pill-group .pill[data-filter]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.pill-group .pill').forEach(b=>b.classList.remove('pill--on'));
-      btn.classList.add('pill--on');
-      curFilter = btn.dataset.filter;
-      renderUpcoming();
+    function servePatient(id){
+      const all=bookings();
+      const rec=all.find(b=>b.id===id);
+      if(!rec) return;
+      const notes=prompt("Treatment / Medicines for "+rec.name,"");
+      const reminder=prompt("Next Visit Reminder (date or text)","");
+      const newServed=served();
+      newServed.push({...rec,treatment:notes,reminder});
+      saveServed(newServed);
+      renderServed();
+    }
+
+    // Filters
+    document.querySelectorAll('[data-filter]').forEach(btn=>{
+      btn.onclick=()=>renderUpcoming(btn.dataset.filter);
     });
-  });
-  document.getElementById('searchTxt').addEventListener('input', (e)=>{ search = e.target.value.trim().toLowerCase(); renderUpcoming(); });
 
-  // Initial render
-  renderUpcoming();
-  renderServed();
+    renderUpcoming('today');
+    renderServed();
 
-  // SW
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
-</script>
+    if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
+  </script>
 </body>
 </html>
