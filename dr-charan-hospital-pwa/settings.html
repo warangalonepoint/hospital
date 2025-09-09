@@ -1,233 +1,82 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Settings – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="stylesheet" href="styles.css?v=14"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Settings – Dr. Charan</title>
+  <link rel="stylesheet" href="styles.css?v=20"/>
 </head>
 <body>
-  <header class="banner clean"></header>
-  <button id="themeToggle" class="chip floating-toggle">🌙</button>
+  <header class="banner">
+    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
+  </header>
 
-  <main class="container n8">
-    <!-- Tabs -->
+  <main class="container">
     <section class="card">
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="profile">Profile & PIN</button>
-        <button class="tab-btn" data-tab="staff">Staff</button>
-        <button class="tab-btn" data-tab="patients">Patients</button>
+      <h3 class="section-title">Settings</h3>
+      <p class="muted">Only Doctor can edit PINs, Staff, and Patients.</p>
+
+      <!-- PINs -->
+      <div class="card" style="margin-top:12px">
+        <h4 style="margin:0 0 10px">Edit PINs</h4>
+        <div class="grid-2">
+          <input id="pDoc" class="input" placeholder="Doctor PIN"/>
+          <input id="pSup" class="input" placeholder="Supervisor PIN"/>
+          <input id="pPat" class="input" placeholder="Patient PIN"/>
+        </div>
+        <div style="margin-top:10px"><button id="savePins" class="btn">Save PINs</button></div>
       </div>
-      <div id="tab-panels">
-        <!-- Profile & PIN -->
-        <div class="panel" id="panel-profile">
-          <div class="form-grid">
-            <div class="field"><label>Name</label><input id="profName" disabled/></div>
-            <div class="field"><label>Role</label><input id="profRole" disabled/></div>
-            <div class="field"><label>Phone</label><input id="profPhone" disabled/></div>
-          </div>
-          <div class="card" style="margin-top:12px">
-            <h3 style="margin:0 0 10px">Change PIN</h3>
-            <div class="form-grid">
-              <div class="field"><label>New PIN</label><input id="newPin" type="password" inputmode="numeric" maxlength="6" placeholder="4–6 digits"/></div>
-              <div class="field"><label>Confirm PIN</label><input id="newPin2" type="password" inputmode="numeric" maxlength="6"/></div>
-              <div class="field" style="align-items:end"><button class="btn" id="saveMyPin">Save PIN</button></div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Staff -->
-        <div class="panel" id="panel-staff" style="display:none">
-          <div class="form-grid">
-            <div class="field"><label>Search</label><input id="staffSearch" placeholder="name / phone / role"/></div>
-            <div class="field" style="align-items:end"><button class="chip" id="addStaff">+ Add Staff</button></div>
-          </div>
-          <div class="table-wrap">
-            <table class="table" id="staffTbl">
-              <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
+      <!-- Staff -->
+      <div class="card" style="margin-top:16px">
+        <h4 style="margin:0 0 10px">Staff</h4>
+        <div class="grid-2">
+          <input id="sName" class="input" placeholder="Name"/>
+          <input id="sPhone" class="input" placeholder="Phone"/>
         </div>
-
-        <!-- Patients -->
-        <div class="panel" id="panel-patients" style="display:none">
-          <div class="form-grid">
-            <div class="field"><label>Search</label><input id="patSearch" placeholder="name / phone"/></div>
-            <div class="field" style="align-items:end"><button class="chip" id="addPatientBtn">+ Add Patient</button></div>
-          </div>
-          <div class="table-wrap">
-            <table class="table" id="patTbl">
-              <thead><tr><th>Name</th><th>Phone</th><th>Age/Sex</th><th>Notes (latest)</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="card" id="notesCard" style="display:none;margin-top:12px">
-            <h3 style="margin:0 0 10px">Patient Notes</h3>
-            <div class="form-grid">
-              <div class="field"><label>Summary / Treatment & Medicines</label><textarea id="noteText" rows="3" placeholder="Treatment given, medicines, advice"></textarea></div>
-              <div class="field"><label>Next Visit</label><input type="date" id="noteNext"/></div>
-              <div class="field" style="align-items:end"><button class="btn" id="saveNote">Add Note</button></div>
-            </div>
-            <div class="table-wrap" style="margin-top:8px">
-              <table class="table" id="noteTbl">
-                <thead><tr><th>Time</th><th>Note</th><th>Next Visit</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <div style="margin-top:10px"><button id="addStaff" class="btn">Add Staff</button></div>
+        <div id="staffList" style="margin-top:10px"></div>
       </div>
-    </section>
 
-    <section class="card" style="display:flex;gap:10px;flex-wrap:wrap">
-      <a class="chip" href="dashboard.html?v=14">← Dashboard</a>
-      <button id="clearCacheBtn" class="btn">Clear Cache</button>
-      <button id="logoutBtn" class="btn">Logout</button>
+      <!-- Patients -->
+      <div class="card" style="margin-top:16px">
+        <h4 style="margin:0 0 10px">Patients</h4>
+        <div class="grid-2">
+          <input id="ptName" class="input" placeholder="Name"/>
+          <input id="ptPhone" class="input" placeholder="Phone"/>
+        </div>
+        <input id="ptNotes" class="input" style="margin-top:10px" placeholder="Notes / treatment / reminders"/>
+        <div style="margin-top:10px"><button id="addPatient" class="btn">Add Patient</button></div>
+        <div id="patientList" style="margin-top:10px"></div>
+      </div>
     </section>
   </main>
 
   <script type="module">
-    import {
-      currentUser, logout, setOwnPin, resetStaffPin, listStaff, upsertStaff, disableStaff,
-      listPatients, addPatient, updatePatient, addPatientNote
-    } from './js/store.js?v=13';
+    import { role, getPins, setPin, listStaff, addStaff, listPatients, addPatient } from './js/store.js?v=21';
 
-    // Theme toggle
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){document.documentElement.setAttribute('data-theme',localStorage.theme);t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
-    t.onclick=()=>{const cur=document.documentElement.getAttribute('data-theme')||'light';const next=cur==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'}
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // Auth: doctor only
-    const me=currentUser(); if(!me){location.href='login.html?v=14'}; if(me.role!=='doctor'){ alert('Settings are doctor-only'); location.href='dashboard.html?v=14'; }
-
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn=>{
-      btn.onclick=()=>{
-        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
-        btn.classList.add('active');
-        document.getElementById('panel-'+btn.dataset.tab).style.display='block';
-      };
+    const canEdit = role()==='doctor';
+    document.querySelectorAll('input, button').forEach(el=>{
+      if(el.id && (el.id.startsWith('p')||el.id.startsWith('s')||el.id.startsWith('pt')||el.id.startsWith('add')||el.id==='savePins')){
+        if(!canEdit) el.disabled=true;
+      }
     });
 
-    // Profile
-    document.getElementById('profName').value=me.name;
-    document.getElementById('profRole').value=me.role;
-    document.getElementById('profPhone').value=me.phone||'';
-    document.getElementById('saveMyPin').onclick=async()=>{
-      const a=document.getElementById('newPin').value.trim();
-      const b=document.getElementById('newPin2').value.trim();
-      if(a!==b){alert('PIN mismatch');return;}
-      try{ await setOwnPin(me.id,a); alert('PIN updated'); document.getElementById('newPin').value=''; document.getElementById('newPin2').value=''; }
-      catch(e){ alert(e.message||'Failed'); }
-    };
+    const pins=getPins(); pDoc.value=pins.doctor; pSup.value=pins.supervisor; pPat.value=pins.patient;
 
-    // Clear cache + logout
-    document.getElementById('clearCacheBtn').onclick=async()=>{
-      localStorage.clear(); if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
-      if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
-      alert('Cache cleared. Reloading…');location.reload(true);
-    };
-    document.getElementById('logoutBtn').onclick=()=>{ logout(); location.href='login.html?v=14'; };
+    function renderStaff(){ staffList.innerHTML = listStaff().map(s=>`<div class="stat"><div class="k" style="font-size:18px">${s.name}</div><div class="muted">${s.phone} • ${s.role||''}</div></div>`).join(''); }
+    function renderPatients(){ patientList.innerHTML = listPatients().map(p=>`<div class="stat"><div class="k" style="font-size:18px">${p.name}</div><div class="muted">${p.phone} • ${p.notes||'—'}</div></div>`).join(''); }
 
-    // ===== Staff =====
-    function renderStaff(filter=''){
-      const s=(filter||'').toLowerCase(); const tbody=document.querySelector('#staffTbl tbody'); tbody.innerHTML='';
-      for(const u of listStaff().filter(u=> (u.name||'').toLowerCase().includes(s) || (u.role||'').includes(s) || (u.phone||'').includes(s))){
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${u.name}</td><td>${u.role}</td><td>${u.phone||''}</td><td>${u.status}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="chip" data-act="edit" data-id="${u.id}">Edit</button>
-            <button class="chip" data-act="pin" data-id="${u.id}">Reset PIN</button>
-            <button class="chip" data-act="disable" data-id="${u.id}">Disable</button>
-          </td>`;
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll('button[data-act]').forEach(b=>{
-        b.onclick=async()=>{
-          const id=b.dataset.id, act=b.dataset.act;
-          if(act==='edit'){
-            const name=prompt('Name?'); const role=prompt('Role? (doctor/supervisor/staff)', 'staff'); const phone=prompt('Phone?');
-            if(!name) return; upsertStaff({id, name, role, phone}); renderStaff(document.getElementById('staffSearch').value);
-          }else if(act==='pin'){
-            const np=prompt('New PIN (4–6 digits)?'); if(!np) return;
-            try{ await resetStaffPin(id,np); alert('PIN reset'); }catch(e){ alert(e.message||'Failed'); }
-          }else if(act==='disable'){
-            if(confirm('Disable this staff?')){ disableStaff(id); renderStaff(document.getElementById('staffSearch').value); }
-          }
-        };
-      });
-    }
-    document.getElementById('staffSearch').oninput=(e)=>renderStaff(e.target.value);
-    document.getElementById('addStaff').onclick=()=>{
-      const name=prompt('Name?'); if(!name) return;
-      const role=prompt('Role? (supervisor/staff)','staff')||'staff';
-      const phone=prompt('Phone?')||'';
-      upsertStaff({name,role,phone,status:'active'}); renderStaff();
-    };
-    renderStaff();
+    savePins.onclick=()=>{ if(!canEdit) return; setPin('doctor', pDoc.value); setPin('supervisor', pSup.value); setPin('patient', pPat.value); alert('PINs updated'); };
+    addStaff.onclick=()=>{ if(!canEdit) return; if(!sName.value) return alert('Name?'); addStaff({name:sName.value, phone:sPhone.value, role:'staff'}); sName.value=sPhone.value=''; renderStaff(); };
+    addPatient.onclick=()=>{ if(!canEdit) return; if(!ptName.value) return alert('Name?'); addPatient({name:ptName.value, phone:ptPhone.value, notes:ptNotes.value}); ptName.value=ptPhone.value=ptNotes.value=''; renderPatients(); };
 
-    // ===== Patients =====
-    let selectedPatient=null;
-    function renderPatients(filter=''){
-      const s=(filter||'').toLowerCase(); const tbody=document.querySelector('#patTbl tbody'); tbody.innerHTML='';
-      for(const p of listPatients().filter(p=>(p.name||'').toLowerCase().includes(s)||(p.phone||'').includes(s))){
-        const latest=(p.notes&&p.notes[0])?p.notes[0].text:'';
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${p.name}</td><td>${p.phone||''}</td><td>${(p.age||'')}/${(p.sex||'')}</td>
-          <td>${latest}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="chip" data-act="edit" data-id="${p.id}">Edit</button>
-            <button class="chip" data-act="notes" data-id="${p.id}">Notes</button>
-          </td>`;
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll('button[data-act]').forEach(btn=>{
-        btn.onclick=()=>{
-          const id=btn.dataset.id; const act=btn.dataset.act;
-          if(act==='edit'){
-            const p=listPatients().find(x=>x.id===id);
-            const name=prompt('Name?', p.name||''); const phone=prompt('Phone?', p.phone||''); const age=prompt('Age?', p.age||''); const sex=prompt('Sex (M/F/O)?', p.sex||'');
-            updatePatient({id, name, phone, age, sex}); renderPatients(document.getElementById('patSearch').value);
-          }else{
-            selectedPatient=listPatients().find(x=>x.id===id);
-            document.getElementById('notesCard').style.display='block';
-            renderNotes();
-          }
-        };
-      });
-    }
-    document.getElementById('patSearch').oninput=(e)=>renderPatients(e.target.value);
-    document.getElementById('addPatientBtn').onclick=()=>{
-      const name=prompt('Name?'); if(!name) return;
-      const phone=prompt('Phone?')||''; const age=prompt('Age?')||''; const sex=prompt('Sex (M/F/O)?')||'';
-      addPatient({name,phone,age,sex}); renderPatients();
-    };
-    renderPatients();
-
-    // Notes
-    function renderNotes(){
-      const tbl=document.querySelector('#noteTbl tbody'); tbl.innerHTML='';
-      if(!selectedPatient){ tbl.innerHTML='<tr><td colspan="3">Select a patient</td></tr>'; return; }
-      for(const n of (selectedPatient.notes||[])){
-        const date=new Date(n.ts).toLocaleString();
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${date}</td><td>${n.text||''}</td><td>${n.next||''}</td>`;
-        tbl.appendChild(tr);
-      }
-    }
-    document.getElementById('saveNote').onclick=()=>{
-      if(!selectedPatient){ alert('Select a patient'); return; }
-      const text=(document.getElementById('noteText').value||'').trim();
-      const next=document.getElementById('noteNext').value||'';
-      if(!text){ alert('Write a note'); return; }
-      addPatientNote(selectedPatient.id, {text,next});
-      // refresh
-      selectedPatient = listPatients().find(p=>p.id===selectedPatient.id);
-      document.getElementById('noteText').value=''; document.getElementById('noteNext').value='';
-      renderNotes(); renderPatients(document.getElementById('patSearch').value);
-    };
+    renderStaff(); renderPatients();
   </script>
 </body>
 </html>
+
