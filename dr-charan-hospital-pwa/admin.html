@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Pharmacy – Billing</title>
   <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="stylesheet" href="styles.css?v=13"/>
+  <link rel="stylesheet" href="styles.css?v=14"/>
 </head>
 <body>
   <!-- Banner with embedded logo/text -->
@@ -25,7 +26,7 @@
       <!-- Top actions -->
       <section class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a href="dashboard.html?v=13" class="chip">← Dashboard</a>
+          <a href="dashboard.html?v=15" class="chip">← Dashboard</a>
           <button id="clearCacheBtn" class="btn">Clear Cache</button>
           <button id="logoutBtn" class="btn">Logout</button>
         </div>
@@ -93,7 +94,7 @@
         <h3 style="margin:0 0 10px">Invoices</h3>
         <div class="table-wrap">
           <table class="table" id="invTbl">
-            <thead><tr><th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+            <thead><tr><th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -111,13 +112,21 @@
         </div>
       </section>
 
+      <!-- Records actions -->
+      <section class="card" id="recActions">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn ghost" id="recExportInv">Export Invoices CSV</button>
+          <button class="btn ghost" id="recExportLines">Export Line Items CSV</button>
+        </div>
+      </section>
+
       <section class="card">
         <div class="table-wrap">
           <table class="table" id="recTbl">
             <thead>
               <tr>
                 <th>#</th><th>Date</th><th>Patient</th><th>Lines</th>
-                <th>Total ₹</th><th>Paid ₹</th><th>Balance ₹</th><th>Status</th>
+                <th>Total ₹</th><th>Paid ₹</th><th>Balance ₹</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -136,8 +145,18 @@
       currentUser, logout,
       newDraftInvoice, getInvoice, listInvoices,
       addLine, updateLine, removeLine,
-      setInvoiceDiscounts, finalizeInvoice
-    } from './js/store.js?v=12';
+      setInvoiceDiscounts, finalizeInvoice,
+      exportInvoicesCsv, exportInvoiceLinesCsv
+    } from './js/store.js?v=14';
+
+    /* ---- Hospital branding for print ---- */
+    const HOSPITAL = {
+      name: "Dr. Charan Hospital",
+      address: "Main Road, Hyderabad, Telangana 500001",
+      phone: "+91 98xxxxxx90",
+      gstin: "36ABCDE1234F1Z5",        // TODO: put the real GSTIN here
+      logo: "assets/logo.png"          // ensure this path exists
+    };
 
     // Theme toggle
     const tbtn=document.getElementById('themeToggle');
@@ -146,8 +165,8 @@
 
     // Auth: SUPERVISOR ONLY
     const u = currentUser();
-    if(!u){ location.href='login.html?v=13'; }
-    if(u?.role!=='supervisor'){ alert('Billing is supervisor-only'); location.href='dashboard.html?v=13'; }
+    if(!u){ location.href='login.html?v=14'; }
+    if(u?.role!=='supervisor'){ alert('Billing is supervisor-only'); location.href='dashboard.html?v=15'; }
 
     const $ = s=>document.querySelector(s);
 
@@ -163,7 +182,7 @@
       if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
       alert('Cache cleared. Reloading…');location.reload(true);
     };
-    $('#logoutBtn').onclick=()=>{ logout(); location.href='login.html?v=13'; };
+    $('#logoutBtn').onclick=()=>{ logout(); location.href='login.html?v=14'; };
 
     // State
     let curId=null;
@@ -243,9 +262,13 @@
         const tr=document.createElement('tr');
         tr.innerHTML=`<td>${i.number}</td><td>${i.date}</td><td>${i.patientName||''}</td>
                       <td>${i.items.length}</td><td>${(i.total||0).toFixed(2)}</td>
-                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>`;
+                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>
+                      <td><button class="chip" data-print="${i.number}">Print</button></td>`;
         tbody.appendChild(tr);
       }
+      tbody.querySelectorAll('button[data-print]').forEach(btn=>{
+        btn.onclick = ()=> printInvoice(btn.dataset.print);
+      });
     }
 
     // Records panel
@@ -265,14 +288,143 @@
         const tr=document.createElement('tr');
         tr.innerHTML=`<td>${i.number}</td><td>${i.date}</td><td>${i.patientName||''}</td>
                       <td>${i.items.length}</td><td>${(i.total||0).toFixed(2)}</td>
-                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>`;
+                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>
+                      <td><button class="chip" data-print="${i.number}">Print</button></td>`;
         tbody.appendChild(tr);
       }
+      tbody.querySelectorAll('button[data-print]').forEach(btn=>{
+        btn.onclick = ()=> printInvoice(btn.dataset.print);
+      });
     }
     document.getElementById('recLoad').onclick=loadRecords;
 
+    // CSV export (Records)
+    document.getElementById('recExportInv').onclick = ()=>{
+      const csv = exportInvoicesCsv();
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='invoices.csv'; a.click();
+    };
+    document.getElementById('recExportLines').onclick = ()=>{
+      const csv = exportInvoiceLinesCsv();
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='invoice_lines.csv'; a.click();
+    };
+
+    // Printable invoice with logo + GST footer
+    function printInvoice(invNumber){
+      const inv = listInvoices().find(x=>x.number===invNumber);
+      if(!inv){ alert('Invoice not found'); return; }
+
+      const win = window.open('', '_blank');
+      const styles = `
+        <style>
+          :root { --text:#111; --muted:#666; }
+          body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:20px; color:var(--text); }
+          .head { display:flex; align-items:center; gap:14px; }
+          .head img { width:56px; height:56px; object-fit:contain; }
+          .h-meta { line-height:1.25; }
+          .h-meta .name { font-size:18px; font-weight:700; }
+          .h-meta .sub { font-size:12px; color:var(--muted); }
+          .row { display:flex; justify-content:space-between; gap:16px; margin-top:10px; }
+          .box { font-size:12px; color:var(--muted); }
+          .box b { color:var(--text); }
+          h3 { margin:14px 0 6px; }
+          table { width:100%; border-collapse: collapse; margin-top:6px; }
+          th, td { border:1px solid #ccc; padding:6px 8px; font-size:12px; }
+          th { background:#f5f5f5; text-align:left; }
+          .right { text-align:right; }
+          .totals { margin-top:10px; display:flex; justify-content:flex-end; }
+          .totals table { width:auto; }
+          .gst { margin-top:14px; font-size:12px; color:var(--muted); line-height:1.35; }
+          .thanks { margin-top:10px; font-size:12px; text-align:center; color:var(--muted); }
+          @media print { .noprint { display:none } body{ margin:10mm; } }
+        </style>`;
+
+      const items = (inv.items||[]).map((ln,i)=>`
+        <tr>
+          <td>${i+1}</td><td>${ln.name||''}</td><td>${ln.batch||''}</td><td>${ln.expiry||''}</td>
+          <td class="right">${ln.qty||0}</td>
+          <td class="right">${(ln.rate||0).toFixed(2)}</td>
+          <td class="right">${(ln.discountPct||0)}%</td>
+          <td class="right">${(ln.discountAbs||0).toFixed(2)}</td>
+          <td class="right">${(ln.gstPct||0)}%</td>
+        </tr>`).join('');
+
+      const totals = `
+        <table>
+          <tr><th class="right">Subtotal</th><td class="right">${(inv.total - (inv.roundOff||0)).toFixed(2)}</td></tr>
+          <tr><th class="right">Round-off</th><td class="right">${(inv.roundOff||0).toFixed(2)}</td></tr>
+          <tr><th class="right">Grand Total</th><td class="right"><b>${(inv.total||0).toFixed(2)}</b></td></tr>
+          <tr><th class="right">Paid</th><td class="right">${(inv.paid||0).toFixed(2)}</td></tr>
+          <tr><th class="right">Balance</th><td class="right">${(inv.balance||0).toFixed(2)}</td></tr>
+        </table>`;
+
+      win.document.write(`
+        <html>
+          <head><title>Invoice ${inv.number}</title>${styles}</head>
+          <body>
+            <!-- Header with logo -->
+            <div class="head">
+              <img src="${HOSPITAL.logo}" alt="Logo" />
+              <div class="h-meta">
+                <div class="name">${HOSPITAL.name}</div>
+                <div class="sub">${HOSPITAL.address}</div>
+                <div class="sub">Phone: ${HOSPITAL.phone}</div>
+                <div class="sub">GSTIN: ${HOSPITAL.gstin}</div>
+              </div>
+            </div>
+
+            <!-- Invoice meta -->
+            <div class="row">
+              <div class="box">
+                <div><b>Invoice:</b> ${inv.number}</div>
+                <div><b>Date:</b> ${inv.date}</div>
+                <div><b>Doctor:</b> ${inv.doctorName||'-'}</div>
+              </div>
+              <div class="box" style="text-align:right">
+                <div><b>Patient:</b> ${inv.patientName||'-'}</div>
+                <div><b>Phone:</b> ${inv.patientPhone||'-'}</div>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <h3>Items</h3>
+            <table>
+              <thead><tr>
+                <th>#</th><th>Item</th><th>Batch</th><th>Expiry</th>
+                <th class="right">Qty</th><th class="right">Rate</th>
+                <th class="right">Disc %</th><th class="right">Disc ₹</th><th class="right">GST %</th>
+              </tr></thead>
+              <tbody>${items||'<tr><td colspan="9">No items</td></tr>'}</tbody>
+            </table>
+
+            <!-- Totals -->
+            <div class="totals">${totals}</div>
+
+            <!-- GST & footer -->
+            <div class="gst">
+              <div><b>GSTIN:</b> ${HOSPITAL.gstin}</div>
+              <div><b>Tax Note:</b> Prices are inclusive of applicable GST as per item GST% shown above. This is a computer-generated invoice.</div>
+              <div><b>Terms:</b> Goods once sold will not be taken back. For returns/credits, please bring this bill.</div>
+            </div>
+
+            <div class="thanks">Thank you for choosing ${HOSPITAL.name}.</div>
+
+            <div class="noprint" style="margin-top:12px">
+              <button onclick="window.print()">Print</button>
+            </div>
+          </body>
+        </html>
+      `);
+      win.document.close();
+      win.onload = ()=> win.print();
+    }
+
     // Init
-    renderList(); loadRecords();
+    renderList();
+    loadRecords();
   </script>
 </body>
 </html>
