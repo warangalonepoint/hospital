@@ -3,69 +3,383 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Bookings – Dr. Charan</title>
-  <link rel="stylesheet" href="styles.css?v=20"/>
+  <title>Patients – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=26"/>
 </head>
 <body>
+  <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <main class="container">
+  <!-- Fixed actions -->
+  <div class="fixed-actions">
+    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <a class="chip" href="bookings.html">Bookings</a>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+
+  <main class="section" style="max-width:1100px">
+    <!-- Filters -->
+    <section class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+      <div style="flex:1;min-width:220px">
+        <label class="muted">Search</label>
+        <input id="qSearch" class="input" placeholder="Name or phone"/>
+      </div>
+      <div>
+        <label class="muted">From</label>
+        <input id="qFrom" class="input" type="date"/>
+      </div>
+      <div>
+        <label class="muted">To</label>
+        <input id="qTo" class="input" type="date"/>
+      </div>
+      <div>
+        <label class="muted">Status</label>
+        <select id="qStatus" class="input">
+          <option value="all">All</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div>
+        <button id="applyFilters" class="btn">Apply</button>
+      </div>
+    </section>
+
+    <!-- Patients table -->
     <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h3 class="section-title">Patient Bookings</h3>
-        <span class="chip small" id="roleHint"></span>
-      </div>
+      <h2 style="font-size:18px;margin-bottom:8px">Patients</h2>
+      <table class="table" id="patientsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Last Visit</th>
+            <th>Next Visit</th>
+            <th>Reminder</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="help" style="margin-top:8px">Tap a row to open full history & notes.</p>
+    </section>
 
-      <div id="formWrap" class="card" style="margin-top:12px">
-        <div class="grid-2">
-          <input id="bDate" class="input" type="date"/>
-          <input id="bTime" class="input" type="time"/>
-          <input id="bName" class="input" placeholder="Patient name"/>
-          <input id="bReason" class="input" placeholder="Reason"/>
+    <!-- Reminders -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="font-size:18px;margin-bottom:8px">Upcoming Reminders</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="muted">Window</label>
+          <select id="remWindow" class="input" style="width:auto">
+            <option value="7">Next 7 days</option>
+            <option value="14">Next 14 days</option>
+            <option value="30">Next 30 days</option>
+          </select>
         </div>
-        <div style="margin-top:10px"><button id="addBooking" class="btn">Add Booking</button></div>
-        <p class="muted" style="margin-top:6px">Only Supervisor can add. Doctor view is read-only.</p>
       </div>
-
-      <div class="chart-card">
-        <h4 style="margin:0 0 8px">Upcoming</h4>
-        <div id="list"></div>
-      </div>
+      <table class="table" id="remTable">
+        <thead><tr><th>Patient</th><th>Phone</th><th>Next Visit</th><th>Reminder On</th><th>Sent?</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </section>
   </main>
 
+  <!-- Drawer (simple overlay) -->
+  <div id="drawer" style="position:fixed;inset:0;display:none;background:rgba(0,0,0,.4)">
+    <div style="position:absolute;right:0;top:0;height:100%;width:min(560px,100%);background:var(--card-bg);box-shadow:var(--shadow);padding:16px;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2 id="dName" style="font-size:18px">Patient</h2>
+        <button id="dClose" class="chip">Close</button>
+      </div>
+
+      <div class="card" style="margin-top:6px">
+        <h3 style="font-size:16px;margin-bottom:6px">Profile</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+          <div><label class="muted">Phone</label><input id="dPhone" class="input" readonly/></div>
+          <div><label class="muted">Notes</label><input id="dNotes" class="input" placeholder="Treatment / medicines / comments"/></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px">
+          <button id="dSaveNotes" class="chip">Save Notes</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:6px">Next Visit & Reminder</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+          <div><label class="muted">Next Visit</label><input id="dNextVisit" type="date" class="input"/></div>
+          <div><label class="muted">Reminder On</label><input id="dReminderOn" type="date" class="input"/></div>
+          <div><label class="muted">Reminder Sent</label>
+            <select id="dRemSent" class="input">
+              <option value="no">No</option><option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px">
+          <button id="dSaveFollowup" class="btn">Save Follow-up</button>
+          <button id="dMarkSent" class="chip">Mark Reminder Sent</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:6px">Visits History</h3>
+        <table class="table" id="dVisits">
+          <thead><tr><th>Date</th><th>Token</th><th>Status</th><th>Reason/Notes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
-    import { role, listBookings, addBooking } from './js/store.js?v=21';
+    /* ---------- Role guard: doctor only ---------- */
+    const s = JSON.parse(localStorage.getItem('session')||'null');
+    if(!s || s.role!=='doctor') location.replace('login.html');
 
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    /* ---------- Theme ---------- */
+    const t = document.getElementById('themeToggle');
+    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
+    setTheme(localStorage.theme || 'light');
+    t.onclick = () => setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
 
-    const r=role(); document.getElementById('roleHint').textContent = `Role: ${r||'guest'}`;
-    if(r!=='supervisor'){ document.getElementById('formWrap').style.display='none'; }
+    /* ---------- Logout / Clear ---------- */
+    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      try{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session', keep);
+        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch{}
+    };
 
-    function render(){
-      const wrap=document.getElementById('list'); wrap.innerHTML='';
-      const data=listBookings().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-      data.forEach(b=>{
-        const row=document.createElement('div');
-        row.className='stat';
-        row.innerHTML=`<div class="k" style="font-size:18px">${b.patient}</div>
-                       <div class="muted">${b.date} • ${b.time} • ${b.reason}</div>`;
-        wrap.appendChild(row);
+    /* ---------- Data sources ---------- */
+    const lsGet = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(f)); }catch{ return f; } };
+    const lsSet = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    const PAT_KEY = 'patients';
+    const BKG_KEY = 'bookings';
+
+    function normalizePatients(){
+      const pats = lsGet(PAT_KEY, []);
+      // Ensure fields exist
+      return pats.map(p=>({
+        name: (p.name||'').trim(),
+        phone: (p.phone||'').trim(),
+        notes: p.notes || '',
+        nextVisit: p.nextVisit || '',       // 'YYYY-MM-DD'
+        reminderOn: p.reminderOn || '',     // 'YYYY-MM-DD'
+        reminderSent: p.reminderSent || 'no'
+      }));
+    }
+    function savePatients(arr){ lsSet(PAT_KEY, arr); }
+
+    function allBookings(){
+      return lsGet(BKG_KEY, []); // {id,date,time,token,name,phone,reason,status}
+    }
+
+    /* ---------- Merge: patients + bookings ---------- */
+    function buildPatientIndex(){
+      const pats = normalizePatients();
+      const byPhone = new Map();
+      pats.forEach(p => byPhone.set(p.phone || p.name, {...p, visits: []}));
+
+      for(const b of allBookings()){
+        const key = (b.phone||'').trim() || (b.name||'').trim();
+        if(!key) continue;
+        if(!byPhone.has(key)) byPhone.set(key, { name:b.name||'', phone:b.phone||'', notes:'', nextVisit:'', reminderOn:'', reminderSent:'no', visits:[] });
+        const rec = byPhone.get(key);
+        rec.visits.push({
+          date: b.date,
+          token: b.token || '',
+          status: b.status || 'Pending',
+          reason: b.reason || ''
+        });
+      }
+
+      // compute last / upcoming status
+      const arr = [...byPhone.values()];
+      arr.forEach(p => {
+        p.visits.sort((a,b)=> (a.date<b.date?1:-1) || ((a.token||0)-(b.token||0)));
+        p.lastVisit = p.visits.find(v => v.status==='Completed')?.date || p.visits[0]?.date || '';
+        // derive status row tag: upcoming if has pending/checked-in for future date, else completed if last visit exists
+        const today = new Date().toISOString().slice(0,10);
+        const hasFuture = p.visits.some(v => v.date >= today && (v.status==='Pending' || v.status==='Checked-in'));
+        p.rowStatus = hasFuture ? 'Upcoming' : (p.lastVisit ? 'Completed' : '—');
+      });
+      return arr.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    }
+
+    /* ---------- Filters ---------- */
+    const qSearch = document.getElementById('qSearch');
+    const qFrom   = document.getElementById('qFrom');
+    const qTo     = document.getElementById('qTo');
+    const qStatus = document.getElementById('qStatus');
+    const applyBtn= document.getElementById('applyFilters');
+    const tbody   = document.querySelector('#patientsTable tbody');
+
+    function withinRange(date, from, to){
+      if(!date) return true;
+      if(from && date < from) return false;
+      if(to && date > to) return false;
+      return true;
+    }
+
+    function renderTable(){
+      const list = buildPatientIndex();
+      const q = (qSearch.value||'').toLowerCase();
+      const f = qFrom.value || '';
+      const t = qTo.value || '';
+      const st = qStatus.value;
+
+      const rows = list.filter(p=>{
+        const hit = (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q);
+        if(!hit) return false;
+        // use lastVisit to filter range
+        if(!withinRange(p.lastVisit || p.visits[0]?.date || '', f, t)) return false;
+        if(st==='upcoming' && p.rowStatus!=='Upcoming') return false;
+        if(st==='completed' && p.rowStatus!=='Completed') return false;
+        return true;
+      });
+
+      tbody.innerHTML = '';
+      rows.forEach(p=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name||''}</td>
+          <td>${p.phone||''}</td>
+          <td>${p.lastVisit||'—'}</td>
+          <td>${p.nextVisit||'—'}</td>
+          <td>${p.reminderOn ? (p.reminderSent==='yes' ? 'Sent' : p.reminderOn) : '—'}</td>
+          <td>${p.rowStatus||'—'}</td>
+        `;
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', ()=> openDrawer(p));
+        tbody.appendChild(tr);
       });
     }
 
-    document.getElementById('addBooking')?.addEventListener('click', ()=>{
-      const b={ date:bDate.value, time:bTime.value, patient:bName.value, reason:bReason.value };
-      if(!b.date || !b.time || !b.patient){ alert('Fill date/time/name'); return; }
-      addBooking(b); bDate.value=bTime.value=bName.value=bReason.value='';
-      render();
-    });
+    applyBtn.onclick = renderTable;
 
-    render();
+    /* ---------- Drawer: history + notes + reminders ---------- */
+    const drawer = document.getElementById('drawer');
+    const dClose = document.getElementById('dClose');
+    const dName  = document.getElementById('dName');
+    const dPhone = document.getElementById('dPhone');
+    const dNotes = document.getElementById('dNotes');
+    const dNext  = document.getElementById('dNextVisit');
+    const dRemOn = document.getElementById('dReminderOn');
+    const dRemSent = document.getElementById('dRemSent');
+    const dVisitsT = document.querySelector('#dVisits tbody');
+
+    let currentPatientKey = null; // phone or name if phone missing
+
+    function openDrawer(p){
+      currentPatientKey = p.phone || p.name;
+      dName.textContent = p.name || '(No name)';
+      dPhone.value = p.phone || '';
+      dNotes.value = p.notes || '';
+      dNext.value  = p.nextVisit || '';
+      dRemOn.value = p.reminderOn || '';
+      dRemSent.value = p.reminderSent || 'no';
+
+      dVisitsT.innerHTML = '';
+      (p.visits||[]).forEach(v=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${v.date||''}</td><td>${v.token||''}</td><td>${v.status||''}</td><td>${v.reason||''}</td>`;
+        dVisitsT.appendChild(tr);
+      });
+
+      drawer.style.display = 'block';
+    }
+    dClose.onclick = ()=>{ drawer.style.display='none'; currentPatientKey=null; };
+
+    document.getElementById('dSaveNotes').onclick = ()=>{
+      if(!currentPatientKey) return;
+      const arr = normalizePatients();
+      const i = arr.findIndex(x => (x.phone||x.name) === currentPatientKey);
+      if(i>=0){ arr[i].notes = dNotes.value.trim(); }
+      else { // create record if missing
+        arr.push({ name: dName.textContent, phone: dPhone.value.trim(), notes: dNotes.value.trim(), nextVisit:'', reminderOn:'', reminderSent:'no' });
+      }
+      savePatients(arr);
+      renderTable();
+      alert('Notes saved.');
+    };
+
+    document.getElementById('dSaveFollowup').onclick = ()=>{
+      if(!currentPatientKey) return;
+      const arr = normalizePatients();
+      const i = arr.findIndex(x => (x.phone||x.name) === currentPatientKey);
+      const nv = dNext.value || '';
+      const ro = dRemOn.value || '';
+      const rs = dRemSent.value || 'no';
+      if(i>=0){ arr[i].nextVisit = nv; arr[i].reminderOn = ro; arr[i].reminderSent = rs; }
+      else { arr.push({ name: dName.textContent, phone: dPhone.value.trim(), notes: dNotes.value.trim(), nextVisit:nv, reminderOn:ro, reminderSent:rs }); }
+      savePatients(arr);
+      renderTable();
+      renderReminders();
+      alert('Follow-up saved.');
+    };
+
+    document.getElementById('dMarkSent').onclick = ()=>{
+      if(!currentPatientKey) return;
+      const arr = normalizePatients();
+      const i = arr.findIndex(x => (x.phone||x.name) === currentPatientKey);
+      if(i>=0){ arr[i].reminderSent = 'yes'; savePatients(arr); }
+      dRemSent.value = 'yes';
+      renderReminders();
+      renderTable();
+    };
+
+    /* ---------- Reminders table ---------- */
+    const remTableBody = document.querySelector('#remTable tbody');
+    const remWindow = document.getElementById('remWindow');
+
+    function renderReminders(){
+      const days = parseInt(remWindow.value,10) || 7;
+      const today = new Date().toISOString().slice(0,10);
+      const end = new Date(); end.setDate(end.getDate()+days);
+      const endStr = end.toISOString().slice(0,10);
+
+      const pats = normalizePatients().filter(p => p.reminderOn && p.reminderOn >= today && p.reminderOn <= endStr);
+      pats.sort((a,b)=> (a.reminderOn>b.reminderOn?1:-1));
+
+      remTableBody.innerHTML = '';
+      for(const p of pats){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name||''}</td>
+          <td>${p.phone||''}</td>
+          <td>${p.nextVisit||'—'}</td>
+          <td>${p.reminderOn||'—'}</td>
+          <td>${p.reminderSent==='yes'?'Yes':'No'}</td>
+          <td><button class="chip">Mark Sent</button></td>
+        `;
+        tr.querySelector('button').onclick = ()=>{
+          const arr = normalizePatients();
+          const i = arr.findIndex(x => (x.phone||x.name) === (p.phone||p.name));
+          if(i>=0){ arr[i].reminderSent='yes'; savePatients(arr); }
+          renderReminders();
+          renderTable();
+        };
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', (e)=>{
+          if(e.target.tagName.toLowerCase()==='button') return;
+          openDrawer(p);
+        });
+        remTableBody.appendChild(tr);
+      }
+    }
+    remWindow.onchange = renderReminders;
+
+    // Initial render
+    renderTable();
+    renderReminders();
+
+    // SW register
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
