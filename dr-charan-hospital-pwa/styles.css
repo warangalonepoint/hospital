@@ -24,7 +24,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
 body{background:var(--bg);color:var(--text)}
-a{color:inherit}
+a{color:inherit;text-decoration:none}
 .container{width:min(980px,92vw);margin:16px auto 80px}
 .narrow{width:min(720px,92vw)}
 
@@ -43,20 +43,39 @@ input,select{background:var(--bg);color:var(--text);border:1px solid var(--borde
 .stat{text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:10px}
 .stat .num{font-size:28px;font-weight:800}
 .stat .lbl{color:var(--muted);font-size:12px;margin-top:4px}
-.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px 0 40px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px 0 40px}
 
-/* Banner */
+/* --- Default banner (kept for other pages if needed) --- */
 .banner{
   position:relative;background:#0b1220 url('assets/banner.png') center/cover no-repeat;
   min-height:140px;border-radius:16px;border:1px solid var(--border);margin:12px auto 18px;padding:16px;
-  display:flex;align-items:flex-end;box-shadow:0 10px 30px #00000055 inset,0 1px 0 #ffffff08
+  display:flex;align-items:flex-end;
 }
 .banner::after{content:"";position:absolute;inset:0;border-radius:16px;background:linear-gradient(180deg,#0b122088,#0b1220aa 70%,transparent);pointer-events:none}
 .brand{position:relative;z-index:1;display:flex;align-items:center;gap:12px}
 .brand img{width:44px;height:44px;border-radius:10px}
 .brand .title{margin:0;font-size:22px;line-height:1.15}
 .brand .subtitle{margin:0;color:var(--muted);font-size:12px}
-#themeToggle{margin-left:auto}
+
+/* --- CLEAN banner (no overlay/tint, no text) --- */
+.banner.clean{
+  padding:0;
+  min-height:160px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background: url('assets/banner.png') center/cover no-repeat !important;
+  box-shadow:none !important;
+}
+.banner.clean::after{content:none !important;display:none !important;}
+.banner.clean .brand{display:none}
+
+/* Logo pinned on banner */
+.logo-badge{
+  position:absolute;top:12px;left:12px;width:44px;height:44px;border-radius:10px;background:#0000
+}
+
+/* Floating dark/light toggle */
+.floating-toggle{position:fixed;top:14px;right:14px;z-index:1000}
 
 @media (min-width:768px){
   .banner{min-height:160px;padding:20px}
