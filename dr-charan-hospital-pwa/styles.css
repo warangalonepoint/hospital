@@ -1,18 +1,27 @@
 /* ========= Base ========= */
 :root {
-  --bg: #f9fafb;
+  --bg: #f7f8fb;
   --fg: #0f172a;
   --card-bg: #ffffff;
   --accent: #2563eb;
   --muted: #6b7280;
 
-  --blue: #e8f0ff;
-  --mint: #e8f9ef;
-  --peach: #ffe9e9;
-  --lilac: #eef0ff;
+  --radius: 16px;
+  --shadow: 0 6px 18px rgba(0,0,0,0.10);
 
-  --radius: 14px;
-  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  /* Bold pastel tints */
+  --t-lilac: #e0d4ff;
+  --t-blue:  #d2e5ff;
+  --t-mint:  #c8f7e1;
+  --t-peach: #ffd7d2;
+  --t-rose:  #ffcfe0;
+
+  /* Paired text colors for tints */
+  --c-lilac:#4c1d95;
+  --c-blue:#1e40af;
+  --c-mint:#065f46;
+  --c-peach:#9a3412;
+  --c-rose:#9d174d;
 }
 
 html[data-theme="dark"] {
@@ -22,173 +31,153 @@ html[data-theme="dark"] {
   --accent: #3b82f6;
   --muted: #9ca3af;
 
-  --blue: #0f2647;
-  --mint: #0e2a1d;
-  --peach: #3b1a1a;
-  --lilac: #151a36;
+  --t-lilac:#352359;
+  --t-blue:#1e2a48;
+  --t-mint:#123d2d;
+  --t-peach:#4a2a23;
+  --t-rose:#4a1e33;
+
+  --c-lilac:#c4b5fd;
+  --c-blue:#93c5fd;
+  --c-mint:#6ee7b7;
+  --c-peach:#fca5a5;
+  --c-rose:#f9a8d4;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
-button, input { font: inherit; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
 body { background: var(--bg); color: var(--fg); line-height: 1.5; }
 
 /* ========= Banner ========= */
 .banner {
   position: relative;
   height: 148px;
-  border-radius: var(--radius);
+  border-radius: 18px;
   overflow: hidden;
   background: #0c3a5c url('./assets/banner.png') center/cover no-repeat;
   margin: 12px 12px 8px;
   box-shadow: var(--shadow);
 }
-@media (min-width: 768px) { .banner { height: 170px; max-width: 960px; margin: 16px auto; } }
-@media (min-width: 1200px) { .banner { height: 190px; max-width: 1120px; } }
+@media (min-width: 768px) { .banner { height: 170px; max-width: 1000px; margin: 16px auto 10px; } }
+@media (min-width: 1200px) { .banner { height: 190px; max-width: 1140px; } }
 
 .banner .floating-toggle {
   position: absolute; top: 12px; right: 12px;
-  width: 42px; height: 42px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   display: grid; place-items: center;
   font-size: 18px;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(0,0,0,.06);
   backdrop-filter: blur(6px);
   cursor: pointer;
 }
 
-/* ========= Fixed Actions ========= */
+/* ========= Fixed Actions (NOT inside banner) ========= */
 .fixed-actions {
-  position: sticky;
-  top: 4px;
-  display: flex; gap: 12px; flex-wrap: wrap;
-  padding: 6px 12px;
-  margin: 0 12px 12px;
-  z-index: 10;
+  position: sticky; top: 6px; z-index: 10;
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 6px 12px; margin: 0 12px 12px;
 }
 .fixed-actions .chip {
-  font-size: 13px; padding: 8px 14px;
+  font-size: 14px; padding: 10px 14px;
   border-radius: 999px;
   background: var(--card-bg);
   color: var(--fg);
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: var(--shadow);
-  cursor: pointer; user-select: none;
-}
-html[data-theme="dark"] .fixed-actions .chip {
-  border-color: rgba(255,255,255,0.08);
-}
-
-/* ========= Cards / Grid ========= */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
-  gap: 14px;
-  padding: 12px;
-}
-.card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  text-align: center;
-  transition: transform 0.2s ease;
-}
-.card:hover { transform: translateY(-2px); }
-.card h2 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-.card p { font-size: 13px; color: var(--muted); }
-
-/* Menu cards: equal size, better headings */
-.card-grid.menu{ grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
-.card.menu{
-  min-height:128px;
-  display:flex; flex-direction:column; justify-content:center; align-items:center;
-  text-align:center; padding:18px;
-}
-.card.menu h2{ font-size:18px; margin-bottom:6px; }
-.card.menu p{ font-size:14px; }
-
-/* Soft color helpers (optional) */
-.card--blue  { background: var(--card-bg); }
-.card--mint  { background: var(--card-bg); }
-.card--peach { background: var(--card-bg); }
-
-/* ========= Buttons & Chips ========= */
-.btn {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: background 0.2s;
 }
-.btn:hover { background: #1d4ed8; }
-.chip{
-  appearance:none; -webkit-appearance:none;
-  display:inline-flex; align-items:center; justify-content:center;
-  padding:8px 14px; border-radius:999px; gap:8px;
-  background: var(--card-bg);
-  color: var(--fg);
-  border:1px solid rgba(0,0,0,.06);
-  box-shadow: var(--shadow);
-  cursor:pointer; user-select:none;
-}
-.chip.active,
-.chip[aria-pressed="true"]{
-  background: var(--accent);
-  color:#fff;
-  border-color: transparent;
-}
+html[data-theme="dark"] .fixed-actions .chip { border-color: rgba(255,255,255,0.10); }
 
-/* Range chip row */
-.range { display:flex; gap:8px; flex-wrap:wrap; }
-
-/* ========= Sections / cards ========= */
+/* ========= Card grid ========= */
 .section {
   background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
   margin: 12px;
-}
-.section h1, .section h2 { font-size: 20px; margin-bottom: 10px; }
-
-/* ========= Login ========= */
-.login-wrap { display: flex; justify-content: center; padding: 20px; }
-.login-card {
-  background: var(--card-bg);
+  padding: 18px;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 20px;
-  width: 100%;
-  max-width: 380px;
 }
-.login-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-.input {
-  width: 100%; padding: 10px; border-radius: var(--radius);
-  border: 1px solid rgba(0,0,0,0.1);
-  margin-bottom: 10px; font-size: 15px;
-  background: transparent; color: var(--fg);
-}
-.input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
-.help { font-size: 12px; color: var(--muted); margin-top: 10px; }
+@media (min-width: 768px) { .section { max-width: 1000px; margin: 12px auto; } }
+@media (min-width: 1200px) { .section { max-width: 1140px; } }
 
-/* ========= Tables ========= */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 18px;
 }
-.table th, .table td {
-  border: 1px solid rgba(0,0,0,0.05);
-  padding: 8px;
-  text-align: left;
-  font-size: 13px;
+.card {
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  display: block;
+  transition: transform .18s ease, box-shadow .18s ease;
+  border: 1px solid rgba(0,0,0,.06);
 }
-.table th {
-  background: rgba(0,0,0,0.04);
-  font-weight: 600;
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.14); }
+.card h3 { font-size: 22px; margin-bottom: 8px; text-decoration: underline; text-underline-offset: 3px; }
+.card p { font-size: 15px; color: var(--fg); opacity: .9; }
+
+/* Colorful cards (bold tints + soft gradient) */
+.panel--blue  { background: linear-gradient(135deg, var(--t-blue),  #bcdfff);  color: var(--c-blue);  }
+.panel--mint  { background: linear-gradient(135deg, var(--t-mint),  #aaf5d0);  color: var(--c-mint);  }
+.panel--peach { background: linear-gradient(135deg, var(--t-peach), #ffb9ad);  color: var(--c-peach); }
+.panel--lilac { background: linear-gradient(135deg, var(--t-lilac), #cab8ff);  color: var(--c-lilac); }
+.panel--rose  { background: linear-gradient(135deg, var(--t-rose),  #ffb6cc);  color: var(--c-rose);  }
+
+/* ========= Buttons / Chips ========= */
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow);
 }
-html[data-theme="dark"] .table th { background: rgba(255,255,255,0.06); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: var(--card-bg);
+  cursor: pointer;
+}
+.chip--blue  { background: var(--t-blue);  color: var(--c-blue);  }
+.chip--mint  { background: var(--t-mint);  color: var(--c-mint);  }
+.chip--peach { background: var(--t-peach); color: var(--c-peach); }
+.chip--lilac { background: var(--t-lilac); color: var(--c-lilac); }
+.chip--rose  { background: var(--t-rose);  color: var(--c-rose);  }
+
+.range .chip.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+}
+
+/* ========= Analytics cards ========= */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 18px; margin-top: 12px;
+}
+.kpi {
+  border-radius: 18px; padding: 18px;
+  box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.06);
+}
+.kpi h4 { font-size: 16px; margin-bottom: 8px; opacity: .9; }
+.kpi .num { font-size: 32px; font-weight: 800; }
+
+/* ========= Charts ========= */
+.chart-wrap {
+  border-radius: 18px; background: var(--card-bg);
+  padding: 16px; box-shadow: var(--shadow); margin-top: 16px;
+}
+.chart-title { font-weight: 800; margin-bottom: 8px; }
+
+/* ========= Helpers ========= */
+.muted { color: var(--muted); }
+.mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
