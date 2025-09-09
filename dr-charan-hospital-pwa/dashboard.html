@@ -6,51 +6,41 @@
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=14"/>
+  <style>
+    .floating-actions{position:fixed;top:14px;left:14px;z-index:1000;display:flex;gap:8px;flex-wrap:wrap}
+  </style>
 </head>
 <body>
-  <!-- Banner already has logo+title inside the image -->
   <header class="banner clean"></header>
+
+  <!-- Always-visible controls -->
+  <div class="floating-actions">
+    <button id="logout" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
   <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
   <main class="container n8">
-    <!-- Big tile menu -->
     <section class="card">
       <div class="tile-grid">
         <a class="tile analytics" id="openAnalytics">
           <div class="title">Analytics</div>
           <div class="sub">KPIs & weekly sales</div>
         </a>
-        <!-- Direct link to Billing v1 -->
-        <a class="tile pharma" id="openPharmacy" href="admin.html?v=15">
-          <div class="title">Pharmacy</div>
-          <div class="sub">Sales & invoices</div>
-        </a>
-        <a class="tile bookings" id="openBookings" href="patient.html?v=15">
-          <div class="title">Bookings</div>
-          <div class="sub">Quick patient slots</div>
-        </a>
-        <a class="tile patients" id="openPatients" href="portal.html?v=15">
-          <div class="title">Patients</div>
-          <div class="sub">Reminders & history</div>
-        </a>
-        <a class="tile staff" id="openStaff" href="#">
-          <div class="title">Staff</div>
-          <div class="sub">Roster & status</div>
-        </a>
-        <a class="tile settings" href="settings.html?v=14">
-          <div class="title">Settings</div>
-          <div class="sub">PINs, Staff, Patients</div>
-        </a>
-      </div>
 
-      <!-- Actions -->
-      <div style="display:flex;gap:10px;align-items:center;margin-top:14px;">
-        <button id="logout" class="btn">Logout</button>
-        <button id="clearCacheBtn" class="btn">Clear Cache</button>
+        <!-- Pharmacy: live stats from Billing -->
+        <a class="tile pharma" href="admin.html?v=15">
+          <div class="title">Pharmacy</div>
+          <div class="sub" id="pharmaMeta">Sales & invoices</div>
+        </a>
+
+        <a class="tile bookings" href="patient.html?v=15"><div class="title">Bookings</div><div class="sub">Quick patient slots</div></a>
+        <a class="tile patients" href="portal.html?v=15"><div class="title">Patients</div><div class="sub">Reminders & history</div></a>
+        <a class="tile staff" href="#"><div class="title">Staff</div><div class="sub">Roster & status</div></a>
+        <a class="tile settings" href="settings.html?v=14"><div class="title">Settings</div><div class="sub">PINs, Staff, Patients</div></a>
       </div>
     </section>
 
-    <!-- Analytics (default) -->
     <section class="card" id="analyticsPanel">
       <h3 style="margin-top:0">Sales Analytics</h3>
       <div class="tile-grid" style="grid-template-columns:repeat(3,1fr);">
@@ -60,7 +50,7 @@
       </div>
       <canvas id="salesChart" height="180" style="width:100%;margin-top:16px"></canvas>
       <div style="display:flex;gap:10px;margin-top:10px">
-        <a class="btn" id="gotoPharmacy" href="admin.html?v=15">Open Pharmacy</a>
+        <a class="btn" href="admin.html?v=15">Open Pharmacy</a>
         <button class="btn ghost" id="exportSales">Export Sales CSV</button>
       </div>
     </section>
@@ -88,35 +78,47 @@
     };
 
     // Auth guard
-    const u = (JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}')).user;
-    if(!u){ location.href='login.html?v=14'; }
+    const u = (JSON.parse(localStorage.getItem(S.KEY)||'{}')).user;
+    if(!u){ location.href='login.html?v=15'; }
 
-    // Actions
+    // Logout / Clear cache
     document.getElementById('logout').onclick=()=>{
-      const db=JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}');
-      db.user=null; localStorage.setItem('onestop_hospital_demo_v5', JSON.stringify(db));
-      location.href='login.html?v=14';
+      const db=JSON.parse(localStorage.getItem(S.KEY)||'{}');
+      db.user=null; localStorage.setItem(S.KEY, JSON.stringify(db));
+      location.href='login.html?v=15';
     };
-    document.getElementById('clearCacheBtn').addEventListener('click', async ()=>{
+    document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
         localStorage.clear();
-        if ('caches' in window) {
-          const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k)));
-        }
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const r of regs) await r.unregister();
-        }
+        if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+        if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
         alert('Cache cleared. Reloading…'); location.reload(true);
       }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
-    });
+    };
 
-    // Export (from derived sales)
+    // Pharmacy tile meta: Today, MTD, invoice count (today + MTD), last invoice #
+    async function renderPharmacyTile(){
+      const today = new Date().toISOString().slice(0,10);
+      const month = today.slice(0,7); // YYYY-MM
+
+      const allInvs = S.listInvoices() || [];
+      const invsToday = S.listInvoices({from: today, to: today}) || [];
+      const invsMTD = allInvs.filter(i => (i.date||'').startsWith(month));
+
+      const totalToday = +(await S.totalsToday?.() || 0);
+      const totalMonth = +(await S.totalsMonth?.() || 0);
+      const lastInvNo = (allInvs[0]?.number) || '—';
+
+      document.getElementById('pharmaMeta').textContent =
+        `Today ₹${totalToday.toFixed(2)} • ${invsToday.length} inv | MTD ₹${totalMonth.toFixed(2)} • ${invsMTD.length} inv | Last: ${lastInvNo}`;
+    }
+
+    // Export Sales CSV
     document.getElementById('exportSales').onclick=()=>{
       const rows = S.listSales?.() || [];
       const head=['date','item','qty','price','amount','invoice'];
       const body=(rows||[]).map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
-      const csv=[head,...body].map(r=>r.join(',')).join('\\n');
+      const csv=[head,...body].map(r=>r.join(',')).join('\n');
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
       a.download='pharma_sales.csv'; a.click();
@@ -132,7 +134,7 @@
       document.getElementById('topItem').textContent = top;
     }
 
-    // Simple 7-day bar chart
+    // 7-day bar chart
     async function renderChart(){
       const rows = await S.listSales?.() || [];
       const fmt = (d)=>d.toISOString().slice(5,10); // MM-DD
@@ -173,10 +175,11 @@
     }
 
     await renderKPIs();
+    await renderPharmacyTile();
     await renderChart();
     addEventListener('resize', renderChart);
 
-    document.getElementById('openAnalytics').onclick=()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'});
+    document.getElementById('openAnalytics')?.addEventListener('click',()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'}));
   </script>
 </body>
 </html>
