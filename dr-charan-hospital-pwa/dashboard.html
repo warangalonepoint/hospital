@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
@@ -6,7 +7,7 @@
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=27"/>
+  <link rel="stylesheet" href="styles.css?v=29"/>
 </head>
 <body>
   <!-- Banner -->
@@ -20,7 +21,7 @@
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <!-- Main app cards -->
+  <!-- Main cards -->
   <section class="section">
     <div class="card-grid">
       <a href="analytics.html" class="card panel--lilac">
@@ -33,7 +34,6 @@
         <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
       </a>
 
-      <!-- Bookings ➜ Booking Status -->
       <a href="bookings-status.html" class="card panel--mint">
         <h3>Booking Status</h3>
         <p>Today / Week / Month counts</p>
@@ -41,7 +41,7 @@
 
       <a href="patients.html" class="card panel--rose">
         <h3>Patients</h3>
-        <p>Reminders & history</p>
+        <p>Reminders & history • <strong id="followupBadge">0 due today</strong></p>
       </a>
 
       <a href="staff.html" class="card panel--peach">
@@ -56,10 +56,10 @@
     </div>
   </section>
 
-  <!-- Sales analytics snapshot -->
+  <!-- Sales snapshot -->
   <section class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <h2>Sales Analytics (Today)</h2>
+      <h2>Sales Analytics</h2>
       <div class="chips range">
         <button class="chip chip--blue"  data-range="today">Today</button>
         <button class="chip chip--mint"  data-range="7d">7D</button>
@@ -85,6 +85,10 @@
         <h4>Top Item</h4>
         <div class="num" id="kpiTop">–</div>
       </div>
+      <div class="kpi panel--sky">
+        <h4>Follow-ups Today</h4>
+        <div class="num" id="kpiFollowups">0</div>
+      </div>
     </div>
 
     <div class="chart-wrap">
@@ -97,158 +101,140 @@
     </div>
   </section>
 
-  <!-- Local Chart.js -->
   <script src="assets/chart.umd.min.js"></script>
   <script>
-    // --- Theme toggle
-    const t = document.getElementById('themeToggle');
-    if (localStorage.theme) {
-      document.documentElement.dataset.theme = localStorage.theme;
-      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
+    // === Theme toggle
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.dataset.theme=localStorage.theme;
+      t.textContent=localStorage.theme==='light'?'🌞':'🌙';
     }
-    t.onclick = () => {
-      const cur = document.documentElement.dataset.theme || 'light';
-      const next = cur === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      localStorage.theme = next;
-      t.textContent = next === 'light' ? '🌞' : '🌙';
+    t.onclick=()=>{
+      const cur=document.documentElement.dataset.theme||'light';
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.dataset.theme=next;
+      localStorage.theme=next;
+      t.textContent=next==='light'?'🌞':'🌙';
     };
 
-    // --- Session guard
+    // === Session guard (doctor only)
     (() => {
       const s = JSON.parse(localStorage.getItem('session') || 'null');
       if (!s || s.role !== 'doctor') location.replace('login.html');
     })();
 
-    // --- Actions
-    document.getElementById('logoutBtn').onclick = () => {
-      localStorage.removeItem('session');
-      location.href = 'login.html';
-    };
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try {
-        const keep = localStorage.getItem('session');
-        localStorage.clear();
-        if (keep) localStorage.setItem('session', keep);
-        if ('caches' in window) {
-          const ks = await caches.keys();
-          await Promise.all(ks.map(k => caches.delete(k)));
-        }
-        alert('Cache cleared.');
-        location.reload();
-      } catch(e){ alert('Could not clear all caches.'); }
+    // === Actions
+    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    clearCacheBtn.onclick=async()=>{
+      const keep=localStorage.getItem('session');
+      localStorage.clear(); if(keep) localStorage.setItem('session',keep);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      alert('Cache cleared.'); location.reload();
     };
 
-    // --- Data helpers
-    function getInvoices() {
-      try { return JSON.parse(localStorage.getItem('invoices') || '[]'); }
-      catch { return []; }
-    }
+    // === Helpers
+    function getInvoices(){ try{return JSON.parse(localStorage.getItem('invoices')||'[]')}catch{return[]} }
     function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
-    function isSameDay(a,b){ return startOfDay(a).getTime()===startOfDay(b).getTime(); }
     function money(n){ return (Number(n)||0).toFixed(2); }
 
+    // === Summary
     function summarize(range='today'){
-      const inv = getInvoices();
-      const now = new Date();
-      let from;
-      if (range==='today') from = startOfDay(now);
-      else if (range==='7d') { from = new Date(now); from.setDate(now.getDate()-6); from = startOfDay(from); }
-      else if (range==='30d'){ from = new Date(now); from.setDate(now.getDate()-29); from = startOfDay(from); }
-      else if (range==='ytd'){ from = new Date(now.getFullYear(),0,1); }
-      else from = startOfDay(now);
+      const inv=getInvoices();
+      const now=new Date(); let from;
+      if(range==='today') from=startOfDay(now);
+      else if(range==='7d'){ from=new Date(now); from.setDate(now.getDate()-6); from=startOfDay(from); }
+      else if(range==='30d'){ from=new Date(now); from.setDate(now.getDate()-29); from=startOfDay(from); }
+      else if(range==='ytd'){ from=new Date(now.getFullYear(),0,1); }
+      else from=startOfDay(now);
 
-      const picked = inv.filter(i=>{
-        const t = new Date(i.date||i.createdAt||Date.now());
-        return t>=from && t<=now;
-      });
+      const picked=inv.filter(i=>new Date(i.date||i.createdAt||Date.now())>=from && new Date(i.date||i.createdAt||Date.now())<=now);
+      const total=picked.reduce((s,i)=>s+(+i.total||0),0);
+      const days=Math.max(1,Math.round((startOfDay(now)-from)/86400000)+1);
+      const avg=total/days; const count=picked.length;
 
-      const total = picked.reduce((s,i)=> s + (Number(i.total)||0), 0);
-      const days = Math.max(1, Math.round( (startOfDay(now)-from)/86400000 ) + 1);
-      const avg = total / days;
-      const count = picked.length;
+      const items={};
+      picked.forEach(i=>(i.items||[]).forEach(it=>{
+        const key=(it.name||'Item'); const amt=(+it.qty||0)*(+it.price||0);
+        items[key]=(items[key]||0)+amt;
+      }));
+      const top=Object.entries(items).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
 
-      const itemMap = {};
-      picked.forEach(i=>{
-        (i.items||[]).forEach(it=>{
-          const key = (it.name||'Item').trim();
-          const amt = (Number(it.qty)||0) * (Number(it.price)||0);
-          itemMap[key] = (itemMap[key]||0)+amt;
-        });
-      });
-      const top = Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
-
-      const byDay = {};
-      for(let i=0;i<days;i++){
-        const d = new Date(from); d.setDate(from.getDate()+i);
-        const key = d.toISOString().slice(0,10);
-        byDay[key] = 0;
+      const byDay={};
+      for(let d=new Date(from); d<=now; d.setDate(d.getDate()+1)){
+        byDay[d.toISOString().slice(0,10)]=0;
       }
       picked.forEach(i=>{
-        const d = new Date(i.date||i.createdAt||Date.now());
-        const key = d.toISOString().slice(0,10);
-        if (byDay[key] != null) byDay[key] += Number(i.total)||0;
+        const d=new Date(i.date||i.createdAt||Date.now()).toISOString().slice(0,10);
+        if(byDay[d]!=null) byDay[d]+=+i.total||0;
       });
-
-      return { total, avg, count, top, lineLabels:Object.keys(byDay), lineData:Object.values(byDay), pieData:itemMap };
+      return {total,avg,count,top,lineLabels:Object.keys(byDay),lineData:Object.values(byDay),pieData:items};
     }
+
+    // === Follow-ups
+    function getServedPatients(){ try{return JSON.parse(localStorage.getItem('servedPatients')||'[]')}catch{return[]} }
+    function pickISO(str){ const m=(str||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:null; }
+    function followupsDueTodayCount(){
+      const todayISO=new Date().toISOString().slice(0,10);
+      return getServedPatients().filter(p=>{
+        const iso=p.reminderISO||pickISO(p.reminder);
+        return iso===todayISO;
+      }).length;
+    }
+
+    function paintFollowups(){
+      const n=followupsDueTodayCount();
+      const k=document.getElementById('kpiFollowups'); if(k) k.textContent=n;
+      const b=document.getElementById('followupBadge'); if(b) b.textContent=`${n} due today`;
+    }
+
+    // === Charts
+    const line=new Chart(document.getElementById('lineChart'),{
+      type:'line',
+      data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:2,tension:.3}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
+    });
+    const pie=new Chart(document.getElementById('pieChart'),{
+      type:'pie',
+      data:{labels:[],datasets:[{data:[]}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
 
     function paintSummary(range='today'){
-      const s = summarize(range);
-      // KPIs
-      document.getElementById('kpiTotal').textContent = money(s.total);
-      document.getElementById('kpiAvg').textContent = money(s.avg);
-      document.getElementById('kpiInv').textContent = s.count;
-      document.getElementById('kpiTop').textContent = s.top;
+      const s=summarize(range);
+      document.getElementById('kpiTotal').textContent=money(s.total);
+      document.getElementById('kpiAvg').textContent=money(s.avg);
+      document.getElementById('kpiInv').textContent=s.count;
+      document.getElementById('kpiTop').textContent=s.top;
 
-      // Pharmacy snippet
-      const inv = getInvoices();
-      const today = inv.filter(i=>isSameDay(new Date(i.date||i.createdAt||Date.now()), new Date())).reduce((a,i)=>a+(+i.total||0),0);
-      const mStart = new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
-      const mtd = inv.filter(i=> new Date(i.date||i.createdAt||Date.now())>=mStart).reduce((a,i)=>a+(+i.total||0),0);
-      const top = s.top || '—';
-      document.getElementById('pharmacySummary').textContent = `Today ₹${money(today)} • MTD ₹${money(mtd)} • Top: ${top}`;
+      const inv=getInvoices();
+      const today=inv.filter(i=>new Date(i.date||i.createdAt||Date.now()).toDateString()===new Date().toDateString()).reduce((a,i)=>a+(+i.total||0),0);
+      const mStart=new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
+      const mtd=inv.filter(i=>new Date(i.date||i.createdAt||Date.now())>=mStart).reduce((a,i)=>a+(+i.total||0),0);
+      const top=s.top||'—';
+      document.getElementById('pharmacySummary').textContent=`Today ₹${money(today)} • MTD ₹${money(mtd)} • Top: ${top}`;
 
-      // Charts
-      line.data.labels = s.lineLabels;
-      line.data.datasets[0].data = s.lineData;
-      line.update();
-
-      const pieLabels = Object.keys(s.pieData);
-      const pieVals = Object.values(s.pieData);
-      pie.data.labels = pieLabels.length? pieLabels: ['No data'];
-      pie.data.datasets[0].data = pieVals.length? pieVals: [1];
-      pie.update();
+      line.data.labels=s.lineLabels; line.data.datasets[0].data=s.lineData; line.update();
+      const labels=Object.keys(s.pieData), vals=Object.values(s.pieData);
+      pie.data.labels=labels.length?labels:['No data']; pie.data.datasets[0].data=vals.length?vals:[1]; pie.update();
     }
 
-    // Charts init
-    const line = new Chart(document.getElementById('lineChart'), {
-      type: 'line',
-      data: { labels: [], datasets: [{ label:'Revenue', data: [], borderWidth:2, tension:.3 }] },
-      options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
-    });
-    const pie = new Chart(document.getElementById('pieChart'), {
-      type: 'pie',
-      data: { labels: [], datasets: [{ data: [] }] },
-      options: { responsive:true, maintainAspectRatio:false }
-    });
-
-    // Range chips
-    const rangeBar = document.querySelector('.range');
+    // === Init
+    const rangeBar=document.querySelector('.range');
     function setActive(name){
       rangeBar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-      const el = rangeBar.querySelector(`[data-range="${name}"]`);
-      if (el) el.classList.add('active');
+      const el=rangeBar.querySelector(`[data-range="${name}"]`); if(el) el.classList.add('active');
       paintSummary(name);
+      paintFollowups();
     }
-    rangeBar.addEventListener('click', (e)=>{
-      const btn = e.target.closest('.chip'); if (!btn) return;
+    rangeBar.addEventListener('click',e=>{
+      const btn=e.target.closest('.chip'); if(!btn)return;
       setActive(btn.dataset.range);
     });
     setActive('today');
+    window.addEventListener('storage',e=>{ if(e.key==='servedPatients') paintFollowups(); });
 
-    // SW
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    // === SW
+    if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
   </script>
 </body>
 </html>
