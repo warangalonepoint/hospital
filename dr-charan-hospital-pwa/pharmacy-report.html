@@ -3,104 +3,191 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy Records – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
+  <title>Pharmacy – Reports</title>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=18"/>
+  <link rel="stylesheet" href="styles.css?v=22"/>
 </head>
 <body>
+  <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <nav class="fixed-actions">
+  <!-- Fixed Actions -->
+  <div class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </nav>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+  </div>
 
+  <!-- Report -->
   <section class="section">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <h1>Pharmacy Records</h1>
-      <div class="range">
-        <button class="chip active" data-range="daily">Daily</button>
-        <button class="chip" data-range="weekly">Weekly</button>
-        <button class="chip" data-range="monthly">Monthly</button>
-        <button class="chip" data-range="yearly">Yearly</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>Pharmacy Records</h2>
+      <div class="chips range">
+        <button class="chip chip--blue"  data-range="day">Daily</button>
+        <button class="chip chip--mint"  data-range="week">Weekly</button>
+        <button class="chip chip--peach" data-range="month">Monthly</button>
+        <button class="chip chip--lilac" data-range="year">Yearly</button>
       </div>
     </div>
 
-    <div class="card-grid" style="margin-top:10px">
-      <div class="card" style="background:var(--blue);"><h2>Total (selected)</h2><p id="rTotal">0.00</p></div>
-      <div class="card" style="background:var(--lilac);"><h2>Invoices</h2><p id="rInv">0</p></div>
-      <div class="card" style="background:var(--mint);"><h2>Avg / Invoice ₹</h2><p id="rAvg">0.00</p></div>
-      <div class="card" style="background:var(--peach);"><h2>Top Item</h2><p id="rTop">—</p></div>
+    <div class="kpi-grid mt12">
+      <div class="kpi panel--blue">
+        <h4>Total (selected)</h4>
+        <div class="num" id="rTotal">0.00</div>
+      </div>
+      <div class="kpi panel--mint">
+        <h4>Invoices</h4>
+        <div class="num" id="rCount">0</div>
+      </div>
+      <div class="kpi panel--peach">
+        <h4>Avg / Invoice ₹</h4>
+        <div class="num" id="rAvg">0.00</div>
+      </div>
+      <div class="kpi panel--rose">
+        <h4>Top Item</h4>
+        <div class="num" id="rTop">—</div>
+      </div>
     </div>
 
-    <div class="section" id="rList" style="margin-top:14px">
-      <h2 style="margin-bottom:8px">Invoices</h2>
-      <table class="table" id="tbl"></table>
+    <div class="chart-wrap">
+      <div class="chart-title" id="axisTitle">Revenue by Day</div>
+      <canvas id="axisChart" height="160"></canvas>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Top Items (Share)</div>
+      <canvas id="pieChart" height="160"></canvas>
     </div>
   </section>
 
-  <script type="module">
-    // theme toggle
+  <script src="assets/chart.umd.min.js"></script>
+  <script>
+    // Theme
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
+    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'};
 
-    // guard: doctor view
-    const ses=JSON.parse(localStorage.getItem('session')||'{}');
-    if(ses.role!=='doctor'){ location.href='login.html'; }
+    // Guard (doctor & supervisor can view)
+    (()=>{
+      const s=JSON.parse(localStorage.getItem('session')||'null');
+      if(!s || !['doctor','supervisor'].includes(s.role)) location.replace('login.html');
+    })();
 
-    // actions
-    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
-    document.getElementById('clearCacheBtn').onclick=async()=>{
-      try{
-        localStorage.clear();
-        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-        alert('Cache cleared. Reloading…'); location.reload();
-      }catch(e){ alert('Could not fully clear cache.'); }
-    };
+    // Actions
+    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
+    clearCacheBtn.onclick=async()=>{try{const keep=localStorage.getItem('session');localStorage.clear();if(keep)localStorage.setItem('session',keep); if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))} alert('Cache cleared.');location.reload()}catch{}}
 
-    // range chips active state
-    const chips=[...document.querySelectorAll('[data-range]')];
-    function markActive(btn){ chips.forEach(c=>c.classList.remove('active')); btn.classList.add('active'); }
-    chips.forEach(btn=>btn.addEventListener('click', ()=>{ markActive(btn); load(btn.dataset.range); }));
-
-    // helpers
-    function sum(arr,fn){ return arr.reduce((a,b)=>a+fn(b),0); }
-    function rowsBetween(start,end){
-      const s=start.toISOString().slice(0,10), e=end.toISOString().slice(0,10);
-      const store=JSON.parse(localStorage.getItem('sales')||'[]');
-      return store.filter(r=>r.date>=s && r.date<=e);
+    // Data helpers
+    function invoices(){try{return JSON.parse(localStorage.getItem('invoices')||'[]')}catch{return []}}
+    function startOf(d,unit){
+      const x=new Date(d);
+      if(unit==='day'){x.setHours(0,0,0,0)}
+      if(unit==='week'){const day=x.getDay();const diff=(day+6)%7; x.setDate(x.getDate()-diff); x.setHours(0,0,0,0)}
+      if(unit==='month'){x.setDate(1);x.setHours(0,0,0,0)}
+      if(unit==='year'){x.setMonth(0,1);x.setHours(0,0,0,0)}
+      return x;
     }
-    function load(key){
-      const end=new Date(); const start=new Date(end);
-      if(key==='daily'){ /* start today */ }
-      if(key==='weekly'){ start.setDate(end.getDate()-6); }
-      if(key==='monthly'){ start.setDate(end.getDate()-29); }
-      if(key==='yearly'){ start.setFullYear(end.getFullYear()-1); }
-      const rows=rowsBetween(start,end);
-
-      const total=sum(rows,r=>+r.total||0);
-      const inv=rows.length;
-      document.getElementById('rTotal').textContent=total.toFixed(2);
-      document.getElementById('rInv').textContent=inv;
-      document.getElementById('rAvg').textContent=(inv? total/inv : 0).toFixed(2);
-
-      const byItem={}; rows.forEach(r=> (r.items||[]).forEach(i=>{ byItem[i.name]=(byItem[i.name]||0)+((+i.qty||0)*(+i.price||0)); }));
-      const top=Object.entries(byItem).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
-      document.getElementById('rTop').textContent=top;
-
-      const tbl=document.getElementById('tbl');
-      tbl.innerHTML = `<thead><tr><th>Date</th><th>Invoice</th><th>Lines</th><th>Total ₹</th></tr></thead><tbody>${
-        rows.map(r=>`<tr><td>${r.date}</td><td>${r.no||'-'}</td><td>${(r.items||[]).length}</td><td>${(+r.total||0).toFixed(2)}</td></tr>`).join('')
-      }</tbody>`;
+    function labelFor(d,unit){
+      const z=new Date(d);
+      if(unit==='day') return z.toISOString().slice(0,10);
+      if(unit==='week'){const end=new Date(z); end.setDate(z.getDate()+6); return z.toISOString().slice(5,10)+'–'+end.toISOString().slice(5,10)}
+      if(unit==='month') return z.toLocaleString('en-GB',{month:'short',year:'numeric'});
+      if(unit==='year') return ''+z.getFullYear();
     }
 
-    load('daily');
+    const axis = new Chart(document.getElementById('axisChart'),{
+      type:'bar',
+      data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
+    });
+    const pie = new Chart(document.getElementById('pieChart'),{
+      type:'pie',
+      data:{labels:[],datasets:[{data:[]}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+
+    function summarize(unit){
+      const list=invoices();
+      const now=new Date();
+      const from=startOf(now,unit);
+      // create buckets (up to reasonable spans)
+      const buckets={}, labels=[];
+      let steps=0, cursor=new Date(from);
+      while(cursor<=now && steps<370){
+        const key=labelFor(cursor,unit);
+        buckets[key]=0; labels.push(key);
+        if(unit==='day'){cursor.setDate(cursor.getDate()+1)}
+        if(unit==='week'){cursor.setDate(cursor.getDate()+7)}
+        if(unit==='month'){cursor.setMonth(cursor.getMonth()+1)}
+        if(unit==='year'){cursor.setFullYear(cursor.getFullYear()+1)}
+        steps++;
+      }
+      const picked=list.filter(i=>new Date(i.date||i.createdAt||Date.now())>=from && new Date(i.date||i.createdAt||Date.now())<=now);
+      const total=picked.reduce((s,i)=>s+(+i.total||0),0);
+      const count=picked.length;
+      const avg=count?total/count:0;
+
+      const itemMap={};
+      picked.forEach(i=>{
+        (i.items||[]).forEach(it=>{
+          const k=(it.name||'Item').trim();
+          const v=(+it.qty||0)*(+it.price||0);
+          itemMap[k]=(itemMap[k]||0)+v;
+        });
+        const d=new Date(i.date||i.createdAt||Date.now());
+        // find bucket key of this invoice
+        let key;
+        if(unit==='day'){key=d.toISOString().slice(0,10)}
+        if(unit==='week'){const s=startOf(d,'week'); key=labelFor(s,'week')}
+        if(unit==='month'){const s=startOf(d,'month'); key=labelFor(s,'month')}
+        if(unit==='year'){const s=startOf(d,'year'); key=labelFor(s,'year')}
+        if(buckets[key]!=null) buckets[key]+= (+i.total||0);
+      });
+
+      const top=Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+      return {total,count,avg,top,labels,series:Object.values(buckets),itemMap};
+    }
+
+    function paint(unit){
+      const s=summarize(unit);
+      rTotal.textContent=(+s.total).toFixed(2);
+      rCount.textContent=''+s.count;
+      rAvg.textContent=(+s.avg).toFixed(2);
+      rTop.textContent=s.top;
+
+      axis.data.labels=s.labels;
+      axis.data.datasets[0].data=s.series;
+      axis.update();
+
+      const l=Object.keys(s.itemMap), v=Object.values(s.itemMap);
+      pie.data.labels=l.length?l:['No data'];
+      pie.data.datasets[0].data=v.length?v:[1];
+      pie.update();
+
+      // title
+      axisTitle.textContent = unit==='day' ? 'Revenue by Day'
+        : unit==='week' ? 'Revenue by Week'
+        : unit==='month' ? 'Revenue by Month'
+        : 'Revenue by Year';
+    }
+
+    // range chips
+    const bar=document.querySelector('.range');
+    function setActive(u){
+      bar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      const el=bar.querySelector(`[data-range="${u}"]`); if(el) el.classList.add('active');
+      paint(u);
+    }
+    bar.addEventListener('click',e=>{
+      const b=e.target.closest('.chip'); if(!b) return;
+      setActive(b.dataset.range);
+    });
+    setActive('day');
+
+    // SW
+    if('serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
   </script>
 </body>
 </html>
