@@ -2,64 +2,87 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy – Dr. Charan Hospital</title>
+  <title>Pharmacy – Billing</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="stylesheet" href="styles.css?v=10"/>
 </head>
 <body>
-  <!-- Banner (image already has logo/title) -->
+  <!-- Banner with embedded logo/text -->
   <header class="banner clean"></header>
   <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
   <main class="container n8">
-    <!-- Top actions -->
     <section class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="dashboard.html?v=11" class="chip">← Back to Dashboard</a>
+        <a href="dashboard.html?v=12" class="chip">← Dashboard</a>
         <button id="clearCacheBtn" class="btn">Clear Cache</button>
         <button id="logoutBtn" class="btn">Logout</button>
       </div>
-      <div class="subtitle">Manage sales & invoices</div>
+      <div class="subtitle">Supervisor billing • Multi-item invoices</div>
     </section>
 
-    <!-- Sales entry -->
-    <section class="card">
-      <h3 style="margin:0 0 10px">Add Sale</h3>
-      <form id="saleForm" class="tile-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="field"><label>Date</label><input type="date" name="date" required/></div>
-        <div class="field"><label>Item</label><input name="item" placeholder="Paracetamol 650" required/></div>
-        <div class="field"><label>Invoice #</label><input name="invoice" placeholder="INV-001" required/></div>
-        <div class="field"><label>Qty</label><input name="qty" type="number" min="1" value="1" required/></div>
-        <div class="field"><label>Price (₹)</label><input name="price" type="number" min="0" step="0.01" required/></div>
-        <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Add Sale</button></div>
-      </form>
-      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-        <button id="exportSales" class="btn ghost">Export Sales CSV</button>
-        <button id="downloadTemplate" class="btn ghost">Download CSV Template</button>
-        <label class="chip" style="cursor:pointer">
-          Import CSV
-          <input id="csvFile" type="file" accept=".csv" style="display:none">
-        </label>
+    <!-- Invoice header -->
+    <section class="card" id="invHeader">
+      <div class="tile-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Invoice #</label><input id="invNumber" disabled/></div>
+        <div class="field"><label>Date</label><input id="invDate" type="date"/></div>
+        <div class="field"><label>Doctor (optional)</label><input id="invDoctor" placeholder="Dr. Name"/></div>
+        <div class="field"><label>Patient Name</label><input id="invPatient" placeholder="Full name"/></div>
+        <div class="field"><label>Patient Phone</label><input id="invPhone" inputmode="tel" placeholder="10-digit"/></div>
+        <div class="field" style="align-items:end"><button id="newInvoice" class="btn">New Invoice</button></div>
       </div>
     </section>
 
-    <!-- Sales table -->
-    <section class="card">
-      <h3 style="margin:0 0 10px">Sales</h3>
+    <!-- Items table -->
+    <section class="card" id="itemsCard">
+      <h3 style="margin:0 0 10px">Items</h3>
       <div class="table-wrap">
-        <table class="table" id="salesTbl">
-          <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th><th>Invoice</th><th></th></tr></thead>
-          <tbody></tbody>
+        <table class="table" id="itemsTbl">
+          <thead>
+            <tr>
+              <th style="min-width:140px">Item</th><th>Batch</th><th>Expiry</th>
+              <th>Qty</th><th>Rate</th><th>Disc %</th><th>Disc ₹</th><th>GST %</th><th>Amount</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="itemRows"></tbody>
+          <tfoot>
+            <tr>
+              <td><input id="add_name" placeholder="Paracetamol 650"></td>
+              <td><input id="add_batch" placeholder=""></td>
+              <td><input id="add_expiry" placeholder="2026-06"></td>
+              <td><input id="add_qty" type="number" min="1" value="1"></td>
+              <td><input id="add_rate" type="number" step="0.01"></td>
+              <td><input id="add_discPct" type="number" step="0.01" value="0"></td>
+              <td><input id="add_discAbs" type="number" step="0.01" value="0"></td>
+              <td><input id="add_gst" type="number" step="0.01" value="0"></td>
+              <td colspan="2"><button id="addItemBtn" class="btn">+ Add Item</button></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
 
-    <!-- Invoices (derived) -->
+    <!-- Totals -->
+    <section class="card" id="totalsCard">
+      <div class="tile-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Invoice Discount %</label><input id="invDiscPct" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Invoice Discount ₹</label><input id="invDiscAbs" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Total ₹</label><input id="invTotal" disabled></div>
+        <div class="field"><label>Paid ₹</label><input id="invPaid" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Balance ₹</label><input id="invBalance" disabled></div>
+        <div class="field" style="align-items:end">
+          <button id="saveDraft" class="chip">Save Draft</button>
+          <button id="finalize" class="btn">Finalize & Save</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Invoices list -->
     <section class="card">
       <h3 style="margin:0 0 10px">Invoices</h3>
       <div class="table-wrap">
         <table class="table" id="invTbl">
-          <thead><tr><th>Invoice #</th><th>Date</th><th>Lines</th><th>Total ₹</th></tr></thead>
+          <thead><tr><th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -67,167 +90,145 @@
   </main>
 
   <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
-    Pharmacy module • Sales & invoices
+    Billing v1 • Supervisor only
   </footer>
 
   <script type="module">
-    // ===== Theme toggle =====
+    import {
+      KEY, currentUser, logout,
+      newDraftInvoice, getInvoice, listInvoices,
+      addLine, updateLine, removeLine,
+      setInvoiceDiscounts, finalizeInvoice
+    } from './js/store.js?v=12';
+
+    // Theme toggle
     const tbtn=document.getElementById('themeToggle');
     if(localStorage.theme){document.documentElement.setAttribute('data-theme',localStorage.theme);tbtn.textContent=localStorage.theme==='light'?'🌞':'🌙';}
     tbtn.onclick=()=>{const cur=document.documentElement.getAttribute('data-theme')||'light';const next=cur==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.theme=next;tbtn.textContent=next==='light'?'🌞':'🌙';};
 
-    // ===== Local store helpers (compatible with existing key/schema) =====
-    const KEY='onestop_hospital_demo_v5';
-    function ensureDB(){
-      const empty={bookings:[],slots:{},sales:[],patients:[],roster:[],user:null};
-      let db; try{ db=JSON.parse(localStorage.getItem(KEY)||'null'); }catch{ db=null; }
-      if(!db) { db=empty; localStorage.setItem(KEY,JSON.stringify(db)); }
-      if(!Array.isArray(db.sales)) db.sales=[];
-      return db;
-    }
-    function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
-    function addSale(row){
-      const db=ensureDB();
-      db.sales.push(row);
-      saveDB(db);
-    }
-    function removeSale(idx){
-      const db=ensureDB();
-      db.sales.splice(idx,1);
-      saveDB(db);
-    }
-    function listSales(){ return ensureDB().sales || []; }
+    // Auth: SUPERVISOR ONLY
+    const u = currentUser();
+    if(!u){ location.href='login.html?v=12'; }
+    if(u?.role!=='supervisor'){ alert('Billing is supervisor-only'); location.href='dashboard.html?v=12'; }
 
-    // ===== Auth guard (doctor/supervisor only) =====
-    const user=(ensureDB().user);
-    if(!user || user.role==='patient'){ location.href='login.html?v=11'; }
+    // Util
+    const $ = sel => document.querySelector(sel);
 
-    // ===== Clear Cache & Logout =====
-    document.getElementById('clearCacheBtn').onclick=async()=>{
+    // State
+    let curId = null;
+
+    // Actions: Clear cache + Logout
+    $('#clearCacheBtn').onclick = async ()=>{
       localStorage.clear();
-      if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
-      if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs) await r.unregister();}
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      if('serviceWorker' in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs) await r.unregister(); }
       alert('Cache cleared. Reloading…'); location.reload(true);
     };
-    document.getElementById('logoutBtn').onclick=()=>{
-      const db=ensureDB(); db.user=null; saveDB(db); location.href='login.html?v=11';
+    $('#logoutBtn').onclick = ()=>{ logout(); location.href='login.html?v=12'; };
+
+    // New invoice
+    $('#newInvoice').onclick = ()=>{
+      const inv = newDraftInvoice({});
+      curId = inv.id;
+      hydrate(inv);
+      renderList();
     };
 
-    // ===== CSV helpers =====
-    function toCSV(rows){
-      const head=['date','item','qty','price','invoice'];
-      const body=rows.map(r=>[r.date,r.item,r.qty,r.price,r.invoice||'']);
-      return [head,...body].map(r=>r.join(',')).join('\n');
-    }
-    function parseCSV(text){
-      const lines=text.trim().split(/\r?\n/);
-      const [h,...rest]=lines;
-      // expect date,item,qty,price,invoice
-      return rest.map(l=>{
-        const [date,item,qty,price,invoice] = l.split(',');
-        return { date, item, qty:Number(qty||0), price:Number(price||0), invoice:invoice||'' };
-      });
-    }
-
-    // ===== UI wiring =====
-    const saleForm=document.getElementById('saleForm');
-    saleForm.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const fd=new FormData(saleForm);
+    // Item add
+    $('#addItemBtn').onclick = ()=>{
+      if(!curId){ alert('Create an invoice first'); return; }
       const row = {
-        date: fd.get('date'),
-        item: fd.get('item')?.trim(),
-        qty: Number(fd.get('qty')||0),
-        price: Number(fd.get('price')||0),
-        invoice: (fd.get('invoice')||'').trim()
+        name: $('#add_name').value.trim(),
+        batch: $('#add_batch').value.trim(),
+        expiry: $('#add_expiry').value.trim(),
+        qty: +$('#add_qty').value || 0,
+        rate: +$('#add_rate').value || 0,
+        discountPct: +$('#add_discPct').value || 0,
+        discountAbs: +$('#add_discAbs').value || 0,
+        gstPct: +$('#add_gst').value || 0
       };
-      if(!row.date || !row.item || !row.invoice || row.qty<=0 || row.price<0){
-        alert('Please fill all fields correctly.'); return;
-      }
-      addSale(row);
-      saleForm.reset();
-      render();
-    });
-
-    // CSV export / template / import
-    document.getElementById('exportSales').onclick=()=>{
-      const csv=toCSV(listSales());
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      a.download='pharma_sales.csv'; a.click();
-    };
-    document.getElementById('downloadTemplate').onclick=()=>{
-      const csv='date,item,qty,price,invoice\n2025-01-02,Paracetamol 650,2,12.50,INV-0001';
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      a.download='pharma_template.csv'; a.click();
-    };
-    document.getElementById('csvFile').onchange=async(e)=>{
-      const f=e.target.files?.[0]; if(!f) return;
-      const text=await f.text();
-      const rows=parseCSV(text);
-      const db=ensureDB();
-      db.sales = db.sales.concat(rows);
-      saveDB(db);
-      render();
-      alert(`Imported ${rows.length} rows`);
-      e.target.value='';
+      if(!row.name || row.qty<=0 || row.rate<0){ alert('Enter item, qty, rate'); return; }
+      addLine(curId, row);
+      hydrate(getInvoice(curId));
+      // reset quick add qty/rate
+      $('#add_qty').value=1; $('#add_rate').value='';
     };
 
-    // ===== Render sales table & invoices =====
-    function renderSales(){
-      const tbody=document.querySelector('#salesTbl tbody');
-      tbody.innerHTML='';
-      const rows=listSales();
-      rows.forEach((r,i)=>{
-        const amount=(r.qty*r.price);
+    // Totals: invoice discounts
+    $('#invDiscPct').onchange = ()=>{ if(curId){ setInvoiceDiscounts(curId, {discPct:+$('#invDiscPct').value||0, discAbs:+$('#invDiscAbs').value||0}); hydrate(getInvoice(curId)); } };
+    $('#invDiscAbs').onchange = ()=>{ if(curId){ setInvoiceDiscounts(curId, {discPct:+$('#invDiscPct').value||0, discAbs:+$('#invDiscAbs').value||0}); hydrate(getInvoice(curId)); } };
+
+    // Save actions
+    $('#saveDraft').onclick = ()=>{ if(!curId){ alert('No invoice'); return; } alert('Draft saved'); renderList(); };
+    $('#finalize').onclick = ()=>{ 
+      if(!curId){ alert('No invoice'); return; }
+      const inv = getInvoice(curId);
+      const paid = +($('#invPaid').value||0);
+      finalizeInvoice(curId,{paid});
+      hydrate(getInvoice(curId));
+      renderList();
+      alert('Invoice finalized');
+    };
+
+    // Render current invoice
+    function hydrate(inv){
+      if(!inv) return;
+      $('#invNumber').value = inv.number;
+      $('#invDate').value = inv.date;
+      $('#invDoctor').value = inv.doctorName||'';
+      $('#invPatient').value = inv.patientName||'';
+      $('#invPhone').value = inv.patientPhone||'';
+      $('#invDiscPct').value = inv.discPct||0;
+      $('#invDiscAbs').value = inv.discAbs||0;
+      $('#invTotal').value = (inv.total||0).toFixed(2);
+      $('#invPaid').value = inv.paid||0;
+      $('#invBalance').value = (inv.balance||0).toFixed(2);
+
+      const tb = $('#itemRows'); tb.innerHTML='';
+      for(const ln of inv.items){
         const tr=document.createElement('tr');
         tr.innerHTML = `
-          <td>${r.date||''}</td>
-          <td>${r.item||''}</td>
-          <td>${r.qty||0}</td>
-          <td>${Number(r.price||0).toFixed(2)}</td>
-          <td>${amount.toFixed(2)}</td>
-          <td>${r.invoice||''}</td>
-          <td><button class="chip" data-del="${i}">Delete</button></td>
+          <td><input value="${ln.name||''}" data-k="name" data-id="${ln.id}"></td>
+          <td><input value="${ln.batch||''}" data-k="batch" data-id="${ln.id}"></td>
+          <td><input value="${ln.expiry||''}" data-k="expiry" data-id="${ln.id}"></td>
+          <td><input type="number" step="1" min="1" value="${ln.qty||0}" data-k="qty" data-id="${ln.id}"></td>
+          <td><input type="number" step="0.01" value="${ln.rate||0}" data-k="rate" data-id="${ln.id}"></td>
+          <td><input type="number" step="0.01" value="${ln.discountPct||0}" data-k="discountPct" data-id="${ln.id}"></td>
+          <td><input type="number" step="0.01" value="${ln.discountAbs||0}" data-k="discountAbs" data-id="${ln.id}"></td>
+          <td><input type="number" step="0.01" value="${ln.gstPct||0}" data-k="gstPct" data-id="${ln.id}"></td>
+          <td>${(ln.amount||0).toFixed(2)}</td>
+          <td><button class="chip" data-del="${ln.id}">✕</button></td>
         `;
-        tbody.appendChild(tr);
+        tb.appendChild(tr);
+      }
+
+      // wire edits
+      tb.querySelectorAll('input[data-id]').forEach(inp=>{
+        inp.onchange = ()=>{
+          const k = inp.dataset.k;
+          const id = inp.dataset.id;
+          const val = (k==='name'||k==='batch'||k==='expiry') ? inp.value : +inp.value || 0;
+          updateLine(inv.id, id, { [k]: val });
+          hydrate(getInvoice(inv.id));
+        };
       });
-      // delete handlers
-      tbody.querySelectorAll('button[data-del]').forEach(btn=>{
-        btn.onclick=()=>{ removeSale(Number(btn.dataset.del)); render(); };
+      // deletes
+      tb.querySelectorAll('button[data-del]').forEach(btn=>{
+        btn.onclick=()=>{ removeLine(inv.id, btn.dataset.del); hydrate(getInvoice(inv.id)); };
       });
     }
 
-    function renderInvoices(){
-      const tbody=document.querySelector('#invTbl tbody');
+    // Render list
+    function renderList(){
+      const tbody = document.querySelector('#invTbl tbody');
       tbody.innerHTML='';
-      const rows=listSales();
-      // group by invoice
-      const map=new Map();
-      for(const r of rows){
-        if(!r.invoice) continue;
-        const prev=map.get(r.invoice)||{invoice:r.invoice,date:r.date,lines:0,total:0};
-        prev.lines += 1;
-        prev.total += (Number(r.qty)||0)*(Number(r.price)||0);
-        // keep earliest date
-        if(!prev.date || (r.date && r.date<prev.date)) prev.date=r.date;
-        map.set(r.invoice, prev);
-      }
-      Array.from(map.values()).sort((a,b)=> (a.invoice>b.invoice?1:-1)).forEach(inv=>{
+      for(const i of listInvoices()){
         const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td>${inv.invoice}</td>
-          <td>${inv.date||''}</td>
-          <td>${inv.lines}</td>
-          <td>${inv.total.toFixed(2)}</td>
-        `;
+        tr.innerHTML = `<td>${i.number}</td><td>${i.date}</td><td>${i.patientName||''}</td><td>${i.items.length}</td><td>${(i.total||0).toFixed(2)}</td><td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>`;
         tbody.appendChild(tr);
-      });
+      }
     }
-
-    function render(){ renderSales(); renderInvoices(); }
-    render();
+    renderList();
   </script>
 </body>
 </html>
