@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login – Dr. Charan Hospital</title>
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
@@ -22,7 +22,7 @@
         <input id="pin" inputmode="numeric" maxlength="6" placeholder="Enter PIN" />
       </div>
       <button class="btn" id="loginBtn">Login</button>
-      <p class="subtitle" style="color:var(--muted);margin-top:8px">Demo PINs → 4321, 1111, 2222</p>
+      <p class="subtitle" style="margin-top:8px">Demo PINs → 4321, 1111, 2222</p>
     </section>
   </main>
 
@@ -46,7 +46,7 @@
       tbtn.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
-    // PIN-only login (no role words shown on UI)
+    // PIN-only login
     const PINS = {
       "4321": { role: "doctor",     name: "Dr. Rao"    },
       "1111": { role: "supervisor", name: "Supervisor" },
@@ -63,13 +63,13 @@
       const u=PINS[pin];
       if(!u){ alert('Invalid PIN'); return; }
       saveUser(u);
-      location.href = (u.role==="patient") ? "portal.html?v=8" : "dashboard.html?v=8";
+      location.href = (u.role==="patient") ? "portal.html?v=9" : "dashboard.html?v=9";
     };
 
     // Register service worker
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
 
-    // Clear Cache button
+    // Clear Cache
     document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
       try{
         localStorage.clear();
