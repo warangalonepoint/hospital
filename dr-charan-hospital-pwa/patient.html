@@ -1,64 +1,71 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Patient Booking – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/><link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=5"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Bookings – Dr. Charan</title>
+  <link rel="stylesheet" href="styles.css?v=20"/>
 </head>
 <body>
   <header class="banner">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Logo">
-      <div>
-        <h1 class="title">Dr. Charan Hospital</h1>
-        <p class="subtitle">Patient Booking</p>
-      </div>
-    </div>
-    <button id="themeToggle" class="chip">🌙</button>
+    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
   </header>
 
-  <main class="container narrow">
-    <form id="bookingForm" class="card">
-      <div class="field"><label>Patient Name</label><input required name="name" placeholder="Full name"/></div>
-      <div class="field"><label>Contact (WhatsApp)</label><input required name="contact" inputmode="tel" placeholder="10-digit" pattern="[0-9]{10}"/></div>
-      <div class="field"><label>Reason</label><select name="reason"><option>Consultation</option><option>Follow-up</option><option>Diagnostics</option></select></div>
-      <div class="field"><label>Date</label><input required name="date" type="date"/></div>
-      <div class="field"><label>Time Slot</label><select name="slot" id="slotSelect"></select></div>
-      <button class="btn" type="submit">Book Slot</button>
-    </form>
+  <main class="container">
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h3 class="section-title">Patient Bookings</h3>
+        <span class="chip small" id="roleHint"></span>
+      </div>
 
-    <section class="card" id="confirm" hidden>
-      <h3>Booking Confirmed ✅</h3>
-      <p id="confirmText"></p>
-      <div class="grid2"><a class="btn" id="waBtn" target="_blank">Send WhatsApp</a><a class="btn ghost" href="admin.html?v=5">Go to Admin</a></div>
+      <div id="formWrap" class="card" style="margin-top:12px">
+        <div class="grid-2">
+          <input id="bDate" class="input" type="date"/>
+          <input id="bTime" class="input" type="time"/>
+          <input id="bName" class="input" placeholder="Patient name"/>
+          <input id="bReason" class="input" placeholder="Reason"/>
+        </div>
+        <div style="margin-top:10px"><button id="addBooking" class="btn">Add Booking</button></div>
+        <p class="muted" style="margin-top:6px">Only Supervisor can add. Doctor view is read-only.</p>
+      </div>
+
+      <div class="chart-card">
+        <h4 style="margin:0 0 8px">Upcoming</h4>
+        <div id="list"></div>
+      </div>
     </section>
   </main>
 
-  <footer class="footer">Demo only • Data saved locally</footer>
-
   <script type="module">
-    // theme
-    const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.setAttribute('data-theme', localStorage.theme); tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙'; }
-    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+    import { role, listBookings, addBooking } from './js/store.js?v=21';
 
-    import { initSlotsForDate, getAvailableSlots, saveBooking, nextTokenForDate } from './js/store.js?v=5';
-    const form=document.getElementById('bookingForm'), slotSelect=document.getElementById('slotSelect');
-    const confirm=document.getElementById('confirm'), confirmText=document.getElementById('confirmText'), waBtn=document.getElementById('waBtn');
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    form.date.valueAsDate=new Date();
-    const renderSlots=()=>{ const d=form.date.value; initSlotsForDate(d); slotSelect.innerHTML=''; for(const s of getAvailableSlots(d)){ const o=document.createElement('option'); o.value=s; o.textContent=s; slotSelect.appendChild(o); } };
-    renderSlots(); form.date.addEventListener('change',renderSlots);
+    const r=role(); document.getElementById('roleHint').textContent = `Role: ${r||'guest'}`;
+    if(r!=='supervisor'){ document.getElementById('formWrap').style.display='none'; }
 
-    form.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const data=Object.fromEntries(new FormData(form)); const token=nextTokenForDate(data.date);
-      const rec=saveBooking({ name:data.name.trim(), contact:data.contact.trim(), reason:data.reason, date:data.date, slot:data.slot, token });
-      form.hidden=true; confirm.hidden=false; confirmText.textContent=`Token ${rec.token} for ${rec.name} on ${rec.date} at ${rec.slot}.`;
-      const msg=encodeURIComponent(`Hi ${rec.name}, your appointment is confirmed. Date: ${rec.date}, Time: ${rec.slot}, Token: ${rec.token}. – Dr. Charan Hospital`);
-      waBtn.href=`https://wa.me/91${rec.contact}?text=${msg}`;
+    function render(){
+      const wrap=document.getElementById('list'); wrap.innerHTML='';
+      const data=listBookings().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+      data.forEach(b=>{
+        const row=document.createElement('div');
+        row.className='stat';
+        row.innerHTML=`<div class="k" style="font-size:18px">${b.patient}</div>
+                       <div class="muted">${b.date} • ${b.time} • ${b.reason}</div>`;
+        wrap.appendChild(row);
+      });
+    }
+
+    document.getElementById('addBooking')?.addEventListener('click', ()=>{
+      const b={ date:bDate.value, time:bTime.value, patient:bName.value, reason:bReason.value };
+      if(!b.date || !b.time || !b.patient){ alert('Fill date/time/name'); return; }
+      addBooking(b); bDate.value=bTime.value=bName.value=bReason.value='';
+      render();
     });
+
+    render();
   </script>
 </body>
 </html>
