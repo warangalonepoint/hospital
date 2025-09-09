@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login – Dr. Charan Hospital</title>
-  <link rel="stylesheet" href="styles.css?v=7">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
   <!-- Clean banner with small logo -->
   <header class="banner clean">
-    <img class="logo-badge" src="assets/logo.png" alt="Dr. Charan Hospital logo">
+    <img class="logo-badge" src="assets/logo.png" alt="Dr. Charan Hospital logo" />
   </header>
   <!-- Floating dark/light toggle -->
   <button id="themeToggle" class="chip floating-toggle">🌙</button>
@@ -19,52 +19,74 @@
     <section class="card">
       <div class="field">
         <label>PIN</label>
-        <input id="pin" inputmode="numeric" maxlength="6" placeholder="Enter PIN"/>
+        <input id="pin" inputmode="numeric" maxlength="6" placeholder="Enter PIN" />
       </div>
       <button class="btn" id="loginBtn">Login</button>
       <p class="subtitle">Demo PINs → 4321, 1111, 2222</p>
     </section>
   </main>
 
-  <footer><p>PWA Demo • Works offline</p></footer>
+  <footer>
+    <p>PWA Demo • Works offline</p>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </footer>
 
   <script>
     // === Theme toggle ===
-    const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){
+    const tbtn = document.getElementById('themeToggle');
+    if (localStorage.theme) {
       document.documentElement.setAttribute('data-theme', localStorage.theme);
-      tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
+      tbtn.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
     }
-    tbtn.onclick=()=>{
-      const cur=document.documentElement.getAttribute('data-theme');
-      const next=cur==='light'?'dark':'light';
-      document.documentElement.setAttribute('data-theme',next);
-      localStorage.theme=next;
-      tbtn.textContent=next==='light'?'🌞':'🌙';
+    tbtn.onclick = () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.theme = next;
+      tbtn.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
     // === PIN-only login ===
     const PINS = {
-      "4321": { role:"doctor", name:"Dr. Rao" },
-      "1111": { role:"supervisor", name:"Supervisor" },
-      "2222": { role:"patient", name:"Patient" }
+      "4321": { role: "doctor",     name: "Dr. Rao"     },
+      "1111": { role: "supervisor", name: "Supervisor"  },
+      "2222": { role: "patient",    name: "Patient"     }
     };
-    const KEY='onestop_hospital_demo_v5';
-    function base(){return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}}
+    const KEY = 'onestop_hospital_demo_v5';
+    function base(){ return { bookings:[], slots:{}, sales:[], patients:[], roster:[], user:null }; }
     function saveUser(u){
-      const db=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(base()));
-      db.user=u; localStorage.setItem(KEY,JSON.stringify(db));
+      const db = JSON.parse(localStorage.getItem(KEY) || JSON.stringify(base()));
+      db.user = u; localStorage.setItem(KEY, JSON.stringify(db));
     }
-    document.getElementById('loginBtn').onclick=()=>{
-      const pin=document.getElementById('pin').value.trim();
-      const u=PINS[pin];
-      if(!u){ alert("Invalid PIN"); return; }
+    document.getElementById('loginBtn').onclick = () => {
+      const pin = document.getElementById('pin').value.trim();
+      const u = PINS[pin];
+      if (!u) { alert("Invalid PIN"); return; }
       saveUser(u);
-      location.href = u.role==="patient" ? "portal.html?v=7" : "dashboard.html?v=7";
+      location.href = u.role === "patient" ? "portal.html?v=7" : "dashboard.html?v=7";
     };
 
-    // === Service worker ===
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
+    // === Register SW ===
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); }
+
+    // === Clear Cache button ===
+    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+      try {
+        localStorage.clear();
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) await r.unregister();
+        }
+        alert('Cache cleared. Reloading…');
+        location.reload(true);
+      } catch (e) {
+        console.error(e); alert('Could not clear everything. Do a hard reload.');
+      }
+    });
   </script>
 </body>
 </html>
