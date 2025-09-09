@@ -3,91 +3,322 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy – Sales Records</title>
-  <link rel="stylesheet" href="styles.css?v=20"/>
+  <title>Pharmacy Billing – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=26"/>
 </head>
 <body>
+  <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <main class="container">
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h3 class="section-title">Pharmacy Records</h3>
-        <div class="pillbar">
-          <button class="pill active" data-range="day">Daily</button>
-          <button class="pill" data-range="week">Weekly</button>
-          <button class="pill" data-range="month">Monthly</button>
-          <button class="pill" data-range="year">Yearly</button>
+  <!-- Fixed actions -->
+  <div class="fixed-actions">
+    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <a class="chip" href="pharmacy-report.html">📊 Reports</a>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+  </div>
+
+  <main class="section" style="max-width:1100px">
+    <!-- Header + meta -->
+    <div class="card" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div>
+        <label class="muted">Invoice #</label>
+        <input id="invNo" class="input" placeholder="e.g., INV-001"/>
+      </div>
+      <div>
+        <label class="muted">Date</label>
+        <input id="invDate" class="input" type="date"/>
+      </div>
+      <div>
+        <label class="muted">Doctor (optional)</label>
+        <input id="doctorName" class="input" placeholder="Dr. Name"/>
+      </div>
+      <div>
+        <label class="muted">Patient Name</label>
+        <input id="patientName" class="input" placeholder="Full name"/>
+      </div>
+      <div>
+        <label class="muted">Patient Phone</label>
+        <input id="patientPhone" class="input" inputmode="numeric" maxlength="10" placeholder="10-digit"/>
+      </div>
+    </div>
+
+    <!-- Items table -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2 style="font-size:18px">Items</h2>
+        <div style="display:flex;gap:8px">
+          <button class="chip" id="addRowBtn">＋ Add Item</button>
+          <button class="chip" id="clearRowsBtn">🗑 Clear</button>
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top:12px">
-        <div class="stat">
-          <div class="k" id="sum">0.00</div>
-          <div class="muted">Total (selected)</div>
-        </div>
-        <div class="stat">
-          <div class="k" id="avg">0.00</div>
-          <div class="muted">Average per invoice</div>
-        </div>
-      </div>
+      <table class="table" id="itemsTable">
+        <thead>
+          <tr>
+            <th style="width:26%">Item</th>
+            <th style="width:12%">Batch</th>
+            <th style="width:12%">Expiry</th>
+            <th style="width:10%">Qty</th>
+            <th style="width:12%">Price ₹</th>
+            <th style="width:12%">Amount ₹</th>
+            <th style="width:8%"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="muted" style="margin-top:8px">Tip: quantity × price is computed automatically.</p>
+    </div>
 
-      <div class="chart-card">
-        <canvas id="chart" height="220" style="width:100%"></canvas>
+    <!-- Totals -->
+    <div class="card" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div>
+        <label class="muted">Discount %</label>
+        <input id="discPct" class="input" inputmode="decimal" placeholder="0"/>
       </div>
-    </section>
+      <div>
+        <label class="muted">Discount ₹</label>
+        <input id="discAmt" class="input" inputmode="decimal" placeholder="0"/>
+      </div>
+      <div>
+        <label class="muted">Paid ₹</label>
+        <input id="paidAmt" class="input" inputmode="decimal" placeholder="0"/>
+      </div>
+      <div>
+        <label class="muted">Total ₹</label>
+        <input id="totalAmt" class="input" readonly/>
+      </div>
+      <div>
+        <label class="muted">Balance ₹</label>
+        <input id="balanceAmt" class="input" readonly/>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="chip" id="newInvBtn">New Invoice</button>
+      <button class="chip" id="saveDraftBtn">Save Draft</button>
+      <button class="btn"  id="finalizeBtn">Finalize & Save</button>
+    </div>
+
+    <!-- Recent invoices -->
+    <div class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Recent Invoices</h2>
+      <table class="table" id="recentTable">
+        <thead><tr><th>Date</th><th>#</th><th>Patient</th><th>Lines</th><th>Total ₹</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </main>
 
-  <script type="module">
-    import { listInvoices } from './js/store.js?v=21';
+  <script>
+  /******** Theme toggle ********/
+  const t = document.getElementById('themeToggle');
+  const setIcon = () => t.textContent = (document.documentElement.dataset.theme||'light')==='light' ? '🌞' : '🌙';
+  if(localStorage.theme){ document.documentElement.dataset.theme = localStorage.theme; }
+  setIcon();
+  t.onclick = () => {
+    const cur = document.documentElement.dataset.theme || 'light';
+    const next = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    localStorage.theme = next;
+    setIcon();
+  };
 
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+  /******** Session guard: supervisor only ********/
+  const session = JSON.parse(localStorage.getItem('session')||'{}');
+  if(session.role !== 'supervisor'){ location.replace('login.html'); }
 
-    let range='day';
-    document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{ document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); range=p.dataset.range; draw(); });
+  /******** Logout + Clear cache ********/
+  document.getElementById('logoutBtn').onclick = () => {
+    localStorage.removeItem('session'); location.href='login.html';
+  };
+  document.getElementById('clearCacheBtn').onclick = async () => {
+    try{
+      const keepSession = localStorage.getItem('session');
+      localStorage.clear();
+      if(keepSession) localStorage.setItem('session', keepSession);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+      alert('Cache cleared. Reloading…'); location.reload(true);
+    }catch(e){ alert('Could not fully clear. Try hard reload.'); }
+  };
 
-    function filterByRange(invs){
-      const now=new Date(); let start=new Date(now);
-      if(range==='day') start.setDate(now.getDate()-6);
-      if(range==='week') start.setDate(now.getDate()-27);
-      if(range==='month') start=new Date(now.getFullYear(), now.getMonth()-11, 1);
-      if(range==='year') start=new Date(now.getFullYear()-5, 0, 1);
-      const sISO=start.toISOString().slice(0,10);
-      return invs.filter(i=>i.date>=sISO);
+  /******** Utilities ********/
+  const q = sel => document.querySelector(sel);
+  const tb = q('#itemsTable tbody');
+  const money = n => (Number(n||0)).toFixed(2);
+
+  function lineTemplate() {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="input itemName" placeholder="e.g., Paracetamol 650"/></td>
+      <td><input class="input itemBatch" placeholder="Batch"/></td>
+      <td><input class="input itemExp" type="month"/></td>
+      <td><input class="input itemQty" inputmode="decimal" value="1"/></td>
+      <td><input class="input itemPrice" inputmode="decimal" value="0"/></td>
+      <td><input class="input itemAmt" readonly/></td>
+      <td><button class="chip delRow">✖</button></td>
+    `;
+    return tr;
+  }
+
+  function recalcRow(tr){
+    const qty = Number(tr.querySelector('.itemQty').value||0);
+    const price = Number(tr.querySelector('.itemPrice').value||0);
+    tr.querySelector('.itemAmt').value = money(qty*price);
+    recalcTotals();
+  }
+
+  function recalcTotals(){
+    // sum lines
+    let sub = 0;
+    tb.querySelectorAll('.itemAmt').forEach(i => sub += Number(i.value||0));
+    const pct = Number(q('#discPct').value||0);
+    const flat = Number(q('#discAmt').value||0);
+    const disc = (sub*(pct/100)) + flat;
+    const total = Math.max(0, sub - disc);
+    const paid = Number(q('#paidAmt').value||0);
+    const bal = Math.max(0, total - paid);
+    q('#totalAmt').value = money(total);
+    q('#balanceAmt').value = money(bal);
+  }
+
+  function addRow(prefill){
+    const tr = lineTemplate();
+    tb.appendChild(tr);
+    if(prefill){
+      tr.querySelector('.itemName').value = prefill.name||'';
+      tr.querySelector('.itemBatch').value = prefill.batch||'';
+      tr.querySelector('.itemExp').value = (prefill.expiry||'').slice(0,7);
+      tr.querySelector('.itemQty').value = prefill.qty||1;
+      tr.querySelector('.itemPrice').value = prefill.price||0;
     }
+    // wire
+    tr.querySelectorAll('.itemQty,.itemPrice').forEach(inp=>inp.addEventListener('input',()=>recalcRow(tr)));
+    tr.querySelector('.delRow').addEventListener('click',()=>{ tr.remove(); recalcTotals(); });
+    recalcRow(tr);
+  }
 
-    function draw(){
-      const invs=filterByRange(listInvoices());
-      const sum=invs.reduce((s,i)=>s+(+i.total||0),0);
-      const avg=invs.length?sum/invs.length:0;
-      document.getElementById('sum').textContent=sum.toFixed(2);
-      document.getElementById('avg').textContent=avg.toFixed(2);
+  function clearRows(){ tb.innerHTML=''; recalcTotals(); }
 
-      const map=new Map();
-      invs.forEach(i=>{ map.set(i.date,(map.get(i.date)||0)+(+i.total||0)); });
-      const labels=[...map.keys()].sort();
-      const data=labels.map(k=>map.get(k));
+  /******** Buttons ********/
+  q('#addRowBtn').addEventListener('click', ()=> addRow());
+  q('#clearRowsBtn').addEventListener('click', clearRows);
+  q('#newInvBtn').addEventListener('click', ()=>{
+    q('#invNo').value = '';
+    q('#doctorName').value = '';
+    q('#patientName').value = '';
+    q('#patientPhone').value = '';
+    q('#discPct').value = '';
+    q('#discAmt').value = '';
+    q('#paidAmt').value = '';
+    clearRows();
+    addRow();
+    setToday();
+  });
 
-      const c=document.getElementById('chart'), ctx=c.getContext('2d');
-      c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
-      const W=c.clientWidth, H=c.clientHeight, pad=30;
-      ctx.clearRect(0,0,W,H);
-      const border=getComputedStyle(document.documentElement).getPropertyValue('--border');
-      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary');
-      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+  q('#discPct').addEventListener('input', recalcTotals);
+  q('#discAmt').addEventListener('input', recalcTotals);
+  q('#paidAmt').addEventListener('input', recalcTotals);
 
-      const max=Math.max(10,...data);
-      const slot=(W-pad*2)/(Math.max(1,labels.length)); const bw=slot*0.6; const base=H-pad;
-      data.forEach((v,i)=>{ const h=Math.round((v/max)*(H-pad*2)); const x=pad+i*slot+(slot-bw)/2; ctx.fillStyle=primary; ctx.fillRect(x,base-h,bw,h); });
-      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted'); ctx.font='11px system-ui'; ctx.textAlign='center';
-      labels.forEach((lb,i)=>{ const x=pad+i*slot+slot/2; ctx.fillText(lb.slice(5),x,H-8); });
+  /******** Save & Finalize ********/
+  function collectInvoice(status){
+    const items = Array.from(tb.querySelectorAll('tr')).map(tr=>({
+      name: tr.querySelector('.itemName').value.trim(),
+      batch: tr.querySelector('.itemBatch').value.trim(),
+      expiry: tr.querySelector('.itemExp').value,
+      qty: Number(tr.querySelector('.itemQty').value||0),
+      price: Number(tr.querySelector('.itemPrice').value||0),
+      amount: Number(tr.querySelector('.itemAmt').value||0)
+    })).filter(x=>x.name);
+
+    const obj = {
+      id: (q('#invNo').value||'').trim() || `INV-${Date.now()}`,
+      dateISO: q('#invDate').value ? new Date(q('#invDate').value).toISOString() : new Date().toISOString(),
+      doctor: (q('#doctorName').value||'').trim(),
+      patient: (q('#patientName').value||'').trim(),
+      phone: (q('#patientPhone').value||'').trim(),
+      items,
+      discountPct: Number(q('#discPct').value||0),
+      discountAmt: Number(q('#discAmt').value||0),
+      paid: Number(q('#paidAmt').value||0),
+      total: Number(q('#totalAmt').value||0),
+      balance: Number(q('#balanceAmt').value||0),
+      status // 'draft' | 'final'
+    };
+    return obj;
+  }
+
+  function saveLocal(inv){
+    const arr = JSON.parse(localStorage.getItem('invoices')||'[]');
+    // replace if same id
+    const idx = arr.findIndex(x=>x.id===inv.id);
+    if(idx>=0) arr[idx]=inv; else arr.push(inv);
+    localStorage.setItem('invoices', JSON.stringify(arr));
+  }
+
+  async function persist(inv){
+    saveLocal(inv);
+    if(window.Store && Store.saveInvoice){
+      try{ await Store.saveInvoice(inv); }catch(e){ /* ignore offline */ }
     }
+  }
 
-    draw(); addEventListener('resize', draw);
+  q('#saveDraftBtn').addEventListener('click', async ()=>{
+    const inv = collectInvoice('draft');
+    await persist(inv);
+    alert('Draft saved.');
+    loadRecent();
+  });
+
+  q('#finalizeBtn').addEventListener('click', async ()=>{
+    if(tb.children.length===0){ alert('Add at least one item.'); return; }
+    const inv = collectInvoice('final');
+    await persist(inv);
+    alert('Invoice saved.');
+    // reset for next
+    q('#newInvBtn').click();
+    loadRecent();
+  });
+
+  /******** Recent table ********/
+  function loadRecent(){
+    const tbody = q('#recentTable tbody');
+    tbody.innerHTML='';
+    const arr = JSON.parse(localStorage.getItem('invoices')||'[]')
+      .sort((a,b)=>new Date(b.dateISO||b.date)-new Date(a.dateISO||a.date))
+      .slice(0,10);
+    for(const inv of arr){
+      const tr = document.createElement('tr');
+      const iso = inv.dateISO || inv.date || new Date().toISOString();
+      tr.innerHTML = `
+        <td>${new Date(iso).toLocaleDateString()}</td>
+        <td>${inv.id}</td>
+        <td>${inv.patient||''}</td>
+        <td>${(inv.items||[]).length}</td>
+        <td>${money(inv.total||0)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function setToday(){
+    const d = new Date();
+    q('#invDate').value = d.toISOString().slice(0,10);
+  }
+
+  /******** Init ********/
+  setToday();
+  addRow(); // start with one row
+  loadRecent();
+
+  // Register SW quietly
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
