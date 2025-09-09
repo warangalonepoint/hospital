@@ -1,6 +1,4 @@
-// ===== Onestop Hospital Demo Store (v13) =====
-// Adds secure PIN auth + staff + patients + notes.
-// Keeps invoices/billing from v12 (analytics continue to work).
+// ===== Onestop Hospital Demo Store (v14) =====
 
 export const KEY = 'onestop_hospital_demo_v5';
 
@@ -8,20 +6,21 @@ export const KEY = 'onestop_hospital_demo_v5';
 function emptyDB(){
   return {
     user: null,
-    users: [],        // staff + doctor: {id,name,role,phone,salt,pinHash,status:'active'|'disabled'}
+    users: [],        // {id,name,role,phone,salt,pinHash,status}
     patients: [],     // {id,name,phone,age,sex,notes:[{ts,text,next}], createdAt}
-    invoices: [],     // v12 structure
+    invoices: [],     // billing v1
     sales: []         // legacy
   };
 }
 function dbLoad(){ try{ return JSON.parse(localStorage.getItem(KEY)) || seed(); }catch{ return seed(); } }
 function dbSave(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
 
-/* ---------- Seed demo users with hashed PINs ---------- */
+/* ---------- Utils ---------- */
 function hex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 async function sha256(str){ const b=new TextEncoder().encode(str); const h=await crypto.subtle.digest('SHA-256', b); return hex(h); }
 function rid(){ return (crypto.randomUUID && crypto.randomUUID()) || ('id_'+Math.random().toString(36).slice(2)); }
 
+/* ---------- Seed demo users with hashed PINs ---------- */
 function seed(){
   const db = emptyDB();
   db.users = [
@@ -29,14 +28,13 @@ function seed(){
     { id: rid(), name: "Supervisor",    role: "supervisor", phone: "8888888888", salt: "s2", pinHash: "todo", status: "active" },
     { id: rid(), name: "Demo Patient",  role: "patient",    phone: "7777777777", salt: "s3", pinHash: "todo", status: "active" }
   ];
-  // temporary plain; finalize after async hash in initPins()
   localStorage.setItem(KEY, JSON.stringify(db));
-  // kick off async pin setup
-  initPins();
+  initPins(); // async
   return db;
 }
 async function initPins(){
-  const db = dbLoad();
+  const db = JSON.parse(localStorage.getItem(KEY) || '{}');
+  if(!db.users) return;
   for(const u of db.users){
     const defaultPin = (u.role==='doctor'?'4321': u.role==='supervisor'?'1111':'2222');
     u.pinHash = await sha256(defaultPin + '|' + u.salt);
@@ -70,11 +68,9 @@ export async function setOwnPin(userId, newPin){
   dbSave(db);
   return true;
 }
-export async function resetStaffPin(targetId, newPin){
-  return setOwnPin(targetId, newPin); // doctor can reset staff pins
-}
+export async function resetStaffPin(targetId, newPin){ return setOwnPin(targetId, newPin); }
 export function listStaff(){ return dbLoad().users.filter(u=>u.role!=='patient'); }
-export function upsertStaff(rec){ // {id?,name,role,phone,status}
+export function upsertStaff(rec){
   const db=dbLoad();
   if(rec.id){
     const i=db.users.findIndex(u=>u.id===rec.id); if(i<0) throw new Error("Staff not found");
@@ -93,12 +89,12 @@ export function listPatients(q=''){
   const s=q.toLowerCase();
   return rows.filter(p=>(p.name||'').toLowerCase().includes(s) || (p.phone||'').includes(s));
 }
-export function addPatient(p){ // {name,phone,age,sex}
+export function addPatient(p){
   const db=dbLoad();
   const rec={ id:rid(), name:p.name||'', phone:p.phone||'', age:p.age||'', sex:p.sex||'', notes:[], createdAt: new Date().toISOString() };
   db.patients.push(rec); dbSave(db); return rec;
 }
-export function updatePatient(p){ // doctor-only in UI
+export function updatePatient(p){
   const db=dbLoad(); const i=db.patients.findIndex(x=>x.id===p.id); if(i<0) throw new Error("Patient not found");
   db.patients[i]={...db.patients[i], ...p}; dbSave(db);
 }
@@ -109,7 +105,7 @@ export function addPatientNote(patientId, {text,next}){
   dbSave(db);
 }
 
-/* ---------- Invoices / Billing (from v12) ---------- */
+/* ---------- Invoices / Billing ---------- */
 function nextInvoiceNumber(){
   const now=new Date(), y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'), seq=Math.floor(Math.random()*90000)+10000;
   return `DCH-${y}${m}-${seq}`;
@@ -170,7 +166,7 @@ export function finalizeInvoice(invoiceId,{paid=0}={}){
   computeTotals(inv); inv.paid=+paid||0; inv.balance=Math.max(0, +(inv.total-inv.paid).toFixed(2)); inv.status='final'; dbSave(db); return inv;
 }
 
-/* ---------- Analytics (dashboard uses these) ---------- */
+/* ---------- Analytics ---------- */
 export function listSales(){
   const rows=[]; for(const inv of dbLoad().invoices){ for(const ln of inv.items){ rows.push({date:inv.date,item:ln.name,qty:ln.qty,price:ln.rate,invoice:inv.number}); } }
   return rows.concat(dbLoad().sales||[]).sort((a,b)=> a.date.localeCompare(b.date));
@@ -196,4 +192,29 @@ export function topItemName(){
   const m2={}; for(const r of dbLoad().sales||[]){ m2[r.item]=(m2[r.item]||0)+r.qty*r.price; }
   for(const [k,v] of Object.entries(m2)){ if(v>amt){ amt=v; best=k; } }
   return best;
+}
+
+/* ---------- CSV Exports for Records ---------- */
+export function exportInvoicesCsv(){
+  const head = ['number','date','patient','phone','doctor','lines','total','paid','balance','status'];
+  const rows = listInvoices().map(i=>[
+    i.number, i.date, i.patientName||'', i.patientPhone||'', i.doctorName||'',
+    i.items.length, i.total||0, i.paid||0, i.balance||0, i.status
+  ]);
+  return [head, ...rows].map(r=>r.join(',')).join('\n');
+}
+export function exportInvoiceLinesCsv(){
+  const head = ['invoice','date','item','batch','expiry','qty','rate','discPct','discAbs','gstPct','amount'];
+  const out = [];
+  for (const inv of listInvoices()){
+    for (const ln of inv.items){
+      const base = ln.qty*ln.rate;
+      const discPctAmt = base*(ln.discountPct/100);
+      const after = base - discPctAmt - (ln.discountAbs||0);
+      const tax = after*(ln.gstPct/100);
+      const amount = +(Math.max(0, after+tax).toFixed(2));
+      out.push([inv.number, inv.date, ln.name||'', ln.batch||'', ln.expiry||'', ln.qty||0, ln.rate||0, ln.discountPct||0, ln.discountAbs||0, ln.gstPct||0, amount]);
+    }
+  }
+  return [head, ...out].map(r=>r.join(',')).join('\n');
 }
