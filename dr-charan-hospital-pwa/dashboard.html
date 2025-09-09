@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
@@ -8,6 +7,14 @@
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=29"/>
+
+  <!-- Local, non-invasive layout tweak for charts -->
+  <style>
+    .charts-grid { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width: 900px){ .charts-grid { grid-template-columns: 1fr 1fr; } }
+    .charts-grid .chart-wrap { height: 320px; }     /* keep your look; just ensures good height on desktop */
+    @media (max-width: 899px){ .charts-grid .chart-wrap { height: 260px; } }
+  </style>
 </head>
 <body>
   <!-- Banner -->
@@ -21,42 +28,7 @@
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <!-- Main cards -->
-  <section class="section">
-    <div class="card-grid">
-      <a href="analytics.html" class="card panel--lilac">
-        <h3>Analytics</h3>
-        <p>KPIs & weekly sales</p>
-      </a>
-
-      <a href="pharmacy-report.html" class="card panel--blue">
-        <h3>Pharmacy</h3>
-        <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
-      </a>
-
-      <a href="bookings-status.html" class="card panel--mint">
-        <h3>Booking Status</h3>
-        <p>Today / Week / Month counts</p>
-      </a>
-
-      <a href="patients.html" class="card panel--rose">
-        <h3>Patients</h3>
-        <p>Reminders & history • <strong id="followupBadge">0 due today</strong></p>
-      </a>
-
-      <a href="staff.html" class="card panel--peach">
-        <h3>Staff</h3>
-        <p>Roster & status</p>
-      </a>
-
-      <a href="settings.html" class="card panel--lilac">
-        <h3>Settings</h3>
-        <p>PINs, Staff, Patients</p>
-      </a>
-    </div>
-  </section>
-
-  <!-- Sales snapshot -->
+  <!-- Sales Analytics moved UP -->
   <section class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <h2>Sales Analytics</h2>
@@ -91,13 +63,51 @@
       </div>
     </div>
 
-    <div class="chart-wrap">
-      <div class="chart-title">Revenue by Day</div>
-      <canvas id="lineChart" height="160"></canvas>
+    <!-- Side-by-side on desktop, stacked on mobile -->
+    <div class="charts-grid mt12">
+      <div class="chart-wrap">
+        <div class="chart-title">Revenue by Day</div>
+        <canvas id="lineChart"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Top Items (Share)</div>
+        <canvas id="pieChart"></canvas>
+      </div>
     </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Top Items (Share)</div>
-      <canvas id="pieChart" height="160"></canvas>
+  </section>
+
+  <!-- Cards/tabs moved DOWN -->
+  <section class="section">
+    <div class="card-grid">
+      <a href="analytics.html" class="card panel--lilac">
+        <h3>Analytics</h3>
+        <p>KPIs & weekly sales</p>
+      </a>
+
+      <a href="pharmacy-report.html" class="card panel--blue">
+        <h3>Pharmacy</h3>
+        <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
+      </a>
+
+      <a href="bookings-status.html" class="card panel--mint">
+        <h3>Booking Status</h3>
+        <p>Today / Week / Month counts</p>
+      </a>
+
+      <a href="patients.html" class="card panel--rose">
+        <h3>Patients</h3>
+        <p>Reminders & history • <strong id="followupBadge">0 due today</strong></p>
+      </a>
+
+      <a href="staff.html" class="card panel--peach">
+        <h3>Staff</h3>
+        <p>Roster & status</p>
+      </a>
+
+      <a href="settings.html" class="card panel--lilac">
+        <h3>Settings</h3>
+        <p>PINs, Staff, Patients</p>
+      </a>
     </div>
   </section>
 
