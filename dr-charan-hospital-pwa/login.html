@@ -1,84 +1,72 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Login – Dr. Charan Hospital </title>
-  <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=5"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Dr. Charan Hospital</title>
+  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-  <header class="banner">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Logo">
-      <div>
-        <h1 class="title"></h1>
-        <p class="subtitle">Login</p>
-      </div>
-    </div>
-    <button id="themeToggle" class="chip">🌙</button>
-  </header>
+  <!-- Banner -->
+  <header class="banner clean"></header>
+  <!-- Floating dark/light toggle -->
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
   <main class="container narrow">
     <section class="card">
       <div class="field">
-        <label>Role</label>
-        <select id="role">
-          <option value="doctor">Doctor</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="patient">Patient</option>
-        </select>
-      </div>
-      <div class="field">
         <label>PIN</label>
-        <input id="pin" inputmode="numeric" maxlength="6" placeholder="4-digit"/>
+        <input id="pin" inputmode="numeric" maxlength="6" placeholder="Enter PIN"/>
       </div>
-      <button class="btn" id="loginBtn">Login</button>
-      <p>Demo PINs → Doctor: <b>4321</b> • Supervisor: <b>1111</b> • Patient: <b>2222</b></p>
+      <button class="btn primary" id="loginBtn">Login</button>
+      <p class="subtitle">Demo PINs → 4321, 1111, 2222</p>
     </section>
   </main>
 
-  <footer class="footer">PWA Demo • Works offline</footer>
+  <footer>
+    <p>PWA Demo • Works offline</p>
+  </footer>
 
   <script>
-  // Theme toggle
-  const tbtn=document.getElementById('themeToggle');
-  if(localStorage.theme){
-    document.documentElement.setAttribute('data-theme', localStorage.theme);
-    tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
-  }
-  tbtn.onclick=()=>{
-    const cur=document.documentElement.getAttribute('data-theme');
-    const next=cur==='light'?'dark':'light';
-    document.documentElement.setAttribute('data-theme',next);
-    localStorage.theme=next;
-    tbtn.textContent=next==='light'?'🌞':'🌙';
-  };
+    // === Theme toggle ===
+    const tbtn=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.setAttribute('data-theme', localStorage.theme);
+      tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
+    }
+    tbtn.onclick=()=>{
+      const cur=document.documentElement.getAttribute('data-theme');
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      localStorage.theme=next;
+      tbtn.textContent=next==='light'?'🌞':'🌙';
+    };
 
-  // PIN-only auth
-  const PINS = {
-    "4321": { role:"doctor", name:"Dr. Rao" },
-    "1111": { role:"supervisor", name:"Supervisor" },
-    "2222": { role:"patient", name:"Patient" }
-  };
+    // === PIN-only login ===
+    const PINS = {
+      "4321": { role:"doctor", name:"Dr. Rao" },
+      "1111": { role:"supervisor", name:"Supervisor" },
+      "2222": { role:"patient", name:"Patient" }
+    };
 
-  const KEY='onestop_hospital_demo_v5';
-  function base(){return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}}
-  function saveUser(u){
-    const db=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(base()));
-    db.user=u; localStorage.setItem(KEY,JSON.stringify(db));
-  }
+    const KEY='onestop_hospital_demo_v5';
+    function base(){return {bookings:[],slots:{},sales:[],patients:[],roster:[],user:null}}
+    function saveUser(u){
+      const db=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(base()));
+      db.user=u; localStorage.setItem(KEY,JSON.stringify(db));
+    }
 
-  document.getElementById('loginBtn').onclick=()=>{
-    const pin=document.getElementById('pin').value.trim();
-    const u=PINS[pin];
-    if(!u){ alert("Invalid PIN"); return; }
-    saveUser(u);
-    location.href = u.role==="patient" ? "portal.html?v=6" : "dashboard.html?v=6";
-  };
+    document.getElementById('loginBtn').onclick=()=>{
+      const pin=document.getElementById('pin').value.trim();
+      const u=PINS[pin];
+      if(!u){ alert("Invalid PIN"); return; }
+      saveUser(u);
+      location.href = u.role==="patient" ? "portal.html?v=6" : "dashboard.html?v=6";
+    };
 
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
+    // === Service worker ===
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
   </script>
 </body>
 </html>
