@@ -4,296 +4,185 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Analytics – Dr. Charan Hospital</title>
-
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=24">
-
-  <!-- Local Chart.js (offline-first) -->
-  <script defer src="assets/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css?v=25"/>
 </head>
 <body>
   <!-- Banner -->
-  <header class="banner" role="img" aria-label="Dr. Charan Hospital">
+  <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Top actions (kept small, under banner) -->
-  <div class="top-actions container">
+  <!-- Small fixed actions (kept off the banner) -->
+  <div class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
-    <span class="spacer"></span>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </div>
 
-  <main class="container">
-    <!-- Filters -->
-    <section class="card">
-      <h2>Sales Analytics</h2>
-      <div class="filters">
-        <div class="seg">
-          <button class="seg-btn is-active" data-range="today">Today</button>
-          <button class="seg-btn" data-range="7d">7D</button>
-          <button class="seg-btn" data-range="30d">30D</button>
-          <button class="seg-btn" data-range="ytd">YTD</button>
-          <button class="seg-btn" data-range="custom">Custom</button>
-        </div>
-        <div class="dates" id="customDates" style="display:none">
-          <label>From <input type="date" id="fromDate"></label>
-          <label>To <input type="date" id="toDate"></label>
-          <button class="btn" id="applyBtn">Apply</button>
-        </div>
+  <main style="max-width:1100px;margin:0 auto;padding:0 12px 28px;">
+    <section class="login-card" style="max-width:none;">
+      <h1 class="login-title" style="margin-bottom:6px;">Sales Analytics</h1>
+
+      <!-- Range chips -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px;">
+        <button class="chip" data-range="7d">7D</button>
+        <button class="chip" data-range="30d">30D</button>
+        <button class="chip" data-range="ytd">YTD</button>
+        <button class="chip" data-range="custom" id="customBtn">Custom</button>
+        <input id="from" type="date" class="input" style="width:auto;padding:6px 10px;display:none;">
+        <input id="to" type="date" class="input" style="width:auto;padding:6px 10px;display:none;">
+        <button id="applyCustom" class="btn" style="display:none;">Apply</button>
       </div>
 
       <!-- KPIs -->
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="kpi-num" id="kpiTotal">0.00</div>
-          <div class="kpi-label">Total ₹</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-num" id="kpiAvg">0.00</div>
-          <div class="kpi-label">Avg / Day ₹</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-num" id="kpiInvoices">0</div>
-          <div class="kpi-label">Invoices</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-num" id="kpiTop">—</div>
-          <div class="kpi-label">Top Item</div>
-        </div>
+      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div class="card"><h2>Total ₹</h2><p id="kpiTotal">0.00</p></div>
+        <div class="card"><h2>Avg / Day ₹</h2><p id="kpiAvg">0.00</p></div>
+        <div class="card"><h2>Invoices</h2><p id="kpiInv">0</p></div>
+        <div class="card"><h2>Top Item</h2><p id="kpiTop">—</p></div>
       </div>
 
       <!-- Charts -->
-      <div class="charts">
-        <div class="chart-card">
-          <h4>Revenue by Day</h4>
-          <canvas id="lineByDay"></canvas>
-        </div>
-        <div class="chart-card">
-          <h4>Top Items</h4>
-          <canvas id="pieItems"></canvas>
-        </div>
+      <div class="card" style="margin-top:16px;">
+        <h2 style="text-align:left;margin-bottom:8px;">Revenue by Day</h2>
+        <canvas id="revLine" height="140"></canvas>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="text-align:left;margin-bottom:8px;">Top Items (Today)</h2>
+        <canvas id="topPie" height="140"></canvas>
       </div>
     </section>
   </main>
 
-  <script>
-    /* -------------------------
-       Access guard: doctor or supervisor
-    -------------------------- */
-    (function guard() {
-      try {
-        const s = JSON.parse(localStorage.getItem('session') || '{}');
-        if (!s.role) location.replace('login.html');
-        if (!['doctor','supervisor'].includes(s.role)) location.replace('login.html');
-      } catch { location.replace('login.html'); }
-    })();
+  <script src="assets/chart.umd.min.js"></script>
+  <script type="module">
+    /* ---------- Session guard (doctor only) ---------- */
+    const session = JSON.parse(localStorage.getItem('session')||'null');
+    if (!session || session.role !== 'doctor') {
+      location.replace('login.html');
+    }
 
-    /* -------------------------
-       Theme toggle
-    -------------------------- */
-    const html = document.documentElement;
-    const themeBtn = document.getElementById('themeToggle');
-    function applyTheme(t){ html.dataset.theme=t; themeBtn.textContent=t==='light'?'🌞':'🌙'; localStorage.theme=t; }
+    /* ---------- Theme toggle ---------- */
+    const t = document.getElementById('themeToggle');
+    function applyTheme(mode){
+      document.documentElement.dataset.theme = mode;
+      t.textContent = mode === 'light' ? '🌞' : '🌙';
+      localStorage.theme = mode;
+    }
     applyTheme(localStorage.theme || 'light');
-    themeBtn.onclick = ()=> applyTheme((html.dataset.theme||'light')==='light'?'dark':'light');
+    t.onclick=()=>applyTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
 
-    /* -------------------------
-       Actions
-    -------------------------- */
-    document.getElementById('logoutBtn').onclick = () => {
-      localStorage.removeItem('session');
-      location.href = 'login.html';
+    /* ---------- Logout & Clear cache ---------- */
+    document.getElementById('logoutBtn').onclick=()=>{
+      localStorage.removeItem('session'); location.href='login.html';
     };
-    document.getElementById('clearCacheBtn').onclick = async () => {
+    document.getElementById('clearCacheBtn').onclick=async()=>{
       try {
-        const session = localStorage.getItem('session');
-        localStorage.clear(); if (session) localStorage.setItem('session', session);
-        if ('caches' in window) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
-        if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
+        if ('caches' in window) { const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
         alert('Cache cleared. Reloading…'); location.reload(true);
-      } catch { alert('Could not fully clear cache.'); }
+      } catch { alert('Could not fully clear. Try hard reload.'); }
     };
 
-    /* -------------------------
-       Data helpers
-    -------------------------- */
-    function fmtINR(n){ return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-    function dateStr(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10); }
-
-    function seedIfEmpty(){
-      const raw = localStorage.getItem('invoices');
-      if (raw) return;
-      const items = ['Paracetamol 650','Amoxicillin','Cough Syrup','Vitamin D','Ibuprofen','Antacid'];
-      const today = new Date();
-      const arr = [];
-      for (let i=0;i<30;i++){
-        const d = new Date(today); d.setDate(today.getDate()-i);
-        const lines = Array.from({length: 2 + (i%3)}, () => {
-          const name = items[Math.floor(Math.random()*items.length)];
-          const qty = 1 + Math.floor(Math.random()*3);
-          const price = 60 + Math.floor(Math.random()*240);
-          return {name, qty, price};
-        });
-        arr.push({date: dateStr(d), lines, paid:true});
+    /* ---------- Demo data (replace with Supabase later) ---------- */
+    // In PROD, fetch aggregated sales from store/supabase.
+    function demoRange(days=7){
+      const out=[];
+      const today=new Date();
+      for(let i=days-1;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
+        const label = d.toISOString().slice(5,10); // MM-DD
+        // synthetic curve
+        const val=Math.max(0, Math.round(500 + 300*Math.sin((i/5)*Math.PI) + (Math.random()*120-60)));
+        out.push({label, value:val});
       }
-      localStorage.setItem('invoices', JSON.stringify(arr));
+      return out;
     }
-    seedIfEmpty();
-
-    function getInvoices(){ try{ const a=JSON.parse(localStorage.getItem('invoices')||'[]'); return Array.isArray(a)?a:[]; }catch{ return []; } }
-
-    /* -------------------------
-       Range handling
-    -------------------------- */
-    const segBtns = [...document.querySelectorAll('.seg-btn')];
-    const customDates = document.getElementById('customDates');
-    const fromInput = document.getElementById('fromDate');
-    const toInput = document.getElementById('toDate');
-    const applyBtn = document.getElementById('applyBtn');
-
-    function setActive(btn){
-      segBtns.forEach(b=>b.classList.toggle('is-active', b===btn));
+    function demoTopToday(){
+      return [
+        { name:'Paracetamol', value: 12 },
+        { name:'Cetrizine',   value: 8  },
+        { name:'Amoxicillin', value: 5  },
+        { name:'ORS',         value: 4  }
+      ];
     }
 
-    function getRange(kind){
-      const today = new Date();
-      let from, to;
-      if (kind==='today'){ from = to = today; }
-      else if (kind==='7d'){ to=today; from = new Date(today); from.setDate(today.getDate()-6); }
-      else if (kind==='30d'){ to=today; from = new Date(today); from.setDate(today.getDate()-29); }
-      else if (kind==='ytd'){ to=today; from = new Date(today.getFullYear(),0,1); }
-      else { // custom
-        const f = fromInput.value, t = toInput.value;
-        if (!f || !t) return null;
-        from = new Date(f+'T00:00:00'); to = new Date(t+'T00:00:00');
-      }
-      return { from: dateStr(from), to: dateStr(to) };
-    }
-
-    segBtns.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        setActive(btn);
-        const k = btn.dataset.range;
-        customDates.style.display = k==='custom' ? 'flex' : 'none';
-        if (k!=='custom') render(k);
-      });
-    });
-    applyBtn.onclick = ()=> render('custom');
-
-    /* -------------------------
-       Summaries + charts
-    -------------------------- */
+    /* ---------- Charts ---------- */
+    const ctxLine = document.getElementById('revLine');
+    const ctxPie  = document.getElementById('topPie');
     let lineChart, pieChart;
 
-    function summarize(range){
-      const invoices = getInvoices();
-      const mapByDate = new Map(); // date -> total
-      const byItem = new Map();    // item -> total
-      let total = 0, invCount = 0;
-
-      for (const inv of invoices){
-        if (!inv.date || inv.date < range.from || inv.date > range.to) continue;
-        const t = (inv.lines||[]).reduce((s,l)=> s + (l.qty||0)*(l.price||0), 0);
-        invCount += 1;
-        total += t;
-        mapByDate.set(inv.date, (mapByDate.get(inv.date)||0) + t);
-        for (const l of inv.lines||[]){
-          const k = l.name || 'Item';
-          const amt = (l.qty||0)*(l.price||0);
-          byItem.set(k, (byItem.get(k)||0) + amt);
-        }
-      }
-
-      let topItem = '—';
-      if (byItem.size){
-        topItem = [...byItem.entries()].sort((a,b)=>b[1]-a[1])[0][0];
-      }
-      return { total, invCount, byItem, mapByDate, topItem };
-    }
-
-    function buildLabels(range){
-      const labels = [];
-      const d0 = new Date(range.from+'T00:00:00');
-      const d1 = new Date(range.to+'T00:00:00');
-      for (let d=new Date(d0); d<=d1; d.setDate(d.getDate()+1)){
-        labels.push({ key: dateStr(d), label: d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) });
-      }
-      return labels;
-    }
-
-    function render(kind='today'){
-      const range = getRange(kind);
-      if (!range) return;
+    function render(rangeKey='7d'){
+      // decide dataset by range
+      let data = demoRange(rangeKey==='30d' ? 30 : (rangeKey==='ytd' ? 180 : 7));
+      const labels = data.map(d=>d.label);
+      const values = data.map(d=>d.value);
+      const total = values.reduce((a,b)=>a+b,0);
+      const avg   = values.length ? total/values.length : 0;
 
       // KPIs
-      const sum = summarize(range);
-      const dayLabels = buildLabels(range);
-      const dayValues = dayLabels.map(x=> sum.mapByDate.get(x.key) || 0);
+      document.getElementById('kpiTotal').textContent = total.toFixed(2);
+      document.getElementById('kpiAvg').textContent   = avg.toFixed(2);
+      document.getElementById('kpiInv').textContent   = values.length.toString();
 
-      document.getElementById('kpiTotal').textContent = fmtINR(sum.total);
-      const days = Math.max(1, dayLabels.length);
-      document.getElementById('kpiAvg').textContent = fmtINR(sum.total / days);
-      document.getElementById('kpiInvoices').textContent = sum.invCount;
-      document.getElementById('kpiTop').textContent = sum.topItem;
+      // Top item (dummy from pie)
+      const tops = demoTopToday();
+      document.getElementById('kpiTop').textContent = tops[0]?.name || '—';
 
-      // Line chart
-      const lineCtx = document.getElementById('lineByDay').getContext('2d');
-      if (lineChart) lineChart.destroy();
-      lineChart = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels: dayLabels.map(x=>x.label),
-          datasets: [{
-            data: dayValues,
-            borderWidth: 2,
-            tension: .3,
-            pointRadius: 2
-          }]
-        },
-        options: {
-          plugins: { legend: { display:false }, tooltip: { callbacks:{ label:(c)=>'₹'+fmtINR(c.parsed.y) } } },
-          scales: { y: { ticks: { callback: v=>'₹'+fmtINR(v) } } }
+      // Line
+      lineChart?.destroy();
+      lineChart = new Chart(ctxLine, {
+        type:'line',
+        data:{ labels, datasets:[{ label:'Revenue ₹', data:values, tension:.35, borderWidth:2, fill:false }] },
+        options:{
+          responsive:true,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ grid:{display:false}}, y:{ beginAtZero:true } }
         }
       });
 
-      // Pie chart
-      const pieCtx = document.getElementById('pieItems').getContext('2d');
-      if (pieChart) pieChart.destroy();
-      const labels = [...sum.byItem.keys()];
-      const vals = [...sum.byItem.values()];
-      pieChart = new Chart(pieCtx, {
-        type: 'pie',
-        data: {
-          labels: labels.length?labels:['No data'],
-          datasets: [{ data: vals.length?vals:[1], borderWidth:0 }]
+      // Pie
+      pieChart?.destroy();
+      pieChart = new Chart(ctxPie, {
+        type:'pie',
+        data:{
+          labels: tops.map(t=>t.name),
+          datasets:[{ data: tops.map(t=>t.value) }]
         },
-        options: {
-          plugins: {
-            legend: { position:'bottom' },
-            tooltip: { callbacks:{ label:(c)=> '₹'+fmtINR(c.parsed) } }
-          }
-        }
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
       });
     }
 
-    // Initialize
-    if (window.Chart) render('today');
-    else document.addEventListener('DOMContentLoaded', ()=>{
-      const iv=setInterval(()=>{ if(window.Chart){ clearInterval(iv); render('today'); }}, 30);
-    });
-  </script>
+    // Range chip handlers
+    const chips = document.querySelectorAll('[data-range]');
+    chips.forEach(c=>c.addEventListener('click', ()=>{
+      const k = c.getAttribute('data-range');
+      if (k==='custom'){
+        document.getElementById('from').style.display='inline-block';
+        document.getElementById('to').style.display='inline-block';
+        document.getElementById('applyCustom').style.display='inline-block';
+      } else {
+        document.getElementById('from').style.display='none';
+        document.getElementById('to').style.display='none';
+        document.getElementById('applyCustom').style.display='none';
+        render(k);
+      }
+    }));
 
-  <style>
-    /* tiny page-specific helpers reusing your palette */
-    .filters{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
-    .seg{display:flex; gap:6px; background:var(--card); padding:6px; border-radius:999px}
-    .seg-btn{border:0; padding:8px 14px; border-radius:999px; background:transparent; color:var(--text); font-weight:600}
-    .seg-btn.is-active{background:var(--brand-500); color:#fff}
-    .dates{display:flex; gap:8px; align-items:center}
-    .spacer{flex:1}
-  </style>
+    // Apply custom (for now just treats as 14d demo)
+    document.getElementById('applyCustom').onclick = ()=>{
+      render('30d');
+    };
+
+    // Initial
+    render('7d');
+
+    // SW (optional)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    }
+  </script>
 </body>
 </html>
