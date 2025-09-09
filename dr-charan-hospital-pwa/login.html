@@ -3,42 +3,35 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>PIN Login – Dr. Charan Hospital</title>
+  <title>Login – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=20"/>
+  <link rel="stylesheet" href="styles.css?v=26"/>
   <style>
-    /* Page polish (scoped) */
-    .login-card {
-      background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.0)) var(--card-bg);
-      border: 1px solid rgba(0,0,0,.06);
-    }
-    .login-title { font-size: 22px; margin-bottom: 14px; }
-    .field { display: grid; gap: 8px; margin: 12px 0; }
-    .label { font-size: 13px; color: var(--muted); }
-    .pin-wrap { position: relative; }
+    /* Polished login visuals */
+    .section { margin:12px; }
+    .tint      { border-radius:16px; padding:20px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.06); max-width:420px; margin:20px auto; }
+    .tint-blue { background: color-mix(in srgb, #2563eb 16%, var(--card-bg)); }
+    .login-title { font-size:24px; font-weight:800; margin-bottom:14px; text-align:center; }
+    .field { display:grid; gap:6px; margin-top:12px; }
+    .label { font-size:13px; color:var(--muted); }
+    .pin-wrap { position:relative; }
     .pin-wrap .input {
-      padding-left: 44px;
-      height: 48px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,0,0,.10);
+      width:100%; height:50px; font-size:16px; border-radius:12px;
+      border:1px solid rgba(0,0,0,.12); padding-left:46px;
       background: var(--card-bg);
-      transition: box-shadow .2s, border-color .2s;
     }
     .pin-wrap .input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+      outline:none; border-color:var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
     }
     .pin-icon {
-      position: absolute; inset: 0 auto 0 12px; width: 22px; height: 22px; margin: auto 0;
-      opacity: .65;
+      position:absolute; left:14px; top:0; bottom:0; margin:auto; width:22px; height:22px; opacity:.65;
     }
-    .action-row { display:flex; gap:10px; align-items:center; margin-top:10px; }
-    .btn { height: 44px; padding: 0 18px; border-radius: 12px; }
-    .chip { height: 44px; padding: 0 14px; border-radius: 999px; }
-    .help { margin-top: 12px; }
+    .actions { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+    .btn { height:46px; padding:0 20px; border-radius:12px; font-weight:600; }
+    .chip { height:44px; padding:0 16px; border-radius:999px; }
+    .help { margin-top:14px; font-size:13px; color:var(--muted); text-align:center; }
   </style>
 </head>
 <body>
@@ -47,91 +40,72 @@
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Login -->
-  <section class="login-wrap">
-    <div class="login-card">
+  <!-- Login card -->
+  <section class="section">
+    <div class="tint tint-blue">
       <h1 class="login-title">PIN Login</h1>
 
       <form id="loginForm" autocomplete="one-time-code">
         <div class="field">
           <label class="label" for="pin">Enter PIN</label>
           <div class="pin-wrap">
-            <!-- lock icon -->
+            <!-- Lock icon -->
             <svg class="pin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-width="1.8" d="M17 11V8a5 5 0 0 0-10 0v3" />
               <rect x="4.5" y="11" width="15" height="9" rx="2.2" stroke-width="1.8"/>
               <circle cx="12" cy="15.5" r="1.6" fill="currentColor"/>
             </svg>
-            <input id="pin" name="pin" class="input" type="password"
-                   inputmode="numeric" minlength="4" maxlength="6"
-                   placeholder="4–6 digits" required />
+            <input id="pin" name="pin" class="input" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="4–6 digits" required/>
           </div>
         </div>
 
-        <div class="action-row">
+        <div class="actions">
           <button class="btn" type="submit">Login</button>
           <button class="chip" type="button" id="clearCacheBtn">Clear Cache</button>
         </div>
 
-        <p class="help">Demo: <strong>4321</strong> (Doctor) · <strong>1111</strong> (Supervisor) · <strong>2222</strong> (Patient)</p>
+        <p class="help">Demo PINs → <strong>4321</strong> (Doctor) · <strong>1111</strong> (Supervisor)</p>
       </form>
     </div>
   </section>
 
   <script type="module">
     // Theme toggle
-    const t = document.getElementById('themeToggle');
-    if (localStorage.theme) {
-      document.documentElement.dataset.theme = localStorage.theme;
-      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.dataset.theme=localStorage.theme;
+      t.textContent=localStorage.theme==='light'?'🌞':'🌙';
     }
-    t.onclick = () => {
-      const cur = document.documentElement.dataset.theme || 'light';
-      const next = cur === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      localStorage.theme = next;
-      t.textContent = next === 'light' ? '🌞' : '🌙';
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light';
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.dataset.theme=next;
+      localStorage.theme=next;
+      t.textContent=next==='light'?'🌞':'🌙';
     };
 
-    // Clear cache + storage (dev helper)
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-        if ('caches' in window) {
-          const ks = await caches.keys();
-          await Promise.all(ks.map(k => caches.delete(k)));
-        }
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const r of regs) await r.unregister();
-        }
-        alert('Cache cleared. Reloading…');
-        location.reload();
-      } catch(e) {
-        alert('Could not fully clear. Try a hard reload.');
-      }
+    // Clear cache
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      localStorage.clear(); sessionStorage.clear();
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+      alert('Cache cleared. Reloading…'); location.reload();
     };
 
-    // Login routing (kept simple & identical pins)
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    // PIN login routing
+    document.getElementById('loginForm').addEventListener('submit', (e)=>{
       e.preventDefault();
-      const pin = (document.getElementById('pin').value || '').trim();
-      const roles = { '4321':'doctor', '1111':'supervisor', '2222':'patient' };
-      const role = roles[pin];
-      if (!role) { alert('Invalid PIN'); return; }
+      const pin=(document.getElementById('pin').value||'').trim();
+      const roles={ '4321':'doctor', '1111':'supervisor' };
+      const role=roles[pin];
+      if(!role){ alert('Invalid PIN'); return; }
 
-      localStorage.setItem('session', JSON.stringify({ role, ts: Date.now() }));
-      // route by role
-      if (role === 'doctor') location.href = 'dashboard.html';
-      else if (role === 'supervisor') location.href = 'bookings.html';
-      else location.href = 'portal.html';
+      localStorage.setItem('session', JSON.stringify({role, ts:Date.now()}));
+      if(role==='doctor') location.href='dashboard.html';
+      else location.href='admin.html';
     });
 
-    // Register SW (quiet)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-    }
+    // SW register
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
