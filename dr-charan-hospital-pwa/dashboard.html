@@ -4,183 +4,255 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
-
-  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
-
-  <!-- Local Chart.js (offline-first) -->
-  <script defer src="assets/chart.umd.min.js"></script>
-  <!-- Data layer -->
-  <script defer src="js/store.js"></script>
+  <link rel="stylesheet" href="styles.css?v=22"/>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Toggle theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Sticky actions (NOT on the banner) -->
+  <!-- Fixed actions below banner -->
   <div class="fixed-actions">
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <!-- App tiles -->
-  <section class="card-grid" style="max-width:1120px;margin:0 auto;">
-    <a class="card card--lavender" href="analytics.html">
-      <h2>Analytics</h2>
-      <p>KPIs & weekly sales</p>
-    </a>
-
-    <a class="card card--blue" href="pharmacy-report.html">
-      <h2>Pharmacy</h2>
-      <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
-    </a>
-
-    <a class="card card--mint" href="bookings.html">
-      <h2>Bookings</h2>
-      <p>Quick patient slots</p>
-    </a>
-
-    <a class="card card--peach" href="patient.html">
-      <h2>Patients</h2>
-      <p>Reminders & history</p>
-    </a>
-
-    <a class="card card--mint" href="staff.html">
-      <h2>Staff</h2>
-      <p>Roster & status</p>
-    </a>
-
-    <a class="card card--vio" href="settings.html">
-      <h2>Settings</h2>
-      <p>PINs, Staff, Patients</p>
-    </a>
-  </section>
-
-  <!-- Sales Analytics -->
+  <!-- Main app cards -->
   <section class="section">
-    <div class="card" style="padding:18px;">
-      <h2 style="text-align:left;margin-bottom:12px;font-size:18px;">Sales Analytics (Today)</h2>
+    <div class="card-grid">
+      <a href="analytics.html" class="card panel--lilac">
+        <h3>Analytics</h3>
+        <p>KPIs & weekly sales</p>
+      </a>
 
-      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-        <div class="card"><h2 id="kpiToday">0.00</h2><p>Today ₹</p></div>
-        <div class="card"><h2 id="kpiMonth">0.00</h2><p>This Month ₹</p></div>
-        <div class="card"><h2 id="kpiTopItem">—</h2><p>Top Item</p></div>
-      </div>
+      <a href="pharmacy-report.html" class="card panel--blue">
+        <h3>Pharmacy</h3>
+        <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
+      </a>
 
-      <div style="display:grid;grid-template-columns:1fr;gap:18px;margin-top:14px;">
-        <div class="card" style="padding:16px;">
-          <h3 style="margin-bottom:6px;font-size:15px;">Today by Hour</h3>
-          <canvas id="todayLine" height="160"></canvas>
-        </div>
-        <div class="card" style="padding:16px;">
-          <h3 style="margin-bottom:6px;font-size:15px;">Today by Item</h3>
-          <canvas id="todayPie" height="160"></canvas>
-        </div>
-      </div>
+      <a href="bookings.html" class="card panel--mint">
+        <h3>Bookings</h3>
+        <p>Quick patient slots</p>
+      </a>
+
+      <a href="patient.html" class="card panel--rose">
+        <h3>Patients</h3>
+        <p>Reminders & history</p>
+      </a>
+
+      <a href="staff.html" class="card panel--peach">
+        <h3>Staff</h3>
+        <p>Roster & status</p>
+      </a>
+
+      <a href="settings.html" class="card panel--lilac">
+        <h3>Settings</h3>
+        <p>PINs, Staff, Patients</p>
+      </a>
     </div>
   </section>
 
-  <script type="module">
-    // -------- Session gate (doctor only) ----------
-    const session = (() => { try { return JSON.parse(localStorage.getItem('session')||'null'); } catch { return null; } })();
-    if (!session) location.replace('login.html');
-    if (session.role !== 'doctor') {
-      if (session.role === 'supervisor') location.replace('admin.html');
-      else location.replace('login.html');
+  <!-- Sales analytics snapshot -->
+  <section class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>Sales Analytics (Today)</h2>
+      <div class="chips range">
+        <button class="chip chip--blue"  data-range="today">Today</button>
+        <button class="chip chip--mint"  data-range="7d">7D</button>
+        <button class="chip chip--peach" data-range="30d">30D</button>
+        <button class="chip chip--lilac" data-range="ytd">YTD</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid mt12">
+      <div class="kpi panel--blue">
+        <h4>Total (₹)</h4>
+        <div class="num" id="kpiTotal">0.00</div>
+      </div>
+      <div class="kpi panel--lilac">
+        <h4>Avg / Day (₹)</h4>
+        <div class="num" id="kpiAvg">0.00</div>
+      </div>
+      <div class="kpi panel--mint">
+        <h4>Invoices</h4>
+        <div class="num" id="kpiInv">0</div>
+      </div>
+      <div class="kpi panel--rose">
+        <h4>Top Item</h4>
+        <div class="num" id="kpiTop">–</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Revenue by Day</div>
+      <canvas id="lineChart" height="160"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Top Items (Share)</div>
+      <canvas id="pieChart" height="160"></canvas>
+    </div>
+  </section>
+
+  <!-- Local Chart.js -->
+  <script src="assets/chart.umd.min.js"></script>
+  <script>
+    // --- Theme toggle
+    const t = document.getElementById('themeToggle');
+    if (localStorage.theme) {
+      document.documentElement.dataset.theme = localStorage.theme;
+      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
     }
-
-    // -------- Theme ----------
-    const themeBtn = document.getElementById('themeToggle');
-    const applyTheme = (t) => { document.documentElement.dataset.theme = t; themeBtn.textContent = t==='light'?'🌞':'🌙'; localStorage.theme=t; };
-    applyTheme(localStorage.theme || 'light');
-    themeBtn.addEventListener('click', ()=> applyTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light'));
-
-    // -------- Logout / Clear Cache ----------
-    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try{
-        const keep = localStorage.getItem('session');
-        localStorage.clear(); if(keep) localStorage.setItem('session', keep);
-        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{}
+    t.onclick = () => {
+      const cur = document.documentElement.dataset.theme || 'light';
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      localStorage.theme = next;
+      t.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
-    // -------- Charts helpers ----------
-    let lineChart, pieChart;
-    const tickColor = () => (document.documentElement.dataset.theme||'light')==='light' ? '#0f172a' : '#e6edf7';
-
-    function drawLine(labels, values){
-      lineChart?.destroy();
-      const ctx = document.getElementById('todayLine').getContext('2d');
-      lineChart = new Chart(ctx, {
-        type:'line',
-        data:{ labels, datasets:[{ data: values, tension:.35, borderWidth:2, fill:false }] },
-        options:{
-          responsive:true,
-          plugins:{ legend:{ display:false }},
-          scales:{ x:{ ticks:{ color: tickColor() } }, y:{ ticks:{ color: tickColor(), callback:v=>'₹'+v } } }
-        }
-      });
-    }
-
-    function drawPie(labels, values){
-      pieChart?.destroy();
-      const ctx = document.getElementById('todayPie').getContext('2d');
-      pieChart = new Chart(ctx, {
-        type:'pie',
-        data:{ labels: labels.length?labels:['No sales'], datasets:[{ data: values.length?values:[1], borderWidth:0 }] },
-        options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color: tickColor() } } } }
-      });
-    }
-
-    // -------- Render from Store --------
-    async function renderFromStore(){
-      try{
-        // Ensure Store is ready (in case script is still loading)
-        if (!window.Store || !Store.getTodayBreakdown) {
-          setTimeout(renderFromStore, 40);
-          return;
-        }
-        const s = await Store.getTodayBreakdown();
-
-        // KPIs
-        document.getElementById('kpiToday').textContent = (s.todayTotal||0).toFixed(2);
-        document.getElementById('kpiMonth').textContent = (s.monthTotal||0).toFixed(2);
-        document.getElementById('kpiTopItem').textContent = s.topItem || '—';
-        document.getElementById('pharmacySummary').textContent =
-          `Today ₹${(s.todayTotal||0).toFixed(2)} • MTD ₹${(s.monthTotal||0).toFixed(2)} • Top: ${s.topItem||'—'}`;
-
-        // Line: 24 buckets (₹ per hour)
-        const labels = Array.from({length:24}, (_,h)=> (h<10?'0':'')+h+':00');
-        const values = (s.todayByHour || new Array(24).fill(0)).slice(0,24);
-        drawLine(labels, values);
-
-        // Pie: item amounts today
-        const pieLabels = (s.todayByItem||[]).map(x=>x.label);
-        const pieValues = (s.todayByItem||[]).map(x=>x.value);
-        drawPie(pieLabels, pieValues);
-      } catch (e) {
-        // Fallback to zeros if something goes off
-        drawLine(['00:00','06:00','12:00','18:00','24:00'], [0,0,0,0,0]);
-        drawPie(['No sales'], [1]);
+    // --- Session guard
+    (() => {
+      const s = JSON.parse(localStorage.getItem('session') || 'null');
+      if (!s || s.role !== 'doctor') {
+        location.replace('login.html');
       }
+    })();
+
+    // --- Actions
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem('session');
+      location.href = 'login.html';
+    };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      try {
+        const keep = localStorage.getItem('session');
+        localStorage.clear();
+        if (keep) localStorage.setItem('session', keep);
+        if ('caches' in window) {
+          const ks = await caches.keys();
+          await Promise.all(ks.map(k => caches.delete(k)));
+        }
+        alert('Cache cleared.');
+        location.reload();
+      } catch(e){ alert('Could not clear all caches.'); }
+    };
+
+    // --- Minimal local sales read (works with js/store.js invoices)
+    function getInvoices() {
+      try { return JSON.parse(localStorage.getItem('invoices') || '[]'); }
+      catch { return []; }
+    }
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function isSameDay(a,b){ return startOfDay(a).getTime()===startOfDay(b).getTime(); }
+
+    function summarize(range='today'){
+      const inv = getInvoices();
+      const now = new Date();
+      let from;
+      if (range==='today') from = startOfDay(now);
+      else if (range==='7d') { from = new Date(now); from.setDate(now.getDate()-6); from = startOfDay(from); }
+      else if (range==='30d'){ from = new Date(now); from.setDate(now.getDate()-29); from = startOfDay(from); }
+      else if (range==='ytd'){ from = new Date(now.getFullYear(),0,1); }
+      else from = startOfDay(now);
+
+      const picked = inv.filter(i=>{
+        const t = new Date(i.date||i.createdAt||Date.now());
+        return t>=from && t<=now;
+      });
+
+      const total = picked.reduce((s,i)=> s + (Number(i.total)||0), 0);
+      const days = Math.max(1, Math.round( (startOfDay(now)-from)/86400000 ) + 1);
+      const avg = total / days;
+      const count = picked.length;
+
+      // top item by revenue
+      const itemMap = {};
+      picked.forEach(i=>{
+        (i.items||[]).forEach(it=>{
+          const key = (it.name||'Item').trim();
+          const amt = (Number(it.qty)||0) * (Number(it.price)||0);
+          itemMap[key] = (itemMap[key]||0)+amt;
+        });
+      });
+      const top = Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+      // daily buckets for line
+      const byDay = {};
+      for(let i=0;i<days;i++){
+        const d = new Date(from); d.setDate(from.getDate()+i);
+        const key = d.toISOString().slice(0,10);
+        byDay[key] = 0;
+      }
+      picked.forEach(i=>{
+        const d = new Date(i.date||i.createdAt||Date.now());
+        const key = d.toISOString().slice(0,10);
+        if (byDay[key] != null) byDay[key] += Number(i.total)||0;
+      });
+
+      return { total, avg, count, top, lineLabels:Object.keys(byDay), lineData:Object.values(byDay), pieData:itemMap };
     }
 
-    // Repaint charts after theme change
-    const observer = new MutationObserver(()=> renderFromStore());
-    observer.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+    function money(n){ return (Number(n)||0).toFixed(2); }
 
-    // Kick off once Chart + Store are ready
-    if (window.Chart) renderFromStore();
-    else document.addEventListener('DOMContentLoaded', ()=>{
-      const iv=setInterval(()=>{ if(window.Chart){ clearInterval(iv); renderFromStore(); }}, 30);
+    function paintSummary(range='today'){
+      const s = summarize(range);
+      // KPIs
+      document.getElementById('kpiTotal').textContent = money(s.total);
+      document.getElementById('kpiAvg').textContent = money(s.avg);
+      document.getElementById('kpiInv').textContent = s.count;
+      document.getElementById('kpiTop').textContent = s.top;
+
+      // Banner pharmacy snippet (today + month)
+      const inv = getInvoices();
+      const today = inv.filter(i=>isSameDay(new Date(i.date||i.createdAt||Date.now()), new Date())).reduce((a,i)=>a+(+i.total||0),0);
+      const mStart = new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
+      const mtd = inv.filter(i=> new Date(i.date||i.createdAt||Date.now())>=mStart).reduce((a,i)=>a+(+i.total||0),0);
+      const top = s.top || '—';
+      document.getElementById('pharmacySummary').textContent = `Today ₹${money(today)} • MTD ₹${money(mtd)} • Top: ${top}`;
+
+      // Charts
+      line.data.labels = s.lineLabels;
+      line.data.datasets[0].data = s.lineData;
+      line.update();
+
+      const pieLabels = Object.keys(s.pieData);
+      const pieVals = Object.values(s.pieData);
+      pie.data.labels = pieLabels.length? pieLabels: ['No data'];
+      pie.data.datasets[0].data = pieVals.length? pieVals: [1];
+      pie.update();
+    }
+
+    // Charts init
+    const line = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label:'Revenue', data: [], borderWidth:2, tension:.3 }] },
+      options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+    });
+    const pie = new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: { labels: [], datasets: [{ data: [] }] },
+      options: { responsive:true, maintainAspectRatio:false }
     });
 
-    // SW register (quiet)
+    // Range chips
+    const rangeBar = document.querySelector('.range');
+    let active = 'today';
+    function setActive(name){
+      active = name;
+      rangeBar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      const el = rangeBar.querySelector(`[data-range="${name}"]`);
+      if (el) el.classList.add('active');
+      paintSummary(name);
+    }
+    rangeBar.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if (!btn) return;
+      setActive(btn.dataset.range);
+    });
+    setActive('today');
+
+    // SW (quiet)
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
