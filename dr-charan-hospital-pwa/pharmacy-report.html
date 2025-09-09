@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Pharmacy Reports – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=14"/>
+  <style>
+    .seg{display:inline-flex;gap:6px;background:var(--surface);padding:6px;border:1px solid var(--border);border-radius:999px}
+    .seg button{border:none;padding:8px 12px;border-radius:999px;background:transparent}
+    .seg .on{background:var(--primary);color:#fff}
+    .kpis{display:grid;gap:10px;grid-template-columns:repeat(4,1fr)}
+    .kpi{padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--surface-2)}
+    .kpi .n{font-size:22px;font-weight:700}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-top:1px solid var(--border);text-align:left}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    .floating-actions{position:absolute;left:14px;bottom:14px;z-index:10;display:flex;gap:8px}
+    .banner{position:relative}
+  </style>
+</head>
+<body>
+  <header class="banner clean"></header>
+  <div class="floating-actions">
+    <a href="dashboard.html" class="chip">← Dashboard</a>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
+
+  <main class="container n8">
+    <section class="card">
+      <div class="toolbar">
+        <div class="seg" id="seg">
+          <button data-mode="day" class="on">Daily</button>
+          <button data-mode="week">Weekly</button>
+          <button data-mode="month">Monthly</button>
+          <button data-mode="year">Yearly</button>
+        </div>
+        <input id="pickDay" type="date"/>
+        <input id="pickMonth" type="month" style="display:none"/>
+        <input id="pickYear" type="number" min="2000" max="2099" step="1" style="width:100px;display:none"/>
+        <button id="prev" class="chip">◀</button>
+        <button id="next" class="chip">▶</button>
+        <span id="label" class="muted"></span>
+        <button id="exportCsv" class="chip">Export CSV</button>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="n" id="kTotal">0</div><div class="muted">Total ₹</div></div>
+        <div class="kpi"><div class="n" id="kInv">0</div><div class="muted">Invoices</div></div>
+        <div class="kpi"><div class="n" id="kAvg">0</div><div class="muted">Avg ₹/invoice</div></div>
+        <div class="kpi"><div class="n" id="kTop">–</div><div class="muted">Top Item</div></div>
+      </div>
+
+      <canvas id="trend" height="200" style="width:100%;margin:16px 0"></canvas>
+
+      <div class="card" style="margin-top:16px">
+        <h4 style="margin:0 0 6px">Invoices</h4>
+        <table class="table" id="tbl">
+          <thead><tr><th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total ₹</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { requireRole, listInvoices, listSales } from './js/store.js?v=21';
+    requireRole('doctor');
+
+    const seg=document.getElementById('seg');
+    const day=document.getElementById('pickDay');
+    const mon=document.getElementById('pickMonth');
+    const year=document.getElementById('pickYear');
+    const label=document.getElementById('label');
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{ localStorage.clear(); if('caches'in window){(await caches.keys()).map(k=>caches.delete(k))}; alert('Cache cleared'); location.reload(); };
+
+    let mode='day';
+    day.value = new Date().toISOString().slice(0,10);
+    mon.value = new Date().toISOString().slice(0,7);
+    year.value = new Date().getFullYear();
+
+    seg.addEventListener('click',e=>{
+      if(e.target.tagName!=='BUTTON') return;
+      seg.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+      e.target.classList.add('on');
+      mode=e.target.dataset.mode;
+      day.style.display= mode==='day'?'':'none';
+      mon.style.display= mode==='month'||mode==='week'?'':'none';
+      year.style.display= mode==='year'?'':'none';
+      render();
+    });
+    document.getElementById('prev').onclick=()=>{ shift(-1); render(); };
+    document.getElementById('next').onclick=()=>{ shift(1); render(); };
+    day.onchange=mon.onchange=year.onchange=render;
+
+    function shift(delta){
+      if(mode==='day'){
+        const d=new Date(day.value); d.setDate(d.getDate()+delta); day.value=d.toISOString().slice(0,10);
+      }else if(mode==='week' || mode==='month'){
+        const [y,m]=mon.value.split('-').map(n=>+n); const d=new Date(y,m-1,1); d.setMonth(d.getMonth()+delta); mon.value=d.toISOString().slice(0,7);
+      }else{
+        year.value=(+year.value||new Date().getFullYear())+delta;
+      }
+    }
+
+    function sliceInvoices(){
+      const invs=listInvoices();
+      if(mode==='day'){ const d=day.value; label.textContent=d; return invs.filter(i=>i.date===d); }
+      if(mode==='week'){ const ym=mon.value; return invs.filter(i=> (i.date||'').startsWith(ym)); }
+      if(mode==='month'){ const ym=mon.value; label.textContent=ym; return invs.filter(i=> (i.date||'').startsWith(ym)); }
+      const yy=String(year.value); label.textContent=yy; return invs.filter(i=> (i.date||'').startsWith(yy));
+    }
+
+    function drawLine(canvas, labels, data){
+      const c=canvas, ctx=c.getContext('2d'); c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
+      const W=c.clientWidth, H=c.clientHeight, pad=24; ctx.clearRect(0,0,W,H);
+      const border=getComputedStyle(document.documentElement).getPropertyValue('--border')||'#e9edf5';
+      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+      const max=Math.max(10,...data); const slot=(W-pad*2)/(labels.length-1); const base=H-pad;
+      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#5166ff';
+      ctx.strokeStyle=primary; ctx.lineWidth=2; ctx.beginPath();
+      labels.forEach((lb,i)=>{ const h=Math.round((data[i]/max)*(H-pad*2)); const x=pad+i*slot; const y=base-h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+      ctx.stroke();
+    }
+
+    function render(){
+      const invs=sliceInvoices();
+      const total=invs.reduce((s,i)=>s+(+i.total||0),0);
+      const count=invs.length; const avg=count? total/count : 0;
+      const sales=listSales().filter(r=> invs.some(i=>i.number===r.invoice));
+      const agg={}; for(const r of sales){ agg[r.item]=(agg[r.item]||0)+(+r.amount||0); }
+      let top='–',best=-1; for(const [k,v] of Object.entries(agg)){ if(v>best){best=v; top=k;} }
+      kTotal.textContent=total.toFixed(2); kInv.textContent=count; kAvg.textContent=avg.toFixed(2); kTop.textContent=top;
+
+      // Trend labels/data
+      const labels=[], data=[];
+      if(mode==='day'){
+        ['AM','Noon','PM','Eve'].forEach(l=>labels.push(l)); for(let i=0;i<4;i++) data.push(total/4); // simple split for demo
+      }else if(mode==='week'){
+        const week=[0,0,0,0]; invs.forEach(i=>{ const d=new Date(i.date).getDate(); const idx=Math.min(3,Math.floor((d-1)/7)); week[idx]+=+i.total||0; });
+        ['W1','W2','W3','W4'].forEach((l,i)=>{ labels.push(l); data.push(week[i]); });
+      }else if(mode==='month'){
+        const ym=mon.value; const daysInMonth=new Date(+ym.slice(0,4),+ym.slice(5)+0,0).getDate();
+        for(let d=1; d<=daysInMonth; d++){ const k=String(d).padStart(2,'0'); labels.push(k); data.push(invs.filter(i=>i.date.endsWith('-'+k)).reduce((s,x)=>s+(+x.total||0),0)); }
+      }else{
+        const yy=String(year.value);
+        for(let m=1;m<=12;m++){ const k=String(m).padStart(2,'0'); labels.push(k); data.push(listInvoices().filter(i=>i.date.startsWith(`${yy}-${k}`)).reduce((s,x)=>s+(+x.total||0),0)); }
+      }
+      drawLine(document.getElementById('trend'), labels, data);
+
+      // table
+      const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
+      invs.forEach(i=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${i.number}</td><td>${i.date}</td><td>${i.patient||''}</td><td>${(i.items||[]).length}</td><td>₹${(+i.total||0).toFixed(2)}</td>`; tb.appendChild(tr); });
+    }
+
+    document.getElementById('exportCsv').onclick=()=>{
+      const invs=sliceInvoices(); const head=['number','date','patient','lines','total'];
+      const csv=[head,...invs.map(i=>[i.number,i.date,i.patient,(i.items||[]).length,i.total])].map(r=>r.join(',')).join('\n');
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='pharmacy_report.csv'; a.click();
+    };
+
+    render();
+    addEventListener('resize', render);
+  </script>
+</body>
+</html>
