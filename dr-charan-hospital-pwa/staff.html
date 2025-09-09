@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Staff – Dr. Charan Hospital</title>
+
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=26"/>
+</head>
+<body>
+  <!-- Banner -->
+  <header class="banner">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+  </header>
+
+  <!-- Fixed actions -->
+  <div class="fixed-actions">
+    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <a class="chip" href="admin.html">Supervisor</a>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+
+  <main class="section" style="max-width:1100px">
+    <!-- Staff roster / status -->
+    <section class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Team</h2>
+      <table class="table" id="staffTable">
+        <thead>
+          <tr>
+            <th>Name</th><th>Role</th><th>Phone</th>
+            <th>Status</th>
+            <th>Shift</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="help" style="margin-top:8px">Status: Active (available), On Duty (currently working), Off (not available).</p>
+    </section>
+
+    <!-- Roster editor -->
+    <section class="card">
+      <h2 style="font-size:18px;margin-bottom:8px">Roster / Default Shifts</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end">
+        <div>
+          <label class="muted">Staff</label>
+          <select id="rStaff" class="input"></select>
+        </div>
+        <div>
+          <label class="muted">Start</label>
+          <input id="rStart" class="input" type="time" value="09:00"/>
+        </div>
+        <div>
+          <label class="muted">End</label>
+          <input id="rEnd" class="input" type="time" value="18:00"/>
+        </div>
+        <div>
+          <button id="rSave" class="btn">Save Shift</button>
+        </div>
+      </div>
+      <p class="help" style="margin-top:6px">Saved shifts auto-fill on Check-In.</p>
+    </section>
+
+    <!-- Attendance -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="font-size:18px;margin-bottom:8px">Attendance</h2>
+        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+          <div><label class="muted">From</label><input id="aFrom" class="input" type="date"/></div>
+          <div><label class="muted">To</label><input id="aTo" class="input" type="date"/></div>
+          <button id="aApply" class="chip">Apply</button>
+          <button id="aExport" class="chip">Export CSV</button>
+        </div>
+      </div>
+
+      <table class="table" id="attTable">
+        <thead>
+          <tr>
+            <th>Date</th><th>Name</th><th>Role</th>
+            <th>Check-In</th><th>Check-Out</th><th>Total (hh:mm)</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module">
+    /* ---------- Role guard: doctor or supervisor ---------- */
+    const sess = JSON.parse(localStorage.getItem('session')||'null');
+    if(!sess || !['doctor','supervisor'].includes(sess.role)) location.replace('login.html');
+
+    /* ---------- Theme ---------- */
+    const t = document.getElementById('themeToggle');
+    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
+    setTheme(localStorage.theme || 'light');
+    t.onclick = ()=> setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+
+    /* ---------- Logout/Clear ---------- */
+    document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('session'); location.replace('login.html'); };
+    document.getElementById('clearCacheBtn').onclick = async ()=>{
+      try{ const s=localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session',s);
+        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch{}
+    };
+
+    /* ---------- Storage helpers ---------- */
+    const get = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(f)); }catch{ return f; } };
+    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    const STAFF_KEY = 'staff';              // [{name, role, phone, status}]
+    const ROSTER_KEY = 'staff_roster';      // { phone: {start:'09:00', end:'18:00'} }
+    const ATT_KEY = 'staff_attendance';     // [{date:'YYYY-MM-DD', phone, name, role, in:'09:10', out:'17:55', status:'Present'|'Leave'|'Off'}]
+
+    const today = () => new Date().toISOString().slice(0,10);
+    const nowHM = () => new Date().toTimeString().slice(0,5);
+
+    function loadStaff(){ return get(STAFF_KEY, []); }
+    function saveStaff(arr){ set(STAFF_KEY, arr); }
+    function loadRoster(){ return get(ROSTER_KEY, {}); }
+    function saveRoster(obj){ set(ROSTER_KEY, obj); }
+    function loadAtt(){ return get(ATT_KEY, []); }
+    function saveAtt(arr){ set(ATT_KEY, arr); }
+
+    /* ---------- Staff table ---------- */
+    const staffTbody = document.querySelector('#staffTable tbody');
+    const rSelect = document.getElementById('rStaff');
+
+    function renderStaff(){
+      const staff = loadStaff();
+      const roster = loadRoster();
+
+      // Fill roster select
+      rSelect.innerHTML = '';
+      staff.forEach(s=>{
+        const opt=document.createElement('option');
+        opt.value = s.phone || s.name; opt.textContent = `${s.name} — ${s.role||''}`;
+        rSelect.appendChild(opt);
+      });
+
+      staffTbody.innerHTML='';
+      staff.forEach(s=>{
+        const key = s.phone || s.name;
+        const shift = roster[key] ? `${roster[key].start}–${roster[key].end}` : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.name||''}</td>
+          <td>${s.role||''}</td>
+          <td>${s.phone||''}</td>
+          <td>
+            <select class="input stStatus" data-key="${key}" style="width:auto">
+              <option ${s.status==='Active'?'selected':''}>Active</option>
+              <option ${s.status==='On Duty'?'selected':''}>On Duty</option>
+              <option ${s.status==='Off'?'selected':''}>Off</option>
+            </select>
+          </td>
+          <td>${shift}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="chip stIn"  data-key="${key}">Check-In</button>
+            <button class="chip stOut" data-key="${key}">Check-Out</button>
+          </td>
+        `;
+        staffTbody.appendChild(tr);
+      });
+    }
+
+    // status changes
+    staffTbody.addEventListener('change', (e)=>{
+      const sel = e.target.closest('.stStatus'); if(!sel) return;
+      const key = sel.dataset.key;
+      const staff = loadStaff();
+      const i = staff.findIndex(x => (x.phone||x.name)===key);
+      if(i>=0){ staff[i].status = sel.value; saveStaff(staff); }
+    });
+
+    // check-in/out
+    staffTbody.addEventListener('click', (e)=>{
+      const btnIn = e.target.closest('.stIn');
+      const btnOut= e.target.closest('.stOut');
+      if(!btnIn && !btnOut) return;
+      const key = (btnIn||btnOut).dataset.key;
+      const staff = loadStaff();
+      const st = staff.find(x => (x.phone||x.name)===key);
+      if(!st) return;
+
+      const arr = loadAtt();
+      const d = today();
+      let row = arr.find(x => x.date===d && x.phone===(st.phone||st.name));
+      if(!row){
+        row = { date:d, phone:(st.phone||st.name), name:st.name, role:st.role||'', in:'', out:'', status:'Present' };
+        arr.push(row);
+      }
+      if(btnIn){
+        // Prefer roster start if empty
+        const roster = loadRoster();
+        row.in = row.in || (roster[key]?.start || nowHM());
+        st.status = 'On Duty';
+      }
+      if(btnOut){
+        row.out = nowHM();
+        // Auto compute status if needed
+        if(!row.in) row.in = row.out;
+        st.status = 'Active';
+      }
+      saveAtt(arr); saveStaff(staff);
+      renderStaff(); renderAttendance();
+    });
+
+    /* ---------- Roster ---------- */
+    document.getElementById('rSave').onclick = ()=>{
+      const key = rSelect.value;
+      if(!key) return alert('Select a staff.');
+      const start = (document.getElementById('rStart').value || '09:00');
+      const end   = (document.getElementById('rEnd').value || '18:00');
+      const ro = loadRoster();
+      ro[key] = { start, end };
+      saveRoster(ro);
+      renderStaff();
+      alert('Shift saved.');
+    };
+
+    /* ---------- Attendance table ---------- */
+    const aFrom = document.getElementById('aFrom');
+    const aTo   = document.getElementById('aTo');
+    const aApply= document.getElementById('aApply');
+    const aExport = document.getElementById('aExport');
+    const attTbody = document.querySelector('#attTable tbody');
+
+    // defaults (this month)
+    const dt = new Date();
+    aFrom.value = new Date(dt.getFullYear(), dt.getMonth(), 1).toISOString().slice(0,10);
+    aTo.value   = today();
+
+    function hhmmDiff(inHM, outHM){
+      if(!inHM || !outHM) return '00:00';
+      const [ih,im] = inHM.split(':').map(Number);
+      const [oh,om] = outHM.split(':').map(Number);
+      let mins = (oh*60+om) - (ih*60+im);
+      if(mins < 0) mins += 24*60;
+      const h = Math.floor(mins/60), m = mins%60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
+    function renderAttendance(){
+      const from = aFrom.value || '1900-01-01';
+      const to   = aTo.value   || '2999-12-31';
+      const staff = loadStaff();
+      const mapRole = new Map(staff.map(s=>[(s.phone||s.name), s.role||'']));
+      const arr = loadAtt()
+        .filter(x => x.date >= from && x.date <= to)
+        .sort((a,b)=> (a.date<b.date?1:-1) || (a.name||'').localeCompare(b.name||''));
+
+      attTbody.innerHTML='';
+      arr.forEach(r=>{
+        const tr=document.createElement('tr');
+        const role = mapRole.get(r.phone) || r.role || '';
+        tr.innerHTML = `
+          <td>${r.date}</td>
+          <td>${r.name||''}</td>
+          <td>${role}</td>
+          <td>${r.in||''}</td>
+          <td>${r.out||''}</td>
+          <td>${hhmmDiff(r.in, r.out)}</td>
+          <td>${r.status||'Present'}</td>
+        `;
+        attTbody.appendChild(tr);
+      });
+    }
+    aApply.onclick = renderAttendance;
+
+    /* ---------- Export CSV ---------- */
+    aExport.onclick = ()=>{
+      const rows = [['Date','Name','Role','Check-In','Check-Out','Total(hh:mm)','Status']];
+      document.querySelectorAll('#attTable tbody tr').forEach(tr=>{
+        const cells = [...tr.children].map(td=>td.textContent.replace(/\s+/g,' ').trim());
+        rows.push(cells);
+      });
+      const csv = rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `staff-attendance-${aFrom.value || 'from'}_to_${aTo.value || 'to'}.csv`;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    };
+
+    /* ---------- Init ---------- */
+    renderStaff();
+    renderAttendance();
+
+    // SW register
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+  </script>
+</body>
+</html>
