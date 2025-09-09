@@ -6,13 +6,15 @@
   <title>PIN Login – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=20"/>
+  <link rel="stylesheet" href="styles.css?v=17"/>
 </head>
 <body>
+  <!-- Slim banner for login -->
   <header class="banner banner--slim">
-    <button id="themeToggle" class="chip floating-toggle small" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
+  <!-- Login card -->
   <section class="login-wrap">
     <div class="login-card">
       <h1 class="login-title">PIN Login</h1>
@@ -22,7 +24,7 @@
         <input id="pin" name="pin" class="input" type="password" inputmode="numeric" autocomplete="one-time-code" minlength="4" maxlength="6" placeholder="4–6 digits" required/>
         <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
           <button class="btn" type="submit">Login</button>
-          <button class="chip small" type="button" id="clearCacheBtn">Clear Cache</button>
+          <button class="chip" type="button" id="clearCacheBtn">Clear Cache</button>
         </div>
         <p class="help">Demo: 4321 (Doctor) · 1111 (Supervisor) · 2222 (Patient)</p>
       </form>
@@ -30,14 +32,12 @@
   </section>
 
   <script type="module">
-    import { verifyPin, setSession } from './js/store.js?v=21';
-
-    // theme
+    // theme toggle
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
     t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // clear cache
+    // clear cache (handy during dev)
     document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
         localStorage.clear();
@@ -47,18 +47,23 @@
       }catch(e){ alert('Could not fully clear. Try hard reload.'); }
     };
 
-    // login
+    // simple role routing (same logic as before)
     document.getElementById('loginForm').addEventListener('submit', (e)=>{
       e.preventDefault();
       const pin=(document.getElementById('pin').value||'').trim();
-      const role=verifyPin(pin);
+      // map pins → roles
+      const roles={ '4321':'doctor', '1111':'supervisor', '2222':'patient' };
+      const role=roles[pin];
       if(!role){ alert('Invalid PIN'); return; }
-      setSession(role);
+
+      localStorage.setItem('session', JSON.stringify({role, ts:Date.now()}));
+      // route
       if(role==='doctor') location.href='dashboard.html';
       else if(role==='supervisor') location.href='admin.html';
       else location.href='portal.html';
     });
 
+    // SW (quiet)
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
