@@ -1,430 +1,285 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy – Billing</title>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Supervisor – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=14"/>
+  <style>
+    .floating-actions{position:fixed;top:14px;left:14px;z-index:1000;display:flex;gap:8px;flex-wrap:wrap}
+    .big-tile{min-height:120px;display:flex;flex-direction:column;justify-content:center}
+    .tabs{display:flex;gap:10px;margin-bottom:12px}
+    .tabs .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-top:1px solid var(--border);text-align:left}
+    .backlink{margin-bottom:10px;display:inline-flex;gap:6px;align-items:center}
+    .muted{color:var(--muted)}
+  </style>
 </head>
 <body>
-  <!-- Banner with embedded logo/text -->
+  <!-- Banner -->
   <header class="banner clean"></header>
+
+  <!-- Always-visible controls -->
+  <div class="floating-actions">
+    <a href="login.html" id="logout" class="chip">Logout</a>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
   <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
-  <!-- Tabs -->
-  <section class="container n8" style="margin-top:12px;margin-bottom:-6px">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="chip" id="tabBilling">Billing</button>
-      <button class="chip" id="tabRecords">Records</button>
-    </div>
-  </section>
-
   <main class="container n8">
-    <!-- ===== BILLING PANEL ===== -->
-    <div id="panelBilling">
-      <!-- Top actions -->
-      <section class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a href="dashboard.html?v=15" class="chip">← Dashboard</a>
-          <button id="clearCacheBtn" class="btn">Clear Cache</button>
-          <button id="logoutBtn" class="btn">Logout</button>
-        </div>
-        <div class="subtitle">Supervisor billing • Multi-item invoices</div>
-      </section>
 
-      <!-- Invoice header -->
-      <section class="card" id="invHeader">
+    <!-- SUPERVISOR HOME -->
+    <section id="supHome" class="card">
+      <div class="tile-grid">
+        <a class="tile big-tile bookings" id="openBookings">
+          <div class="title">Bookings</div>
+          <div class="sub">Create patient appointments</div>
+        </a>
+        <a class="tile big-tile pharma" id="openPharmacy">
+          <div class="title">Pharmacy</div>
+          <div class="sub">Billing & records</div>
+        </a>
+      </div>
+      <p class="muted" style="margin-top:12px">Supervisor home • choose a module</p>
+    </section>
+
+    <!-- PHARMACY HUB (Billing / Records) -->
+    <section id="pharmacyHub" class="card" style="display:none">
+      <a class="backlink" id="goHome">← Back to Supervisor Home</a>
+      <h3 style="margin:0 0 8px">Pharmacy</h3>
+      <div class="tabs">
+        <button class="chip active" id="tabBilling">Billing</button>
+        <button class="chip" id="tabRecords">Records</button>
+      </div>
+
+      <!-- BILLING PANEL (compact demo) -->
+      <div id="billingPanel">
+        <div class="toolbar">
+          <button class="btn" id="newInvoice">New Invoice</button>
+          <div class="muted" id="invHint"></div>
+        </div>
+
         <div class="form-grid">
-          <div class="field"><label>Invoice #</label><input id="invNumber" disabled/></div>
-          <div class="field"><label>Date</label><input id="invDate" type="date"/></div>
-          <div class="field"><label>Doctor (optional)</label><input id="invDoctor" placeholder="Dr. Name"/></div>
-          <div class="field"><label>Patient Name</label><input id="invPatient" placeholder="Full name"/></div>
-          <div class="field"><label>Patient Phone</label><input id="invPhone" inputmode="tel" placeholder="10-digit"/></div>
-          <div class="field" style="align-items:end"><button id="newInvoice" class="btn">New Invoice</button></div>
-        </div>
-      </section>
-
-      <!-- Items table -->
-      <section class="card" id="itemsCard">
-        <h3 style="margin:0 0 10px">Items</h3>
-        <div class="table-wrap">
-          <table class="table" id="itemsTbl">
-            <thead>
-              <tr>
-                <th style="min-width:140px">Item</th><th>Batch</th><th>Expiry</th>
-                <th>Qty</th><th>Rate</th><th>Disc %</th><th>Disc ₹</th><th>GST %</th><th>Amount</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="itemRows"></tbody>
-            <tfoot>
-              <tr>
-                <td><input id="add_name" placeholder="Paracetamol 650"></td>
-                <td><input id="add_batch" placeholder=""></td>
-                <td><input id="add_expiry" placeholder="2026-06"></td>
-                <td><input id="add_qty" type="number" min="1" value="1"></td>
-                <td><input id="add_rate" type="number" step="0.01"></td>
-                <td><input id="add_discPct" type="number" step="0.01" value="0"></td>
-                <td><input id="add_discAbs" type="number" step="0.01" value="0"></td>
-                <td><input id="add_gst" type="number" step="0.01" value="0"></td>
-                <td colspan="2"><button id="addItemBtn" class="btn">+ Add Item</button></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </section>
-
-      <!-- Totals -->
-      <section class="card" id="totalsCard">
-        <div class="form-grid">
-          <div class="field"><label>Invoice Discount %</label><input id="invDiscPct" type="number" step="0.01" value="0"></div>
-          <div class="field"><label>Invoice Discount ₹</label><input id="invDiscAbs" type="number" step="0.01" value="0"></div>
-          <div class="field"><label>Total ₹</label><input id="invTotal" disabled></div>
-          <div class="field"><label>Paid ₹</label><input id="invPaid" type="number" step="0.01" value="0"></div>
-          <div class="field"><label>Balance ₹</label><input id="invBalance" disabled></div>
-          <div class="field" style="align-items:end">
-            <button id="saveDraft" class="chip">Save Draft</button>
-            <button id="finalize" class="btn">Finalize & Save</button>
+          <div class="field">
+            <label>Invoice #</label>
+            <input id="invNo" placeholder="Auto"/>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input id="invDate" type="date"/>
+          </div>
+          <div class="field">
+            <label>Patient Name</label>
+            <input id="invPatient" placeholder="Full name"/>
+          </div>
+          <div class="field">
+            <label>Patient Phone</label>
+            <input id="invPhone" inputmode="numeric" maxlength="10" placeholder="10-digit"/>
           </div>
         </div>
-      </section>
 
-      <!-- Invoices list (quick glance) -->
-      <section class="card">
-        <h3 style="margin:0 0 10px">Invoices</h3>
+        <!-- MULTI-ITEM LINES -->
+        <div class="toolbar">
+          <button class="chip" id="addLine">+ Add Item</button>
+          <span class="muted">Add all medicines in one invoice</span>
+        </div>
+        <div id="lines"></div>
+
+        <div class="form-grid" style="margin-top:8px">
+          <div class="field"><label>Invoice Discount %</label><input id="discPct" inputmode="decimal" value="0"/></div>
+          <div class="field"><label>Invoice Discount ₹</label><input id="discAmt" inputmode="decimal" value="0"/></div>
+          <div class="field"><label>Paid ₹</label><input id="paid" inputmode="decimal" value="0"/></div>
+          <div class="field"><label>Total ₹</label><input id="total" disabled/></div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn" id="saveInvoice">Finalize & Save</button>
+          <button class="btn ghost" id="calcTotal">Recalculate</button>
+        </div>
+      </div>
+
+      <!-- RECORDS PANEL -->
+      <div id="recordsPanel" style="display:none">
+        <div class="toolbar">
+          <input id="recFrom" type="date"/>
+          <input id="recTo" type="date"/>
+          <button class="chip" id="recFilter">Filter</button>
+          <span class="muted" id="recSummary"></span>
+        </div>
         <div class="table-wrap">
-          <table class="table" id="invTbl">
-            <thead><tr><th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+          <table class="table" id="recTable">
+            <thead><tr>
+              <th>#</th><th>Date</th><th>Patient</th><th>Lines</th><th>Total ₹</th>
+            </tr></thead>
             <tbody></tbody>
           </table>
         </div>
-      </section>
-    </div>
-
-    <!-- ===== RECORDS PANEL ===== -->
-    <div id="panelRecords" style="display:none">
-      <section class="card">
-        <h3 style="margin:0 0 10px">Records</h3>
-        <div class="form-grid">
-          <div class="field"><label>From</label><input type="date" id="recFrom"></div>
-          <div class="field"><label>To</label><input type="date" id="recTo"></div>
-          <div class="field" style="align-items:end"><button class="btn" id="recLoad">Load</button></div>
-        </div>
-      </section>
-
-      <!-- Records actions -->
-      <section class="card" id="recActions">
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn ghost" id="recExportInv">Export Invoices CSV</button>
-          <button class="btn ghost" id="recExportLines">Export Line Items CSV</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="table-wrap">
-          <table class="table" id="recTbl">
-            <thead>
-              <tr>
-                <th>#</th><th>Date</th><th>Patient</th><th>Lines</th>
-                <th>Total ₹</th><th>Paid ₹</th><th>Balance ₹</th><th>Status</th><th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
 
-  <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
-    Billing v1 • Supervisor only
-  </footer>
-
   <script type="module">
-    import {
-      currentUser, logout,
-      newDraftInvoice, getInvoice, listInvoices,
-      addLine, updateLine, removeLine,
-      setInvoiceDiscounts, finalizeInvoice,
-      exportInvoicesCsv, exportInvoiceLinesCsv
-    } from './js/store.js?v=14';
-
-    /* ---- Hospital branding for print ---- */
-    const HOSPITAL = {
-      name: "Dr. Charan Hospital",
-      address: "Main Road, Hyderabad, Telangana 500001",
-      phone: "+91 98xxxxxx90",
-      gstin: "36ABCDE1234F1Z5",        // TODO: put the real GSTIN here
-      logo: "assets/logo.png"          // ensure this path exists
-    };
+    import { requireRole, listInvoices, listSales, totalsToday, totalsMonth } from './js/store.js?v=21';
+    import * as S from './js/store.js?v=21';
+    requireRole('supervisor'); // supervisors only
 
     // Theme toggle
     const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){document.documentElement.setAttribute('data-theme',localStorage.theme);tbtn.textContent=localStorage.theme==='light'?'🌞':'🌙';}
-    tbtn.onclick=()=>{const cur=document.documentElement.getAttribute('data-theme')||'light';const next=cur==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.theme=next;tbtn.textContent=next==='light'?'🌞':'🌙';};
+    if(localStorage.theme){ document.documentElement.setAttribute('data-theme', localStorage.theme); tbtn.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme')||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
 
-    // Auth: SUPERVISOR ONLY
-    const u = currentUser();
-    if(!u){ location.href='login.html?v=14'; }
-    if(u?.role!=='supervisor'){ alert('Billing is supervisor-only'); location.href='dashboard.html?v=15'; }
-
-    const $ = s=>document.querySelector(s);
-
-    // Tabs
-    const panelBilling=$('#panelBilling'), panelRecords=$('#panelRecords');
-    $('#tabBilling').onclick=()=>{panelBilling.style.display='block';panelRecords.style.display='none';};
-    $('#tabRecords').onclick=()=>{panelBilling.style.display='none';panelRecords.style.display='block';};
-
-    // Clear cache + Logout
-    $('#clearCacheBtn').onclick=async()=>{
-      localStorage.clear();
-      if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
-      if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
-      alert('Cache cleared. Reloading…');location.reload(true);
-    };
-    $('#logoutBtn').onclick=()=>{ logout(); location.href='login.html?v=14'; };
-
-    // State
-    let curId=null;
-
-    // New invoice
-    $('#newInvoice').onclick=()=>{
-      const inv=newDraftInvoice({});
-      curId=inv.id; hydrate(inv); renderList();
+    // Clear cache
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      try{
+        localStorage.clear();
+        if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+        if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
     };
 
-    // Add item
-    $('#addItemBtn').onclick=()=>{
-      if(!curId){alert('Create an invoice first');return;}
-      const row={
-        name:$('#add_name').value.trim(),
-        batch:$('#add_batch').value.trim(),
-        expiry:$('#add_expiry').value.trim(),
-        qty:+$('#add_qty').value||0,
-        rate:+$('#add_rate').value||0,
-        discountPct:+$('#add_discPct').value||0,
-        discountAbs:+$('#add_discAbs').value||0,
-        gstPct:+$('#add_gst').value||0
-      };
-      if(!row.name||row.qty<=0||row.rate<0){alert('Enter item, qty, rate');return;}
-      addLine(curId,row); hydrate(getInvoice(curId));
-      $('#add_qty').value=1; $('#add_rate').value='';
+    // Navigation
+    const supHome = document.getElementById('supHome');
+    const hub = document.getElementById('pharmacyHub');
+    const billingPanel = document.getElementById('billingPanel');
+    const recordsPanel = document.getElementById('recordsPanel');
+    const tabBilling = document.getElementById('tabBilling');
+    const tabRecords = document.getElementById('tabRecords');
+
+    document.getElementById('openPharmacy').onclick=()=>{ supHome.style.display='none'; hub.style.display='block'; showBilling(); };
+    document.getElementById('openBookings').onclick=()=>{ location.href='patient.html'; };
+    document.getElementById('goHome').onclick=()=>{ hub.style.display='none'; supHome.style.display='block'; };
+
+    function showBilling(){
+      tabBilling.classList.add('active'); tabRecords.classList.remove('active');
+      billingPanel.style.display='block'; recordsPanel.style.display='none';
+    }
+    function showRecords(){
+      tabRecords.classList.add('active'); tabBilling.classList.remove('active');
+      recordsPanel.style.display='block'; billingPanel.style.display='none';
+      renderRecords();
+    }
+    tabBilling.onclick=showBilling;
+    tabRecords.onclick=showRecords;
+
+    // ------- Billing (minimal, multi-item) -------
+    const invNo = document.getElementById('invNo');
+    const invDate = document.getElementById('invDate');
+    const invPatient = document.getElementById('invPatient');
+    const invPhone = document.getElementById('invPhone');
+    const discPct = document.getElementById('discPct');
+    const discAmt = document.getElementById('discAmt');
+    const paid = document.getElementById('paid');
+    const total = document.getElementById('total');
+    const invHint = document.getElementById('invHint');
+    const linesWrap = document.getElementById('lines');
+
+    function addLine(defaults={item:'Paracetamol 650', qty:1, price:0, batch:'', expiry:''}){
+      const row=document.createElement('div');
+      row.className='form-grid';
+      row.innerHTML=`
+        <div class="field"><label>Item</label><input class="l-item" value="${defaults.item}"/></div>
+        <div class="field"><label>Batch</label><input class="l-batch" value="${defaults.batch}"/></div>
+        <div class="field"><label>Expiry</label><input class="l-expiry" type="month" value="${defaults.expiry}"/></div>
+        <div class="field"><label>Qty</label><input class="l-qty" inputmode="decimal" value="${defaults.qty}"/></div>
+        <div class="field"><label>Price ₹</label><input class="l-price" inputmode="decimal" value="${defaults.price}"/></div>
+        <div class="field" style="align-items:end"><button class="chip ghost l-del">Remove</button></div>
+      `;
+      row.querySelector('.l-del').onclick=()=>{ row.remove(); calcTotal(); };
+      ['.l-qty','.l-price','.l-item','.l-batch','.l-expiry'].forEach(sel=>{
+        row.querySelector(sel).addEventListener('input', calcTotal);
+      });
+      linesWrap.appendChild(row);
+    }
+
+    function calcTotal(){
+      let sum=0;
+      linesWrap.querySelectorAll('.form-grid').forEach(g=>{
+        const qty=+g.querySelector('.l-qty').value||0;
+        const price=+g.querySelector('.l-price').value||0;
+        sum += qty*price;
+      });
+      let afterPct = sum * (1 - (+discPct.value||0)/100);
+      let final = Math.max(0, afterPct - (+discAmt.value||0));
+      total.value = final.toFixed(2);
+    }
+
+    document.getElementById('addLine').onclick=()=>{ addLine({}); };
+    document.getElementById('calcTotal').onclick=calcTotal;
+
+    document.getElementById('newInvoice').onclick=()=>{
+      invNo.value=''; invDate.value=new Date().toISOString().slice(0,10);
+      invPatient.value=''; invPhone.value='';
+      discPct.value='0'; discAmt.value='0'; paid.value='0'; total.value='';
+      linesWrap.innerHTML=''; addLine({});
+      const all=S.listInvoices(); const last=all[0]?.number ?? '—';
+      invHint.textContent = `Last invoice: ${last}`;
     };
 
-    // Invoice discounts
-    $('#invDiscPct').onchange=()=>{if(curId){setInvoiceDiscounts(curId,{discPct:+$('#invDiscPct').value||0,discAbs:+$('#invDiscAbs').value||0});hydrate(getInvoice(curId));}};
-    $('#invDiscAbs').onchange=()=>{if(curId){setInvoiceDiscounts(curId,{discPct:+$('#invDiscPct').value||0,discAbs:+$('#invDiscAbs').value||0});hydrate(getInvoice(curId));}};
+    document.getElementById('saveInvoice').onclick=()=>{
+      // build invoice record
+      const items=[]; 
+      linesWrap.querySelectorAll('.form-grid').forEach(g=>{
+        items.push({
+          item: g.querySelector('.l-item').value.trim(),
+          batch: g.querySelector('.l-batch').value.trim(),
+          expiry: g.querySelector('.l-expiry').value.trim(),
+          qty: +g.querySelector('.l-qty').value||0,
+          price: +g.querySelector('.l-price').value||0,
+        });
+      });
+      const rec=S.saveInvoice({
+        number: invNo.value? +invNo.value : undefined,
+        date: invDate.value || new Date().toISOString().slice(0,10),
+        patient: invPatient.value,
+        phone: invPhone.value,
+        doctor: '', // optional
+        items,
+        discountPct: +discPct.value||0,
+        discountAmt: +discAmt.value||0,
+        paid: +paid.value||0
+      });
+      invNo.value = rec.number;
+      calcTotal();
+      alert('Invoice saved: #' + rec.number);
+    };
 
-    // Save/Finalize
-    $('#saveDraft').onclick=()=>{if(!curId){alert('No invoice');return;}alert('Draft saved');renderList();};
-    $('#finalize').onclick=()=>{if(!curId){alert('No invoice');return;}finalizeInvoice(curId,{paid:+($('#invPaid').value||0)});hydrate(getInvoice(curId));renderList();alert('Invoice finalized');};
+    // start with a fresh invoice on load
+    document.getElementById('newInvoice').click();
 
-    // Hydrate current invoice
-    function hydrate(inv){
-      if(!inv) return;
-      $('#invNumber').value=inv.number; $('#invDate').value=inv.date;
-      $('#invDoctor').value=inv.doctorName||''; $('#invPatient').value=inv.patientName||''; $('#invPhone').value=inv.patientPhone||'';
-      $('#invDiscPct').value=inv.discPct||0; $('#invDiscAbs').value=inv.discAbs||0;
-      $('#invTotal').value=(inv.total||0).toFixed(2); $('#invPaid').value=inv.paid||0; $('#invBalance').value=(inv.balance||0).toFixed(2);
-
-      const tb=$('#itemRows'); tb.innerHTML='';
-      for(const ln of inv.items){
+    // ------- Records -------
+    function renderRecords(){
+      const from = document.getElementById('recFrom').value || '0000-00-00';
+      const to = document.getElementById('recTo').value || '9999-12-31';
+      const rows = S.listInvoices({from,to});
+      const tb = document.querySelector('#recTable tbody');
+      tb.innerHTML='';
+      let sum=0;
+      rows.forEach(i=>{
+        sum += +i.total||0;
         const tr=document.createElement('tr');
         tr.innerHTML=`
-          <td><input value="${ln.name||''}" data-k="name" data-id="${ln.id}"></td>
-          <td><input value="${ln.batch||''}" data-k="batch" data-id="${ln.id}"></td>
-          <td><input value="${ln.expiry||''}" data-k="expiry" data-id="${ln.id}"></td>
-          <td><input type="number" step="1" min="1" value="${ln.qty||0}" data-k="qty" data-id="${ln.id}"></td>
-          <td><input type="number" step="0.01" value="${ln.rate||0}" data-k="rate" data-id="${ln.id}"></td>
-          <td><input type="number" step="0.01" value="${ln.discountPct||0}" data-k="discountPct" data-id="${ln.id}"></td>
-          <td><input type="number" step="0.01" value="${ln.discountAbs||0}" data-k="discountAbs" data-id="${ln.id}"></td>
-          <td><input type="number" step="0.01" value="${ln.gstPct||0}" data-k="gstPct" data-id="${ln.id}"></td>
-          <td>${(ln.amount||0).toFixed(2)}</td>
-          <td><button class="chip" data-del="${ln.id}">✕</button></td>`;
+          <td>${i.number}</td>
+          <td>${i.date||''}</td>
+          <td>${i.patient||''}</td>
+          <td>${(i.items||[]).length}</td>
+          <td>₹${(+i.total||0).toFixed(2)}</td>
+        `;
         tb.appendChild(tr);
-      }
-      tb.querySelectorAll('input[data-id]').forEach(inp=>{
-        inp.onchange=()=>{
-          const k=inp.dataset.k,id=inp.dataset.id;
-          const val=(k==='name'||k==='batch'||k==='expiry')?inp.value:+inp.value||0;
-          updateLine(inv.id,id,{[k]:val}); hydrate(getInvoice(inv.id));
-        };
       });
-      tb.querySelectorAll('button[data-del]').forEach(btn=>{
-        btn.onclick=()=>{removeLine(inv.id,btn.dataset.del);hydrate(getInvoice(inv.id));};
-      });
-    }
-
-    // Quick list under Billing
-    function renderList(){
-      const tbody=document.querySelector('#invTbl tbody'); tbody.innerHTML='';
-      for(const i of listInvoices()){
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i.number}</td><td>${i.date}</td><td>${i.patientName||''}</td>
-                      <td>${i.items.length}</td><td>${(i.total||0).toFixed(2)}</td>
-                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>
-                      <td><button class="chip" data-print="${i.number}">Print</button></td>`;
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll('button[data-print]').forEach(btn=>{
-        btn.onclick = ()=> printInvoice(btn.dataset.print);
-      });
-    }
-
-    // Records panel
-    function recDefaultDates(){
       const today=new Date().toISOString().slice(0,10);
-      const first=new Date(); first.setDate(first.getDate()-7);
-      $('#recFrom').value=first.toISOString().slice(0,10);
-      $('#recTo').value=today;
+      const month=today.slice(0,7);
+      const countMonth = rows.filter(r=> (r.date||'').startsWith(month)).length;
+      document.getElementById('recSummary').textContent =
+        `${rows.length} invoices • Total ₹${sum.toFixed(2)} • MTD ${countMonth} inv`;
     }
-    recDefaultDates();
+    document.getElementById('recFilter').onclick=renderRecords;
 
-    function loadRecords(){
-      const from=$('#recFrom').value||''; const to=$('#recTo').value||'';
-      const rows=listInvoices({from,to});
-      const tbody=document.querySelector('#recTbl tbody'); tbody.innerHTML='';
-      for(const i of rows){
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i.number}</td><td>${i.date}</td><td>${i.patientName||''}</td>
-                      <td>${i.items.length}</td><td>${(i.total||0).toFixed(2)}</td>
-                      <td>${(i.paid||0).toFixed(2)}</td><td>${(i.balance||0).toFixed(2)}</td><td>${i.status}</td>
-                      <td><button class="chip" data-print="${i.number}">Print</button></td>`;
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll('button[data-print]').forEach(btn=>{
-        btn.onclick = ()=> printInvoice(btn.dataset.print);
-      });
-    }
-    document.getElementById('recLoad').onclick=loadRecords;
-
-    // CSV export (Records)
-    document.getElementById('recExportInv').onclick = ()=>{
-      const csv = exportInvoicesCsv();
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      a.download='invoices.csv'; a.click();
-    };
-    document.getElementById('recExportLines').onclick = ()=>{
-      const csv = exportInvoiceLinesCsv();
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      a.download='invoice_lines.csv'; a.click();
-    };
-
-    // Printable invoice with logo + GST footer
-    function printInvoice(invNumber){
-      const inv = listInvoices().find(x=>x.number===invNumber);
-      if(!inv){ alert('Invoice not found'); return; }
-
-      const win = window.open('', '_blank');
-      const styles = `
-        <style>
-          :root { --text:#111; --muted:#666; }
-          body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:20px; color:var(--text); }
-          .head { display:flex; align-items:center; gap:14px; }
-          .head img { width:56px; height:56px; object-fit:contain; }
-          .h-meta { line-height:1.25; }
-          .h-meta .name { font-size:18px; font-weight:700; }
-          .h-meta .sub { font-size:12px; color:var(--muted); }
-          .row { display:flex; justify-content:space-between; gap:16px; margin-top:10px; }
-          .box { font-size:12px; color:var(--muted); }
-          .box b { color:var(--text); }
-          h3 { margin:14px 0 6px; }
-          table { width:100%; border-collapse: collapse; margin-top:6px; }
-          th, td { border:1px solid #ccc; padding:6px 8px; font-size:12px; }
-          th { background:#f5f5f5; text-align:left; }
-          .right { text-align:right; }
-          .totals { margin-top:10px; display:flex; justify-content:flex-end; }
-          .totals table { width:auto; }
-          .gst { margin-top:14px; font-size:12px; color:var(--muted); line-height:1.35; }
-          .thanks { margin-top:10px; font-size:12px; text-align:center; color:var(--muted); }
-          @media print { .noprint { display:none } body{ margin:10mm; } }
-        </style>`;
-
-      const items = (inv.items||[]).map((ln,i)=>`
-        <tr>
-          <td>${i+1}</td><td>${ln.name||''}</td><td>${ln.batch||''}</td><td>${ln.expiry||''}</td>
-          <td class="right">${ln.qty||0}</td>
-          <td class="right">${(ln.rate||0).toFixed(2)}</td>
-          <td class="right">${(ln.discountPct||0)}%</td>
-          <td class="right">${(ln.discountAbs||0).toFixed(2)}</td>
-          <td class="right">${(ln.gstPct||0)}%</td>
-        </tr>`).join('');
-
-      const totals = `
-        <table>
-          <tr><th class="right">Subtotal</th><td class="right">${(inv.total - (inv.roundOff||0)).toFixed(2)}</td></tr>
-          <tr><th class="right">Round-off</th><td class="right">${(inv.roundOff||0).toFixed(2)}</td></tr>
-          <tr><th class="right">Grand Total</th><td class="right"><b>${(inv.total||0).toFixed(2)}</b></td></tr>
-          <tr><th class="right">Paid</th><td class="right">${(inv.paid||0).toFixed(2)}</td></tr>
-          <tr><th class="right">Balance</th><td class="right">${(inv.balance||0).toFixed(2)}</td></tr>
-        </table>`;
-
-      win.document.write(`
-        <html>
-          <head><title>Invoice ${inv.number}</title>${styles}</head>
-          <body>
-            <!-- Header with logo -->
-            <div class="head">
-              <img src="${HOSPITAL.logo}" alt="Logo" />
-              <div class="h-meta">
-                <div class="name">${HOSPITAL.name}</div>
-                <div class="sub">${HOSPITAL.address}</div>
-                <div class="sub">Phone: ${HOSPITAL.phone}</div>
-                <div class="sub">GSTIN: ${HOSPITAL.gstin}</div>
-              </div>
-            </div>
-
-            <!-- Invoice meta -->
-            <div class="row">
-              <div class="box">
-                <div><b>Invoice:</b> ${inv.number}</div>
-                <div><b>Date:</b> ${inv.date}</div>
-                <div><b>Doctor:</b> ${inv.doctorName||'-'}</div>
-              </div>
-              <div class="box" style="text-align:right">
-                <div><b>Patient:</b> ${inv.patientName||'-'}</div>
-                <div><b>Phone:</b> ${inv.patientPhone||'-'}</div>
-              </div>
-            </div>
-
-            <!-- Items -->
-            <h3>Items</h3>
-            <table>
-              <thead><tr>
-                <th>#</th><th>Item</th><th>Batch</th><th>Expiry</th>
-                <th class="right">Qty</th><th class="right">Rate</th>
-                <th class="right">Disc %</th><th class="right">Disc ₹</th><th class="right">GST %</th>
-              </tr></thead>
-              <tbody>${items||'<tr><td colspan="9">No items</td></tr>'}</tbody>
-            </table>
-
-            <!-- Totals -->
-            <div class="totals">${totals}</div>
-
-            <!-- GST & footer -->
-            <div class="gst">
-              <div><b>GSTIN:</b> ${HOSPITAL.gstin}</div>
-              <div><b>Tax Note:</b> Prices are inclusive of applicable GST as per item GST% shown above. This is a computer-generated invoice.</div>
-              <div><b>Terms:</b> Goods once sold will not be taken back. For returns/credits, please bring this bill.</div>
-            </div>
-
-            <div class="thanks">Thank you for choosing ${HOSPITAL.name}.</div>
-
-            <div class="noprint" style="margin-top:12px">
-              <button onclick="window.print()">Print</button>
-            </div>
-          </body>
-        </html>
-      `);
-      win.document.close();
-      win.onload = ()=> win.print();
-    }
-
-    // Init
-    renderList();
-    loadRecords();
+    // SW (optional)
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
