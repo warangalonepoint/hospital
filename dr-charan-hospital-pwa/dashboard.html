@@ -96,7 +96,7 @@
       }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
     };
 
-    // Pharmacy tile meta: Today, MTD, invoice count (today + MTD), last invoice #
+    // Pharmacy tile meta: Today, MTD, counts, avg/invoice, MTD top item, Last invoice #
     async function renderPharmacyTile(){
       const today = new Date().toISOString().slice(0,10);
       const month = today.slice(0,7); // YYYY-MM
@@ -107,10 +107,26 @@
 
       const totalToday = +(await S.totalsToday?.() || 0);
       const totalMonth = +(await S.totalsMonth?.() || 0);
+      const mtdCount = invsMTD.length;
+      const mtdAvg = mtdCount ? (totalMonth / mtdCount) : 0;
+
+      // MTD top item (by revenue) from derived sales
+      const sales = S.listSales?.() || [];
+      const mtdSales = sales.filter(r => (r.date||'').startsWith(month));
+      const agg = {};
+      for(const r of mtdSales){
+        const amt = (Number(r.qty)||0) * (Number(r.price)||0);
+        agg[r.item] = (agg[r.item]||0) + amt;
+      }
+      let mtdTopItem = '–', topAmt = -1;
+      for(const [k,v] of Object.entries(agg)){ if(v>topAmt){ topAmt=v; mtdTopItem=k; } }
+
       const lastInvNo = (allInvs[0]?.number) || '—';
 
       document.getElementById('pharmaMeta').textContent =
-        `Today ₹${totalToday.toFixed(2)} • ${invsToday.length} inv | MTD ₹${totalMonth.toFixed(2)} • ${invsMTD.length} inv | Last: ${lastInvNo}`;
+        `Today ₹${totalToday.toFixed(2)} • ${invsToday.length} inv | `
+        + `MTD ₹${totalMonth.toFixed(2)} • ${mtdCount} inv • Avg ₹${mtdAvg.toFixed(2)} | `
+        + `Top: ${mtdTopItem} | Last: ${lastInvNo}`;
     }
 
     // Export Sales CSV
