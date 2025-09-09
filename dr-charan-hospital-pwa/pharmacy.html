@@ -3,10 +3,36 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy Billing – Dr. Charan Hospital</title>
+  <title>Pharmacy – Billing</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=21"/>
+  <style>
+    /* Page-scoped color fills for sections (safe even if styles.css lacks them) */
+    .tint { border-radius: 16px; padding: 16px; box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.06); }
+    .tint-blue    { background: color-mix(in srgb, #3b82f6 12%, var(--card-bg)); }
+    .tint-purple  { background: color-mix(in srgb, #8b5cf6 12%, var(--card-bg)); }
+    .tint-green   { background: color-mix(in srgb, #22c55e 12%, var(--card-bg)); }
+    .tint-peach   { background: color-mix(in srgb, #fb923c 12%, var(--card-bg)); }
+    .section { margin: 12px; }
+    .section h2 { font-size: 18px; margin-bottom: 10px; }
+    .grid-2 { display:grid; gap:10px; grid-template-columns: 1fr; }
+    @media (min-width: 720px){ .grid-2 { grid-template-columns: 1fr 1fr; } }
+    .field { display:grid; gap:6px; }
+    .label { font-size: 12px; color: var(--muted); }
+    .input, select { width:100%; height:44px; border-radius:12px; border:1px solid rgba(0,0,0,.12); padding:0 12px; background: var(--card-bg); }
+    .input:focus, select:focus { outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin: 10px 12px; }
+    .btn { height:44px; padding:0 16px; border-radius:12px; }
+    .chip { height:40px; padding:0 14px; border-radius:999px; }
+    .items-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .table { width:100%; border-collapse: collapse; background: var(--card-bg); border-radius:12px; overflow:hidden; }
+    .table th, .table td { padding:10px; border-bottom:1px solid rgba(0,0,0,.06); font-size:13px; }
+    .table th { text-align:left; background:rgba(0,0,0,.04); font-weight:600; }
+    html[data-theme="dark"] .table th { background: rgba(255,255,255,.06); }
+    .totals { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); }
+    .pill { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; border-radius:999px; background: var(--card-bg); border:1px solid rgba(0,0,0,.06); }
+  </style>
 </head>
 <body>
   <!-- Banner -->
@@ -14,311 +40,197 @@
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
-  <div class="fixed-actions">
-    <a class="chip" href="dashboard.html">← Dashboard</a>
+  <!-- Toolbar -->
+  <nav class="toolbar">
+    <a class="chip" href="admin.html">← Dashboard</a>
     <a class="chip" href="pharmacy-report.html">📊 Reports</a>
-    <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
-  </div>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </nav>
 
-  <main class="section" style="max-width:1100px">
-    <!-- Header + meta -->
-    <div class="card" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-      <div>
-        <label class="muted">Invoice #</label>
-        <input id="invNo" class="input" placeholder="e.g., INV-001"/>
+  <!-- Invoice Meta -->
+  <section class="section tint tint-blue">
+    <h2>Invoice Details</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label class="label" for="invoiceNo">Invoice #</label>
+        <input id="invoiceNo" class="input" placeholder="e.g., INV-001"/>
       </div>
-      <div>
-        <label class="muted">Date</label>
-        <input id="invDate" class="input" type="date"/>
+      <div class="field">
+        <label class="label" for="invoiceDate">Date</label>
+        <input id="invoiceDate" class="input" type="date"/>
       </div>
-      <div>
-        <label class="muted">Doctor (optional)</label>
+      <div class="field">
+        <label class="label" for="doctorName">Doctor (optional)</label>
         <input id="doctorName" class="input" placeholder="Dr. Name"/>
       </div>
-      <div>
-        <label class="muted">Patient Name</label>
+      <div class="field">
+        <label class="label" for="paymentMode">Payment Mode</label>
+        <select id="paymentMode">
+          <option>Cash</option>
+          <option>UPI</option>
+          <option>Card</option>
+          <option>Split</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Patient -->
+  <section class="section tint tint-purple">
+    <h2>Patient</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label class="label" for="patientName">Patient Name</label>
         <input id="patientName" class="input" placeholder="Full name"/>
       </div>
-      <div>
-        <label class="muted">Patient Phone</label>
-        <input id="patientPhone" class="input" inputmode="numeric" maxlength="10" placeholder="10-digit"/>
+      <div class="field">
+        <label class="label" for="patientPhone">Patient Phone</label>
+        <input id="patientPhone" class="input" inputmode="numeric" placeholder="10-digit"/>
+      </div>
+    </div>
+  </section>
+
+  <!-- Items -->
+  <section class="section tint tint-green">
+    <div class="items-head">
+      <h2>Items</h2>
+      <div style="display:flex; gap:10px;">
+        <button id="addItemBtn" class="btn">＋ Add Item</button>
+        <button id="clearItemsBtn" class="chip">🗑️ Clear</button>
       </div>
     </div>
 
-    <!-- Items table -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h2 style="font-size:18px">Items</h2>
-        <div style="display:flex;gap:8px">
-          <button class="chip" id="addRowBtn">＋ Add Item</button>
-          <button class="chip" id="clearRowsBtn">🗑 Clear</button>
-        </div>
-      </div>
+    <table class="table" id="itemsTable">
+      <thead>
+        <tr>
+          <th style="width:28%">Item</th>
+          <th>Batch</th>
+          <th>Expiry</th>
+          <th>Qty</th>
+          <th>MRP</th>
+          <th>Price</th>
+          <th>Line Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody">
+        <!-- rows injected by JS -->
+      </tbody>
+    </table>
+  </section>
 
-      <table class="table" id="itemsTable">
-        <thead>
-          <tr>
-            <th style="width:26%">Item</th>
-            <th style="width:12%">Batch</th>
-            <th style="width:12%">Expiry</th>
-            <th style="width:10%">Qty</th>
-            <th style="width:12%">Price ₹</th>
-            <th style="width:12%">Amount ₹</th>
-            <th style="width:8%"></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <p class="muted" style="margin-top:8px">Tip: quantity × price is computed automatically.</p>
-    </div>
-
-    <!-- Totals -->
-    <div class="card" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-      <div>
-        <label class="muted">Discount %</label>
-        <input id="discPct" class="input" inputmode="decimal" placeholder="0"/>
+  <!-- Totals -->
+  <section class="section tint tint-peach">
+    <h2>Summary</h2>
+    <div class="totals">
+      <div class="field">
+        <label class="label" for="discountPct">Invoice Discount %</label>
+        <input id="discountPct" class="input" type="number" step="0.01" value="0"/>
       </div>
-      <div>
-        <label class="muted">Discount ₹</label>
-        <input id="discAmt" class="input" inputmode="decimal" placeholder="0"/>
+      <div class="field">
+        <label class="label" for="discountAmt">Invoice Discount ₹</label>
+        <input id="discountAmt" class="input" type="number" step="0.01" value="0"/>
       </div>
-      <div>
-        <label class="muted">Paid ₹</label>
-        <input id="paidAmt" class="input" inputmode="decimal" placeholder="0"/>
+      <div class="field">
+        <label class="label" for="totalAmt">Total ₹</label>
+        <input id="totalAmt" class="input" type="number" step="0.01" value="0" readonly/>
       </div>
-      <div>
-        <label class="muted">Total ₹</label>
-        <input id="totalAmt" class="input" readonly/>
+      <div class="field">
+        <label class="label" for="paidAmt">Paid ₹</label>
+        <input id="paidAmt" class="input" type="number" step="0.01" value="0"/>
       </div>
-      <div>
-        <label class="muted">Balance ₹</label>
-        <input id="balanceAmt" class="input" readonly/>
+      <div class="field">
+        <label class="label" for="balanceAmt">Balance ₹</label>
+        <input id="balanceAmt" class="input" type="number" step="0.01" value="0" readonly/>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-      <button class="chip" id="newInvBtn">New Invoice</button>
-      <button class="chip" id="saveDraftBtn">Save Draft</button>
-      <button class="btn"  id="finalizeBtn">Finalize & Save</button>
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+      <button id="saveDraftBtn" class="chip">💾 Save Draft</button>
+      <button id="finalizeBtn" class="btn">Finalize & Save</button>
+      <button id="printBtn" class="chip">🖨️ Print</button>
+      <button id="whatsBtn" class="chip">↗ Share</button>
     </div>
+  </section>
 
-    <!-- Recent invoices -->
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Recent Invoices</h2>
-      <table class="table" id="recentTable">
-        <thead><tr><th>Date</th><th>#</th><th>Patient</th><th>Lines</th><th>Total ₹</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </main>
+  <script type="module">
+    // Theme toggle
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-  <script>
-  /******** Theme toggle ********/
-  const t = document.getElementById('themeToggle');
-  const setIcon = () => t.textContent = (document.documentElement.dataset.theme||'light')==='light' ? '🌞' : '🌙';
-  if(localStorage.theme){ document.documentElement.dataset.theme = localStorage.theme; }
-  setIcon();
-  t.onclick = () => {
-    const cur = document.documentElement.dataset.theme || 'light';
-    const next = cur === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    localStorage.theme = next;
-    setIcon();
-  };
+    // Session guard: supervisor only for billing v1
+    const sess = JSON.parse(localStorage.getItem('session')||'{}');
+    if(sess.role!=='supervisor'){ location.replace('login.html'); }
 
-  /******** Session guard: supervisor only ********/
-  const session = JSON.parse(localStorage.getItem('session')||'{}');
-  if(session.role !== 'supervisor'){ location.replace('login.html'); }
-
-  /******** Logout + Clear cache ********/
-  document.getElementById('logoutBtn').onclick = () => {
-    localStorage.removeItem('session'); location.href='login.html';
-  };
-  document.getElementById('clearCacheBtn').onclick = async () => {
-    try{
-      const keepSession = localStorage.getItem('session');
-      localStorage.clear();
-      if(keepSession) localStorage.setItem('session', keepSession);
-      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-      alert('Cache cleared. Reloading…'); location.reload(true);
-    }catch(e){ alert('Could not fully clear. Try hard reload.'); }
-  };
-
-  /******** Utilities ********/
-  const q = sel => document.querySelector(sel);
-  const tb = q('#itemsTable tbody');
-  const money = n => (Number(n||0)).toFixed(2);
-
-  function lineTemplate() {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input class="input itemName" placeholder="e.g., Paracetamol 650"/></td>
-      <td><input class="input itemBatch" placeholder="Batch"/></td>
-      <td><input class="input itemExp" type="month"/></td>
-      <td><input class="input itemQty" inputmode="decimal" value="1"/></td>
-      <td><input class="input itemPrice" inputmode="decimal" value="0"/></td>
-      <td><input class="input itemAmt" readonly/></td>
-      <td><button class="chip delRow">✖</button></td>
-    `;
-    return tr;
-  }
-
-  function recalcRow(tr){
-    const qty = Number(tr.querySelector('.itemQty').value||0);
-    const price = Number(tr.querySelector('.itemPrice').value||0);
-    tr.querySelector('.itemAmt').value = money(qty*price);
-    recalcTotals();
-  }
-
-  function recalcTotals(){
-    // sum lines
-    let sub = 0;
-    tb.querySelectorAll('.itemAmt').forEach(i => sub += Number(i.value||0));
-    const pct = Number(q('#discPct').value||0);
-    const flat = Number(q('#discAmt').value||0);
-    const disc = (sub*(pct/100)) + flat;
-    const total = Math.max(0, sub - disc);
-    const paid = Number(q('#paidAmt').value||0);
-    const bal = Math.max(0, total - paid);
-    q('#totalAmt').value = money(total);
-    q('#balanceAmt').value = money(bal);
-  }
-
-  function addRow(prefill){
-    const tr = lineTemplate();
-    tb.appendChild(tr);
-    if(prefill){
-      tr.querySelector('.itemName').value = prefill.name||'';
-      tr.querySelector('.itemBatch').value = prefill.batch||'';
-      tr.querySelector('.itemExp').value = (prefill.expiry||'').slice(0,7);
-      tr.querySelector('.itemQty').value = prefill.qty||1;
-      tr.querySelector('.itemPrice').value = prefill.price||0;
-    }
-    // wire
-    tr.querySelectorAll('.itemQty,.itemPrice').forEach(inp=>inp.addEventListener('input',()=>recalcRow(tr)));
-    tr.querySelector('.delRow').addEventListener('click',()=>{ tr.remove(); recalcTotals(); });
-    recalcRow(tr);
-  }
-
-  function clearRows(){ tb.innerHTML=''; recalcTotals(); }
-
-  /******** Buttons ********/
-  q('#addRowBtn').addEventListener('click', ()=> addRow());
-  q('#clearRowsBtn').addEventListener('click', clearRows);
-  q('#newInvBtn').addEventListener('click', ()=>{
-    q('#invNo').value = '';
-    q('#doctorName').value = '';
-    q('#patientName').value = '';
-    q('#patientPhone').value = '';
-    q('#discPct').value = '';
-    q('#discAmt').value = '';
-    q('#paidAmt').value = '';
-    clearRows();
-    addRow();
-    setToday();
-  });
-
-  q('#discPct').addEventListener('input', recalcTotals);
-  q('#discAmt').addEventListener('input', recalcTotals);
-  q('#paidAmt').addEventListener('input', recalcTotals);
-
-  /******** Save & Finalize ********/
-  function collectInvoice(status){
-    const items = Array.from(tb.querySelectorAll('tr')).map(tr=>({
-      name: tr.querySelector('.itemName').value.trim(),
-      batch: tr.querySelector('.itemBatch').value.trim(),
-      expiry: tr.querySelector('.itemExp').value,
-      qty: Number(tr.querySelector('.itemQty').value||0),
-      price: Number(tr.querySelector('.itemPrice').value||0),
-      amount: Number(tr.querySelector('.itemAmt').value||0)
-    })).filter(x=>x.name);
-
-    const obj = {
-      id: (q('#invNo').value||'').trim() || `INV-${Date.now()}`,
-      dateISO: q('#invDate').value ? new Date(q('#invDate').value).toISOString() : new Date().toISOString(),
-      doctor: (q('#doctorName').value||'').trim(),
-      patient: (q('#patientName').value||'').trim(),
-      phone: (q('#patientPhone').value||'').trim(),
-      items,
-      discountPct: Number(q('#discPct').value||0),
-      discountAmt: Number(q('#discAmt').value||0),
-      paid: Number(q('#paidAmt').value||0),
-      total: Number(q('#totalAmt').value||0),
-      balance: Number(q('#balanceAmt').value||0),
-      status // 'draft' | 'final'
+    // Buttons
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      localStorage.clear(); sessionStorage.clear();
+      if('caches' in window){ const ks = await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      alert('Cleared. Reloading…'); location.reload();
     };
-    return obj;
-  }
 
-  function saveLocal(inv){
-    const arr = JSON.parse(localStorage.getItem('invoices')||'[]');
-    // replace if same id
-    const idx = arr.findIndex(x=>x.id===inv.id);
-    if(idx>=0) arr[idx]=inv; else arr.push(inv);
-    localStorage.setItem('invoices', JSON.stringify(arr));
-  }
+    // ===== Items table logic (minimal; keep IDs for your existing store.js) =====
+    const body = document.getElementById('itemsBody');
+    const addRow = (line={item:'',batch:'',expiry:'',qty:1,mrp:0,price:0})=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input class="input" placeholder="Paracetamol 650" value="${line.item}"></td>
+        <td><input class="input" placeholder="Batch" value="${line.batch}"></td>
+        <td><input class="input" type="month" value="${line.expiry}"></td>
+        <td><input class="input qty" type="number" min="1" value="${line.qty}"></td>
+        <td><input class="input mrp" type="number" step="0.01" value="${line.mrp}"></td>
+        <td><input class="input price" type="number" step="0.01" value="${line.price}"></td>
+        <td class="lineTotal">0.00</td>
+        <td><button class="chip remove">✖</button></td>`;
+      body.appendChild(tr);
+      wireRow(tr);
+      recalc();
+    };
+    const wireRow = (tr)=>{
+      tr.querySelectorAll('.qty,.mrp,.price,input').forEach(el=>el.addEventListener('input', recalc));
+      tr.querySelector('.remove').onclick=()=>{ tr.remove(); recalc(); };
+    };
+    const recalc = ()=>{
+      let total=0;
+      body.querySelectorAll('tr').forEach(tr=>{
+        const qty=+tr.querySelector('.qty').value||0;
+        const price=+tr.querySelector('.price').value||0;
+        const line=qty*price;
+        tr.querySelector('.lineTotal').textContent=line.toFixed(2);
+        total+=line;
+      });
+      // discounts
+      const pct=+document.getElementById('discountPct').value||0;
+      const amt=+document.getElementById('discountAmt').value||0;
+      let discounted=total - (total*(pct/100)) - amt;
+      if(discounted<0) discounted=0;
+      document.getElementById('totalAmt').value = discounted.toFixed(2);
+      const paid=+document.getElementById('paidAmt').value||0;
+      document.getElementById('balanceAmt').value = Math.max(0, discounted-paid).toFixed(2);
+    };
+    document.getElementById('addItemBtn').onclick=()=>addRow();
+    document.getElementById('clearItemsBtn').onclick=()=>{ body.innerHTML=''; recalc(); };
+    ['discountPct','discountAmt','paidAmt'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', recalc);
+    });
 
-  async function persist(inv){
-    saveLocal(inv);
-    if(window.Store && Store.saveInvoice){
-      try{ await Store.saveInvoice(inv); }catch(e){ /* ignore offline */ }
-    }
-  }
+    // Seed one line for convenience
+    addRow();
 
-  q('#saveDraftBtn').addEventListener('click', async ()=>{
-    const inv = collectInvoice('draft');
-    await persist(inv);
-    alert('Draft saved.');
-    loadRecent();
-  });
+    // Save / Finalize (stub hooks — wire to Supabase later)
+    document.getElementById('saveDraftBtn').onclick=()=>alert('Draft saved (placeholder).');
+    document.getElementById('finalizeBtn').onclick=()=>alert('Invoice saved (placeholder).');
+    document.getElementById('printBtn').onclick=()=>window.print();
+    document.getElementById('whatsBtn').onclick=()=>alert('Share link copied (placeholder).');
 
-  q('#finalizeBtn').addEventListener('click', async ()=>{
-    if(tb.children.length===0){ alert('Add at least one item.'); return; }
-    const inv = collectInvoice('final');
-    await persist(inv);
-    alert('Invoice saved.');
-    // reset for next
-    q('#newInvBtn').click();
-    loadRecent();
-  });
+    // Set default date today
+    document.getElementById('invoiceDate').value = new Date().toISOString().slice(0,10);
 
-  /******** Recent table ********/
-  function loadRecent(){
-    const tbody = q('#recentTable tbody');
-    tbody.innerHTML='';
-    const arr = JSON.parse(localStorage.getItem('invoices')||'[]')
-      .sort((a,b)=>new Date(b.dateISO||b.date)-new Date(a.dateISO||a.date))
-      .slice(0,10);
-    for(const inv of arr){
-      const tr = document.createElement('tr');
-      const iso = inv.dateISO || inv.date || new Date().toISOString();
-      tr.innerHTML = `
-        <td>${new Date(iso).toLocaleDateString()}</td>
-        <td>${inv.id}</td>
-        <td>${inv.patient||''}</td>
-        <td>${(inv.items||[]).length}</td>
-        <td>${money(inv.total||0)}</td>
-      `;
-      tbody.appendChild(tr);
-    }
-  }
-
-  function setToday(){
-    const d = new Date();
-    q('#invDate').value = d.toISOString().slice(0,10);
-  }
-
-  /******** Init ********/
-  setToday();
-  addRow(); // start with one row
-  loadRecent();
-
-  // Register SW quietly
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    // SW register
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
