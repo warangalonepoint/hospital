@@ -3,229 +3,139 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Bookings – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
+  <title>Bookings / Tokens</title>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=22"/>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
+  <!-- Fixed Actions -->
   <div class="fixed-actions">
     <a class="chip" href="admin.html">← Supervisor</a>
     <a class="chip" href="dashboard.html">Doctor</a>
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <main class="section" style="max-width:1100px">
-    <!-- Create booking -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Create Booking (Token)</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-        <div>
-          <label class="muted">Patient Name</label>
-          <input id="bName" class="input" placeholder="Full name"/>
-        </div>
-        <div>
-          <label class="muted">Phone</label>
-          <input id="bPhone" class="input" inputmode="numeric" maxlength="10" placeholder="10-digit"/>
-        </div>
-        <div>
-          <label class="muted">Visit Date</label>
-          <input id="bDate" class="input" type="date"/>
-        </div>
-        <div>
-          <label class="muted">Time</label>
-          <input id="bTime" class="input" type="time"/>
-        </div>
-        <div style="grid-column:1/-1">
-          <label class="muted">Reason / Notes</label>
-          <input id="bReason" class="input" placeholder="Reason or short note"/>
-        </div>
+  <!-- Create Booking -->
+  <section class="section">
+    <h2>Create Booking (Token)</h2>
+
+    <div class="kpi panel--blue mt12">
+      <label class="muted">Patient Name</label>
+      <input id="bName" class="input" placeholder="Full name"/>
+      <label class="muted">Phone</label>
+      <input id="bPhone" class="input" placeholder="10-digit" inputmode="numeric" maxlength="10"/>
+      <label class="muted">Visit Date</label>
+      <input id="bDate" class="input" type="date"/>
+      <label class="muted">Time</label>
+      <input id="bTime" class="input" type="time"/>
+      <label class="muted">Reason / Notes</label>
+      <input id="bNote" class="input" placeholder="Reason or short note"/>
+
+      <div class="chips mt12">
+        <button class="btn" id="createBtn">Create Token</button>
+        <button class="chip chip--mint" id="waBtn">Share via WhatsApp</button>
       </div>
+      <p class="muted mt8">Supervisor creates tokens. Doctor sees them on Patients/Bookings views.</p>
+    </div>
+  </section>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-        <button id="createBtn" class="btn">Create Token</button>
-        <button id="waBtn" class="chip" disabled>Share via WhatsApp</button>
+  <!-- Today / Upcoming list -->
+  <section class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>Upcoming Tokens</h2>
+      <div class="chips">
+        <button class="chip chip--blue" id="filterToday">Today</button>
+        <button class="chip chip--lilac" id="filterAll">All</button>
+        <button class="chip chip--peach" id="clearList">Clear List</button>
       </div>
-      <p class="help" style="margin-top:8px">Supervisor creates tokens. Doctor sees them on Patients/Bookings views.</p>
-    </section>
+    </div>
 
-    <!-- Today queue -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Today’s Queue</h2>
-      <table class="table" id="todayTable">
-        <thead>
-          <tr>
-            <th>Token</th><th>Patient</th><th>Phone</th><th>Time</th><th>Status</th><th style="width:180px">Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <table class="table mt12" id="tbl">
+      <thead>
+        <tr><th>#</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 
-    <!-- All bookings (recent) -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Recent Bookings</h2>
-      <table class="table" id="allTable">
-        <thead>
-          <tr>
-            <th>Date</th><th>Token</th><th>Patient</th><th>Phone</th><th>Time</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+  <script>
+    // Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
+    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'}
 
-  <script type="module">
-    /* ---------- Role gate: supervisor creates; doctor can view ---------- */
-    const sess = JSON.parse(localStorage.getItem('session')||'null');
-    if(!sess || !sess.role) location.replace('login.html');
-    const isSupervisor = sess.role === 'supervisor';
-    // Doctor can view this page read-only; others -> login
-    if(!['supervisor','doctor'].includes(sess.role)) location.replace('login.html');
+    // Guard (supervisor can create; doctor can view)
+    (()=>{
+      const s=JSON.parse(localStorage.getItem('session')||'null');
+      if(!s || !['supervisor','doctor'].includes(s.role)) location.replace('login.html');
+    })();
 
-    /* ---------- Theme ---------- */
-    const t = document.getElementById('themeToggle');
-    const setTheme = m => { document.documentElement.dataset.theme = m; localStorage.theme = m; t.textContent = m==='light'?'🌞':'🌙'; };
-    setTheme(localStorage.theme || 'light');
-    t.onclick = () => setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+    // Actions
+    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
+    clearCacheBtn.onclick=async()=>{try{const keep=localStorage.getItem('session');localStorage.clear();if(keep)localStorage.setItem('session',keep); if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))} alert('Cache cleared.');location.reload()}catch{}}
 
-    /* ---------- Logout / Clear ---------- */
-    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try{ const s=localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session',s);
-        if('caches'in window){const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k)));} alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{}
+    // Data helpers
+    function bookings(){try{return JSON.parse(localStorage.getItem('bookings')||'[]')}catch{return []}}
+    function saveBookings(arr){localStorage.setItem('bookings',JSON.stringify(arr))}
+    function pad(n){return n<10?'0'+n:n}
 
+    // Defaults (date/time)
+    const now=new Date();
+    bDate.value = now.toISOString().slice(0,10);
+    bTime.value = pad(now.getHours())+':'+pad(now.getMinutes());
+
+    // Create token
+    createBtn.onclick=()=>{
+      const name=bName.value.trim();
+      const phone=bPhone.value.trim();
+      const date=bDate.value;
+      const time=bTime.value;
+      const note=bNote.value.trim();
+
+      if(!name || !date || !time) return alert('Name, date and time are required.');
+      const list=bookings();
+      const token={id:Date.now(), name, phone, date, time, note, createdAt:new Date().toISOString(), status:'booked'};
+      list.push(token); saveBookings(list);
+      render(); alert('Token created.');
+      bName.value=''; bPhone.value=''; bNote.value='';
     };
 
-    /* ---------- Storage helpers ---------- */
-    const LS_KEY = 'bookings';
-    const read = () => { try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch{ return []; } };
-    const write = (arr) => localStorage.setItem(LS_KEY, JSON.stringify(arr));
-
-    function todayStr(d=new Date()){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0,10); }
-
-    /* ---------- Token generator (per day) ---------- */
-    function nextToken(forDate){
-      const all = read().filter(b => (b.date===forDate));
-      const max = all.reduce((m,b)=> Math.max(m, b.token||0), 0);
-      return max + 1;
-    }
-
-    /* ---------- Create booking ---------- */
-    const el = id => document.getElementById(id);
-    const bName=el('bName'), bPhone=el('bPhone'), bDate=el('bDate'), bTime=el('bTime'), bReason=el('bReason');
-    const waBtn = el('waBtn');
-
-    // defaults
-    bDate.value = todayStr();
-    bTime.value = new Date().toTimeString().slice(0,5);
-
-    el('createBtn').onclick = () => {
-      if(!isSupervisor){ alert('Only supervisor can create tokens'); return; }
-      const date = bDate.value || todayStr();
-      const token = nextToken(date);
-      const obj = {
-        id: `BK-${Date.now()}`,
-        date,
-        time: bTime.value || '00:00',
-        token,
-        name: (bName.value||'').trim(),
-        phone: (bPhone.value||'').trim(),
-        reason: (bReason.value||'').trim(),
-        status: 'Pending', // Pending | Checked-in | Completed | Cancelled
-        createdAt: new Date().toISOString()
-      };
-      const arr = read(); arr.push(obj); write(arr);
-      // enable WA share
-      waBtn.disabled = false;
-      waBtn.dataset.payload = JSON.stringify(obj);
-      render();
+    // Share via WhatsApp
+    waBtn.onclick=()=>{
+      const name=bName.value.trim()||'Patient';
+      const d=bDate.value; const tt=bTime.value;
+      const txt=`Hello ${name}, your appointment is booked for ${d} at ${tt} at Dr. Charan Hospital.`;
+      const url='https://wa.me/?text='+encodeURIComponent(txt);
+      window.open(url,'_blank');
     };
 
-    // WhatsApp share (prefilled)
-    waBtn.onclick = () => {
-      const payload = JSON.parse(waBtn.dataset.payload || 'null');
-      if(!payload){ return; }
-      const msg =
-`Hello ${payload.name || ''},
-Your appointment is booked at Dr. Charan Hospital.
-Date: ${payload.date}
-Time: ${payload.time}
-Token: ${payload.token}
-Please arrive 10 minutes early.`;
-      const num = (bPhone.value||'').trim();
-      const url = `https://wa.me/${num ? '91'+num : ''}?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_blank');
-    };
-
-    /* ---------- Render tables ---------- */
-    function setActions(row, booking){
-      const makeBtn = (label)=>{ const x=document.createElement('button'); x.className='chip'; x.textContent=label; return x; };
-      const cell = row.querySelector('td.actions');
-      cell.innerHTML = '';
-      // Supervisor controls
-      if(isSupervisor){
-        const s1 = makeBtn('Check-in');
-        const s2 = makeBtn('Complete');
-        const s3 = makeBtn('Cancel');
-        s1.onclick = ()=>updateStatus(booking.id,'Checked-in');
-        s2.onclick = ()=>updateStatus(booking.id,'Completed');
-        s3.onclick = ()=>updateStatus(booking.id,'Cancelled');
-        cell.append(s1,s2,s3);
-      } else {
-        cell.textContent = '—';
+    // Render table
+    function render(mode='today'){
+      const tbody=document.querySelector('#tbl tbody'); tbody.innerHTML='';
+      let list=bookings();
+      if(mode==='today'){
+        const today=new Date().toISOString().slice(0,10);
+        list=list.filter(x=>x.date===today);
       }
-    }
-
-    function updateStatus(id, status){
-      const arr = read();
-      const i = arr.findIndex(b=>b.id===id);
-      if(i>=0){ arr[i].status=status; write(arr); render(); }
-    }
-
-    function render(){
-      const all = read().sort((a,b)=> (a.date<b.date?1:-1) || (a.time>b.time?1:-1));
-      const today = todayStr();
-
-      // today table
-      const tBody = document.querySelector('#todayTable tbody');
-      tBody.innerHTML='';
-      all.filter(b=>b.date===today).sort((a,b)=> (a.token||0)-(b.token||0)).forEach(b=>{
+      list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time) );
+      list.forEach((x,i)=>{
         const tr=document.createElement('tr');
-        tr.innerHTML = `
-          <td>${b.token}</td>
-          <td>${b.name||''}</td>
-          <td>${b.phone||''}</td>
-          <td>${b.time||''}</td>
-          <td>${b.status}</td>
-          <td class="actions" style="display:flex;gap:6px"></td>`;
-        tBody.appendChild(tr);
-        setActions(tr,b);
-      });
-
-      // recent table
-      const aBody = document.querySelector('#allTable tbody');
-      aBody.innerHTML='';
-      all.slice(0,25).forEach(b=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${b.date}</td><td>${b.token}</td><td>${b.name||''}</td><td>${b.phone||''}</td><td>${b.time||''}</td><td>${b.status}</td>`;
-        aBody.appendChild(tr);
+        tr.innerHTML=`<td>${i+1}</td><td>${x.name}</td><td>${x.phone||''}</td><td>${x.date}</td><td>${x.time}</td><td>${x.note||''}</td>`;
+        tbody.appendChild(tr);
       });
     }
-
+    filterToday.onclick=()=>render('today');
+    filterAll.onclick=()=>render('all');
+    clearList.onclick=()=>{
+      if(confirm('Clear all stored tokens on this device?')){ saveBookings([]); render(); }
+    };
     render();
-
-    // SW register
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
