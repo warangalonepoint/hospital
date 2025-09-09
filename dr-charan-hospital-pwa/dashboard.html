@@ -10,16 +10,32 @@
 
   <style>
     /* Charts layout */
-    .charts-grid { display:grid; grid-template-columns: 1fr; gap:12px; }
+    .charts-grid { display:grid; grid-template-columns: 1fr; gap:16px; }
     @media (min-width: 900px){ .charts-grid { grid-template-columns: 1fr 1fr; } }
     .charts-grid .chart-wrap { height: 320px; }
     @media (max-width: 899px){ .charts-grid .chart-wrap { height: 260px; } }
 
-    /* Two cards per row */
+    /* Two cards per row, equal height, centered content */
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
+    }
+    .card-grid .card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      min-height: 140px;
+      padding: 20px;
+      border-radius: 16px;
+    }
+    .card-grid .card h3 {
+      margin: 0 0 8px;
+    }
+    .card-grid .card p {
+      margin: 0;
     }
   </style>
 </head>
