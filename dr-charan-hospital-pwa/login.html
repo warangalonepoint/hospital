@@ -1,66 +1,69 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Login – Dr. Charan Hospital</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PIN Login – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=14"/>
+  <link rel="stylesheet" href="styles.css?v=17"/>
 </head>
 <body>
-  <header class="banner clean"></header>
-  <button id="themeToggle" class="chip floating-toggle">🌙</button>
+  <!-- Slim banner for login -->
+  <header class="banner banner--slim">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+  </header>
 
-  <main class="container n8">
-    <section class="card">
-      <h3 style="margin-top:0">PIN Login</h3>
-      <div class="form-grid">
-        <div class="field">
-          <label>Enter PIN</label>
-          <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="4–6 digits"/>
+  <!-- Login card -->
+  <section class="login-wrap">
+    <div class="login-card">
+      <h1 class="login-title">PIN Login</h1>
+
+      <form id="loginForm">
+        <label for="pin" class="muted" style="display:block;margin:6px 0 6px">Enter PIN</label>
+        <input id="pin" name="pin" class="input" type="password" inputmode="numeric" autocomplete="one-time-code" minlength="4" maxlength="6" placeholder="4–6 digits" required/>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+          <button class="btn" type="submit">Login</button>
+          <button class="chip" type="button" id="clearCacheBtn">Clear Cache</button>
         </div>
-        <div class="field" style="align-items:end">
-          <button id="loginBtn" class="btn">Login</button>
-        </div>
-      </div>
-      <div id="err" style="color:#d33;margin-top:8px"></div>
-      <div class="muted" style="margin-top:10px">Demo: 4321 (Doctor) · 1111 (Supervisor) · 2222 (Patient)</div>
-    </section>
-  </main>
+        <p class="help">Demo: 4321 (Doctor) · 1111 (Supervisor) · 2222 (Patient)</p>
+      </form>
+    </div>
+  </section>
 
   <script type="module">
-    import { authenticatePin, currentUser } from './js/store.js?v=21';
-
-    // skip if already logged in
-    const u=currentUser(); 
-    if(u){ route(u.role); }
-
-    function route(role){
-      if(role==='doctor') location.href='dashboard.html';
-      else if(role==='supervisor') location.href='admin.html';
-      else location.href='portal.html';
-    }
-
-    document.getElementById('loginBtn').onclick=()=>{
-      const pin=document.getElementById('pin').value.trim();
-      const err=document.getElementById('err'); err.textContent='';
-      if(!pin){ err.textContent='Enter your PIN'; return; }
-      const user=authenticatePin(pin);
-      if(!user){ err.textContent='Invalid PIN'; return; }
-      route(user.role);
-    };
-    document.getElementById('pin').addEventListener('keyup',e=>{
-      if(e.key==='Enter') document.getElementById('loginBtn').click();
-    });
-
     // theme toggle
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
     t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
-  </script>
 
-  <!-- SW registration (optional but recommended) -->
-  <script>
+    // clear cache (handy during dev)
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      try{
+        localStorage.clear();
+        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch(e){ alert('Could not fully clear. Try hard reload.'); }
+    };
+
+    // simple role routing (same logic as before)
+    document.getElementById('loginForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const pin=(document.getElementById('pin').value||'').trim();
+      // map pins → roles
+      const roles={ '4321':'doctor', '1111':'supervisor', '2222':'patient' };
+      const role=roles[pin];
+      if(!role){ alert('Invalid PIN'); return; }
+
+      localStorage.setItem('session', JSON.stringify({role, ts:Date.now()}));
+      // route
+      if(role==='doctor') location.href='dashboard.html';
+      else if(role==='supervisor') location.href='admin.html';
+      else location.href='portal.html';
+    });
+
+    // SW (quiet)
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
