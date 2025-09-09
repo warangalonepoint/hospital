@@ -3,249 +3,176 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Settings – Dr. Charan Hospital</title>
+  <title>Settings • Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=18"/>
 </head>
 <body>
-  <!-- Banner -->
+  <!-- Consistent banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
-  <div class="fixed-actions">
+  <!-- Fixed actions row -->
+  <nav class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </div>
+  </nav>
 
-  <main class="section" style="max-width:1100px">
+  <section class="section">
+    <h1>Settings</h1>
+
+    <!-- Tabs as chips -->
+    <div class="range" id="tabs" style="margin:10px 0 14px">
+      <button class="chip active" data-tab="pins">PINs</button>
+      <button class="chip" data-tab="staff">Staff</button>
+      <button class="chip" data-tab="patients">Patients</button>
+    </div>
+
     <!-- PINs -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">PINs</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-        <div><label class="muted">Doctor PIN</label><input id="pinDoctor" class="input" inputmode="numeric" maxlength="6"/></div>
-        <div><label class="muted">Supervisor PIN</label><input id="pinSupervisor" class="input" inputmode="numeric" maxlength="6"/></div>
-        <div><label class="muted">Patient PIN</label><input id="pinPatient" class="input" inputmode="numeric" maxlength="6"/></div>
+    <div class="section" data-panel="pins">
+      <h2>Login PINs</h2>
+      <div class="card-grid" style="margin-top:8px">
+        <div class="card"><h2>Doctor PIN</h2><p><input id="pinDoctor" class="input" placeholder="e.g. 4321" style="width:160px"/></p></div>
+        <div class="card"><h2>Supervisor PIN</h2><p><input id="pinSupervisor" class="input" placeholder="e.g. 1111" style="width:160px"/></p></div>
+        <div class="card"><h2>Patient PIN</h2><p><input id="pinPatient" class="input" placeholder="e.g. 2222" style="width:160px"/></p></div>
       </div>
-      <div style="margin-top:10px"><button id="savePins" class="btn">Save PINs</button></div>
-      <p class="help" style="margin-top:6px">These control PIN-based logins. Keep them private.</p>
-    </section>
+      <div style="margin-top:12px"><button id="savePins" class="btn">Save PINs</button></div>
+      <p class="help">Only the doctor (owner) can change these.</p>
+    </div>
 
     <!-- Staff -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Staff</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-        <input id="sName" class="input" placeholder="Name"/>
-        <input id="sRole" class="input" placeholder="Role (Nurse, Frontdesk…)"/>
-        <input id="sPhone" class="input" inputmode="numeric" maxlength="10" placeholder="Phone"/>
-        <select id="sStatus" class="input">
-          <option value="Active">Active</option>
-          <option value="On Duty">On Duty</option>
-          <option value="Off">Off</option>
-        </select>
+    <div class="section" data-panel="staff" style="display:none">
+      <h2>Staff Directory</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input id="sName" class="input" placeholder="Full name" style="width:220px"/>
+        <input id="sRole" class="input" placeholder="Role" style="width:180px"/>
+        <button id="addStaff" class="chip">Add</button>
       </div>
-      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-        <button id="addStaff" class="chip">Add/Update Staff</button>
-        <button id="clearStaff" class="chip">Clear Staff</button>
-      </div>
-
-      <table class="table" id="staffTable" style="margin-top:10px">
-        <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Status</th><th style="width:120px">Actions</th></tr></thead>
+      <table class="table" id="tblStaff">
+        <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-    </section>
+    </div>
 
     <!-- Patients -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Patients</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-        <input id="pName" class="input" placeholder="Name"/>
-        <input id="pPhone" class="input" inputmode="numeric" maxlength="10" placeholder="Phone"/>
-        <input id="pNotes" class="input" placeholder="Notes / Treatment / Next visit reminder"/>
+    <div class="section" data-panel="patients" style="display:none">
+      <h2>Patients</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input id="pName" class="input" placeholder="Patient name" style="width:220px"/>
+        <input id="pPhone" class="input" placeholder="Phone" style="width:160px"/>
+        <button id="addPatient" class="chip">Add</button>
       </div>
-      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-        <button id="addPatient" class="chip">Add/Update Patient</button>
-        <button id="clearPatients" class="chip">Clear Patients</button>
-      </div>
-
-      <table class="table" id="patientsTable" style="margin-top:10px">
-        <thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th style="width:120px">Actions</th></tr></thead>
+      <table class="table" id="tblPatients">
+        <thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-    </section>
-
-    <!-- Backup / Restore -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Backup / Restore</h2>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button id="exportBtn" class="chip">Export JSON</button>
-        <label class="chip" style="cursor:pointer">
-          Import JSON <input id="importFile" type="file" accept="application/json" style="display:none">
-        </label>
-      </div>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <script type="module">
-    /* ---------- Role: doctor only ---------- */
-    const sess = JSON.parse(localStorage.getItem('session')||'null');
-    if(!sess || sess.role!=='doctor') location.replace('login.html');
+    // Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    /* ---------- Theme ---------- */
-    const t = document.getElementById('themeToggle');
-    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
-    setTheme(localStorage.theme || 'light');
-    t.onclick = () => setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+    // Guard: doctor only (owner)
+    const ses=JSON.parse(localStorage.getItem('session')||'{}');
+    if(ses.role!=='doctor'){ location.href='login.html'; }
 
-    /* ---------- Logout/Clear ---------- */
-    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try{ const s=localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session',s);
-        if('caches'in window){const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{}
+    // Actions
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      try{
+        localStorage.clear();
+        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload();
+      }catch(e){ alert('Could not fully clear cache.'); }
     };
 
-    /* ---------- Storage helpers ---------- */
-    const get = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(f)); }catch{ return f; } };
-    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    /* ---------- Tabs (chips with active state) ---------- */
+    const tabs=[...document.querySelectorAll('#tabs .chip')];
+    const panels=[...document.querySelectorAll('[data-panel]')];
+    tabs.forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        tabs.forEach(t=>t.classList.remove('active'));
+        tab.classList.add('active');
+        const id=tab.dataset.tab;
+        panels.forEach(p=>p.style.display = (p.dataset.panel===id)?'block':'none');
+      });
+    });
 
     /* ---------- PINs ---------- */
-    const pinInputs = {
-      doctor: document.getElementById('pinDoctor'),
-      supervisor: document.getElementById('pinSupervisor'),
-      patient: document.getElementById('pinPatient')
-    };
-    function loadPins(){
-      const pins = get('pins', { doctor:'4321', supervisor:'1111', patient:'2222' });
-      pinInputs.doctor.value = pins.doctor;
-      pinInputs.supervisor.value = pins.supervisor;
-      pinInputs.patient.value = pins.patient;
-    }
-    loadPins();
-
-    document.getElementById('savePins').onclick = ()=>{
-      const pins = {
-        doctor: (pinInputs.doctor.value||'').trim(),
-        supervisor: (pinInputs.supervisor.value||'').trim(),
-        patient: (pinInputs.patient.value||'').trim()
-      };
-      if(!/^\d{4,6}$/.test(pins.doctor) || !/^\d{4,6}$/.test(pins.supervisor) || !/^\d{4,6}$/.test(pins.patient)){
-        alert('PINs must be 4–6 digits.'); return;
+    const PIN_KEY='appPins';
+    const defaults={doctor:'4321', supervisor:'1111', patient:'2222'};
+    const pins=Object.assign({},defaults, JSON.parse(localStorage.getItem(PIN_KEY)||'{}'));
+    pinDoctor.value=pins.doctor; pinSupervisor.value=pins.supervisor; pinPatient.value=pins.patient;
+    savePins.onclick=()=>{
+      const newPins={doctor:pinDoctor.value.trim(), supervisor:pinSupervisor.value.trim(), patient:pinPatient.value.trim()};
+      if(!/^\d{4,6}$/.test(newPins.doctor) || !/^\d{4,6}$/.test(newPins.supervisor) || !/^\d{4,6}$/.test(newPins.patient)){
+        return alert('PINs must be 4–6 digits.');
       }
-      set('pins', pins);
-      alert('PINs saved.');
+      localStorage.setItem(PIN_KEY, JSON.stringify(newPins));
+      alert('Saved!');
     };
 
-    /* ---------- Staff ---------- */
-    const sName = document.getElementById('sName');
-    const sRole = document.getElementById('sRole');
-    const sPhone = document.getElementById('sPhone');
-    const sStatus = document.getElementById('sStatus');
-    const staffTable = document.querySelector('#staffTable tbody');
-
-    function loadStaff(){ return get('staff', []); }
-    function saveStaff(arr){ set('staff', arr); }
+    /* ---------- Staff directory (local first; ready for Supabase) ---------- */
+    const STAFF_KEY='staffDirectory';
+    const staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');
+    const staffTbody=document.querySelector('#tblStaff tbody');
     function renderStaff(){
-      const arr = loadStaff();
-      staffTable.innerHTML = '';
-      arr.forEach((st,idx)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${st.name||''}</td><td>${st.role||''}</td><td>${st.phone||''}</td><td>${st.status||''}</td>
-                        <td><button class="chip" data-i="${idx}" data-a="edit">Edit</button>
-                            <button class="chip" data-i="${idx}" data-a="del">Delete</button></td>`;
-        staffTable.appendChild(tr);
-      });
+      staffTbody.innerHTML=staff.map((s,i)=>`
+        <tr>
+          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('cell', {bubbles:true, detail:{i,field:'name',val:this.textContent.trim()}}))">${s.name}</td>
+          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('cell', {bubbles:true, detail:{i,field:'role',val:this.textContent.trim()}}))">${s.role}</td>
+          <td><button class="chip" data-del="${i}">Remove</button></td>
+        </tr>`).join('');
     }
     renderStaff();
-
-    document.getElementById('addStaff').onclick = ()=>{
-      const obj = { name:sName.value.trim(), role:sRole.value.trim(), phone:sPhone.value.trim(), status:sStatus.value };
-      if(!obj.name) return alert('Name required');
-      const arr = loadStaff();
-      const i = arr.findIndex(x => x.phone && x.phone===obj.phone);
-      if(i>=0) arr[i]=obj; else arr.push(obj);
-      saveStaff(arr); renderStaff(); sName.value=''; sRole.value=''; sPhone.value='';
+    document.getElementById('addStaff').onclick=()=>{
+      const name=sName.value.trim(), role=sRole.value.trim();
+      if(!name) return alert('Name required');
+      staff.push({name,role}); localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
+      sName.value=''; sRole.value=''; renderStaff();
     };
-    document.getElementById('clearStaff').onclick = ()=>{ if(confirm('Clear all staff?')){ saveStaff([]); renderStaff(); } };
-    staffTable.onclick = (e)=>{
-      const btn = e.target.closest('button'); if(!btn) return;
-      const i = +btn.dataset.i; const a = btn.dataset.a;
-      const arr = loadStaff();
-      if(a==='edit'){ const st = arr[i]; sName.value=st.name||''; sRole.value=st.role||''; sPhone.value=st.phone||''; sStatus.value=st.status||'Active'; }
-      if(a==='del'){ arr.splice(i,1); saveStaff(arr); renderStaff(); }
-    };
+    staffTbody.addEventListener('click',e=>{
+      const i=e.target.dataset.del; if(i==null) return;
+      staff.splice(+i,1); localStorage.setItem(STAFF_KEY, JSON.stringify(staff)); renderStaff();
+    });
+    staffTbody.addEventListener('cell', e=>{
+      const {i,field,val}=e.detail; staff[i][field]=val; localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
+    });
 
-    /* ---------- Patients ---------- */
-    const pName = document.getElementById('pName');
-    const pPhone = document.getElementById('pPhone');
-    const pNotes = document.getElementById('pNotes');
-    const patientsTable = document.querySelector('#patientsTable tbody');
-
-    function loadPatients(){ return get('patients', []); }
-    function savePatients(arr){ set('patients', arr); }
+    /* ---------- Patients directory (local; ready for Supabase) ---------- */
+    const PAT_KEY='patientsDirectory';
+    const patients=JSON.parse(localStorage.getItem(PAT_KEY)||'[]');
+    const patTbody=document.querySelector('#tblPatients tbody');
     function renderPatients(){
-      const arr = loadPatients();
-      patientsTable.innerHTML='';
-      arr.forEach((p,idx)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${p.name||''}</td><td>${p.phone||''}</td><td>${p.notes||''}</td>
-                        <td><button class="chip" data-i="${idx}" data-a="editP">Edit</button>
-                            <button class="chip" data-i="${idx}" data-a="delP">Delete</button></td>`;
-        patientsTable.appendChild(tr);
-      });
+      patTbody.innerHTML=patients.map((p,i)=>`
+        <tr>
+          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'name',val:this.textContent.trim()}}))">${p.name}</td>
+          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'phone',val:this.textContent.trim()}}))">${p.phone||''}</td>
+          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'notes',val:this.textContent.trim()}}))">${p.notes||''}</td>
+          <td><button class="chip" data-delp="${i}">Remove</button></td>
+        </tr>`).join('');
     }
     renderPatients();
-
-    document.getElementById('addPatient').onclick = ()=>{
-      const obj = { name:pName.value.trim(), phone:pPhone.value.trim(), notes:pNotes.value.trim() };
-      if(!obj.name) return alert('Name required');
-      const arr = loadPatients();
-      const i = arr.findIndex(x => x.phone && x.phone===obj.phone);
-      if(i>=0) arr[i]=obj; else arr.push(obj);
-      savePatients(arr); renderPatients(); pName.value=''; pPhone.value=''; pNotes.value='';
+    document.getElementById('addPatient').onclick=()=>{
+      const name=pName.value.trim(), phone=pPhone.value.trim();
+      if(!name) return alert('Name required');
+      patients.push({name, phone}); localStorage.setItem(PAT_KEY, JSON.stringify(patients));
+      pName.value=''; pPhone.value=''; renderPatients();
     };
-    document.getElementById('clearPatients').onclick = ()=>{ if(confirm('Clear all patients?')){ savePatients([]); renderPatients(); } };
-    patientsTable.onclick = (e)=>{
-      const btn = e.target.closest('button'); if(!btn) return;
-      const i = +btn.dataset.i; const a = btn.dataset.a;
-      const arr = loadPatients();
-      if(a==='editP'){ const p = arr[i]; pName.value=p.name||''; pPhone.value=p.phone||''; pNotes.value=p.notes||''; }
-      if(a==='delP'){ arr.splice(i,1); savePatients(arr); renderPatients(); }
-    };
-
-    /* ---------- Backup / Restore ---------- */
-    document.getElementById('exportBtn').onclick = ()=>{
-      const blob = new Blob([JSON.stringify({
-        pins:get('pins',{}), staff:loadStaff(), patients:loadPatients(), invoices:get('invoices',[]), bookings:get('bookings',[])
-      }, null, 2)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `dr-charan-backup-${new Date().toISOString().slice(0,10)}.json`;
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-    };
-    document.getElementById('importFile').onchange = async (e)=>{
-      const f = e.target.files[0]; if(!f) return;
-      const text = await f.text();
-      try{
-        const data = JSON.parse(text);
-        if(data.pins) set('pins', data.pins);
-        if(Array.isArray(data.staff)) set('staff', data.staff);
-        if(Array.isArray(data.patients)) set('patients', data.patients);
-        if(Array.isArray(data.invoices)) set('invoices', data.invoices);
-        if(Array.isArray(data.bookings)) set('bookings', data.bookings);
-        alert('Import complete.');
-        loadPins(); renderStaff(); renderPatients();
-      }catch{ alert('Invalid file.'); }
-      e.target.value = '';
-    };
-
-    // SW register
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    patTbody.addEventListener('click',e=>{
+      const i=e.target.dataset.delp; if(i==null) return;
+      patients.splice(+i,1); localStorage.setItem(PAT_KEY, JSON.stringify(patients)); renderPatients();
+    });
+    patTbody.addEventListener('pCell', e=>{
+      const {i,field,val}=e.detail; patients[i][field]=val; localStorage.setItem(PAT_KEY, JSON.stringify(patients));
+    });
   </script>
 </body>
 </html>
