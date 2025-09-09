@@ -1,201 +1,200 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Dashboard – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=14"/>
-  <style>
-    .floating-actions{position:fixed;top:14px;left:14px;z-index:1000;display:flex;gap:8px;flex-wrap:wrap}
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Doctor Dashboard – Dr. Charan Hospital</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=21" />
+  <meta name="theme-color" content="#0b5a83" />
 </head>
 <body>
-  <header class="banner clean"></header>
+  <!-- Banner (fixed height, fully responsive) -->
+  <header class="banner">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+  </header>
 
-  <!-- Always-visible controls -->
-  <div class="floating-actions">
-    <button id="logout" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  <!-- Small sticky action chips (not on the banner) -->
+  <div class="fixed-actions">
+    <button id="logoutBtn" class="chip" type="button">Logout</button>
+    <button id="clearCacheBtn" class="chip" type="button">Clear Cache</button>
   </div>
-  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
-  <main class="container n8">
-    <section class="card">
-      <div class="tile-grid">
-        <a class="tile analytics" id="openAnalytics">
-          <div class="title">Analytics</div>
-          <div class="sub">KPIs & weekly sales</div>
+  <main class="container">
+    <!-- Tiles -->
+    <section class="card card--panel">
+      <div class="tiles">
+        <a class="tile tile--lav" href="analytics.html">
+          <h3>Analytics</h3>
+          <p>KPIs & weekly sales</p>
         </a>
 
-        <!-- Pharmacy: live stats from Billing -->
-        <a class="tile pharma" href="admin.html?v=15">
-          <div class="title">Pharmacy</div>
-          <div class="sub" id="pharmaMeta">Sales & invoices</div>
+        <a class="tile tile--ice" href="pharmacy.html" id="pharmacyCard">
+          <h3>Pharmacy</h3>
+          <p id="pharmaSummary">Loading…</p>
         </a>
 
-        <a class="tile bookings" href="patient.html?v=15"><div class="title">Bookings</div><div class="sub">Quick patient slots</div></a>
-        <a class="tile patients" href="portal.html?v=15"><div class="title">Patients</div><div class="sub">Reminders & history</div></a>
-        <a class="tile staff" href="#"><div class="title">Staff</div><div class="sub">Roster & status</div></a>
-        <a class="tile settings" href="settings.html?v=14"><div class="title">Settings</div><div class="sub">PINs, Staff, Patients</div></a>
+        <a class="tile tile--mint" href="portal.html#bookings">
+          <h3>Bookings</h3>
+          <p>Quick patient slots</p>
+        </a>
+
+        <a class="tile tile--peach" href="patient.html">
+          <h3>Patients</h3>
+          <p>Reminders & history</p>
+        </a>
+
+        <a class="tile tile--mint" href="settings.html#staff">
+          <h3>Staff</h3>
+          <p>Roster & status</p>
+        </a>
+
+        <a class="tile tile--lav" href="settings.html">
+          <h3>Settings</h3>
+          <p>PINs, Staff, Patients</p>
+        </a>
       </div>
     </section>
 
-    <section class="card" id="analyticsPanel">
-      <h3 style="margin-top:0">Sales Analytics</h3>
-      <div class="tile-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat"><div class="num" id="totalToday">0</div><div class="lbl">Today ₹</div></div>
-        <div class="stat"><div class="num" id="totalMonth">0</div><div class="lbl">This Month ₹</div></div>
-        <div class="stat"><div class="num" id="topItem">–</div><div class="lbl">Top Item</div></div>
-      </div>
-      <canvas id="salesChart" height="180" style="width:100%;margin-top:16px"></canvas>
-      <div style="display:flex;gap:10px;margin-top:10px">
-        <a class="btn" href="admin.html?v=15">Open Pharmacy</a>
-        <button class="btn ghost" id="exportSales">Export Sales CSV</button>
+    <!-- Sales analytics strip -->
+    <section class="card">
+      <h2>Sales Analytics</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__value" id="statToday">0.00</div>
+          <div class="stat__label">Today ₹</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value" id="statMonth">0.00</div>
+          <div class="stat__label">This Month ₹</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value" id="statTop">–</div>
+          <div class="stat__label">Top Item</div>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
-    Role-based demo • Doctor has full access
-  </footer>
-
   <script type="module">
-    import * as S from './js/store.js?v=14';
+    /* ---------------- Role gate: only doctor ---------------- */
+    (function enforceRole() {
+      try {
+        const s = JSON.parse(localStorage.getItem('session') || 'null');
+        if (!s || !s.role) { location.replace('login.html'); return; }
+        if (s.role !== 'doctor') {
+          // Supervisors/Admins should not see dashboard
+          location.replace('admin.html');
+          return;
+        }
+      } catch {
+        location.replace('login.html');
+      }
+    })();
 
-    // Theme toggle
-    const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){
-      document.documentElement.setAttribute('data-theme', localStorage.theme);
-      tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
-    }
-    tbtn.onclick=()=>{ 
-      const cur=document.documentElement.getAttribute('data-theme')||'light';
-      const next=cur==='light'?'dark':'light';
-      document.documentElement.setAttribute('data-theme',next); 
-      localStorage.theme=next; 
-      tbtn.textContent=next==='light'?'🌞':'🌙'; 
+    /* ---------------- Theme toggle ---------------- */
+    const themeBtn = document.getElementById('themeToggle');
+    const setTheme = (mode) => {
+      document.documentElement.dataset.theme = mode;
+      localStorage.theme = mode;
+      themeBtn.textContent = mode === 'light' ? '🌞' : '🌙';
     };
+    setTheme(localStorage.theme || 'light');
+    themeBtn.addEventListener('click', () => {
+      setTheme((document.documentElement.dataset.theme || 'light') === 'light' ? 'dark' : 'light');
+    });
 
-    // Auth guard
-    const u = (JSON.parse(localStorage.getItem(S.KEY)||'{}')).user;
-    if(!u){ location.href='login.html?v=15'; }
+    /* ---------------- Actions: logout / clear cache ---------------- */
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('session');
+      location.replace('login.html');
+    });
 
-    // Logout / Clear cache
-    document.getElementById('logout').onclick=()=>{
-      const db=JSON.parse(localStorage.getItem(S.KEY)||'{}');
-      db.user=null; localStorage.setItem(S.KEY, JSON.stringify(db));
-      location.href='login.html?v=15';
-    };
-    document.getElementById('clearCacheBtn').onclick=async()=>{
-      try{
+    document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+      try {
+        const sess = localStorage.getItem('session'); // keep session if logged in
         localStorage.clear();
-        if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
-        if('serviceWorker'in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
-    };
+        if (sess) localStorage.setItem('session', sess);
 
-    // Pharmacy tile meta: Today, MTD, counts, avg/invoice, MTD top item, Last invoice #
-    async function renderPharmacyTile(){
-      const today = new Date().toISOString().slice(0,10);
-      const month = today.slice(0,7); // YYYY-MM
-
-      const allInvs = S.listInvoices() || [];
-      const invsToday = S.listInvoices({from: today, to: today}) || [];
-      const invsMTD = allInvs.filter(i => (i.date||'').startsWith(month));
-
-      const totalToday = +(await S.totalsToday?.() || 0);
-      const totalMonth = +(await S.totalsMonth?.() || 0);
-      const mtdCount = invsMTD.length;
-      const mtdAvg = mtdCount ? (totalMonth / mtdCount) : 0;
-
-      // MTD top item (by revenue) from derived sales
-      const sales = S.listSales?.() || [];
-      const mtdSales = sales.filter(r => (r.date||'').startsWith(month));
-      const agg = {};
-      for(const r of mtdSales){
-        const amt = (Number(r.qty)||0) * (Number(r.price)||0);
-        agg[r.item] = (agg[r.item]||0) + amt;
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map((n) => caches.delete(n)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+        alert('Cache cleared. Reloading…');
+        location.reload();
+      } catch (e) {
+        alert('Could not fully clear cache. Try a hard reload.');
       }
-      let mtdTopItem = '–', topAmt = -1;
-      for(const [k,v] of Object.entries(agg)){ if(v>topAmt){ topAmt=v; mtdTopItem=k; } }
+    });
 
-      const lastInvNo = (allInvs[0]?.number) || '—';
+    /* ---------------- Data: pharmacy summary ----------------
+       Priority:
+       1) If window.fetchPharmacySummary exists (Supabase), use it.
+       2) Else derive from localStorage key "pharma_invoices"
+          invoice shape: {date: "YYYY-MM-DD", items:[{name, qty, price}], total}
+    ---------------------------------------------------------- */
+    async function loadPharmacySummary() {
+      let todayAmt = 0, mtdAmt = 0, topItemName = '–';
 
-      document.getElementById('pharmaMeta').textContent =
-        `Today ₹${totalToday.toFixed(2)} • ${invsToday.length} inv | `
-        + `MTD ₹${totalMonth.toFixed(2)} • ${mtdCount} inv • Avg ₹${mtdAvg.toFixed(2)} | `
-        + `Top: ${mtdTopItem} | Last: ${lastInvNo}`;
-    }
+      try {
+        if (typeof window.fetchPharmacySummary === 'function') {
+          // Hook for Supabase integration you’ll add later
+          const r = await window.fetchPharmacySummary();
+          todayAmt = r.todayAmount ?? 0;
+          mtdAmt = r.monthAmount ?? 0;
+          topItemName = r.topItem ?? '–';
+        } else {
+          const raw = JSON.parse(localStorage.getItem('pharma_invoices') || '[]');
+          const todayStr = new Date().toISOString().slice(0,10);
+          const ym = todayStr.slice(0,7); // YYYY-MM
 
-    // Export Sales CSV
-    document.getElementById('exportSales').onclick=()=>{
-      const rows = S.listSales?.() || [];
-      const head=['date','item','qty','price','amount','invoice'];
-      const body=(rows||[]).map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
-      const csv=[head,...body].map(r=>r.join(',')).join('\n');
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      a.download='pharma_sales.csv'; a.click();
-    };
+          const itemQty = new Map();
 
-    // KPIs
-    async function renderKPIs(){
-      const t1 = (await S.totalsToday?.() || 0).toFixed(2);
-      const t2 = (await S.totalsMonth?.() || 0).toFixed(2);
-      const top = await S.topItemName?.() || '–';
-      document.getElementById('totalToday').textContent = t1;
-      document.getElementById('totalMonth').textContent = t2;
-      document.getElementById('topItem').textContent = top;
-    }
+          for (const inv of raw) {
+            if (!inv || !inv.date) continue;
+            const total = Number(inv.total || 0);
+            if (inv.date === todayStr) todayAmt += total;
+            if ((inv.date || '').startsWith(ym)) mtdAmt += total;
 
-    // 7-day bar chart
-    async function renderChart(){
-      const rows = await S.listSales?.() || [];
-      const fmt = (d)=>d.toISOString().slice(5,10); // MM-DD
-      const days=[]; const today=new Date();
-      for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(fmt(d)); }
-      const totals=Object.fromEntries(days.map(k=>[k,0]));
-      for(const r of rows){
-        if(!r.date) continue;
-        const key=r.date.slice(5,10);
-        if(key in totals) totals[key]+= (Number(r.qty)||0)*(Number(r.price)||0);
+            (inv.items || []).forEach(it => {
+              if (!it || !it.name) return;
+              const q = Number(it.qty || 0);
+              itemQty.set(it.name, (itemQty.get(it.name) || 0) + q);
+            });
+          }
+
+          if (itemQty.size) {
+            topItemName = [...itemQty.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+          }
+        }
+      } catch (e) {
+        console.warn('Summary calc failed', e);
       }
-      const labels=days, data=days.map(k=>totals[k]);
 
-      const c=document.getElementById('salesChart');
-      const ctx=c.getContext('2d');
-      c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
+      // Update UI
+      const fmt = (n) => (Number(n || 0)).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+      document.getElementById('pharmaSummary').textContent =
+        `Today ₹${fmt(todayAmt)} • MTD ₹${fmt(mtdAmt)} • Top: ${topItemName}`;
 
-      const W=c.clientWidth, H=c.clientHeight, pad=24;
-      ctx.clearRect(0,0,W,H);
-
-      const border=getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e9edf5';
-      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
-
-      const max=Math.max(10, ...data);
-      const slot=(W - pad*2)/labels.length;
-      const bw=slot*0.7;
-      const base=H - pad;
-
-      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#5166ff';
-      const muted=getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#737b8c';
-      labels.forEach((lb,i)=>{
-        const x=pad + i*slot + (slot-bw)/2;
-        const h=Math.round((data[i]/max) * (H - pad*2));
-        ctx.fillStyle=primary; ctx.fillRect(x, base-h, bw, h);
-        ctx.fillStyle=muted; ctx.font='11px system-ui'; ctx.textAlign='center';
-        ctx.fillText(lb, x+bw/2, H-6);
-      });
+      document.getElementById('statToday').textContent = fmt(todayAmt);
+      document.getElementById('statMonth').textContent = fmt(mtdAmt);
+      document.getElementById('statTop').textContent = topItemName;
     }
 
-    await renderKPIs();
-    await renderPharmacyTile();
-    await renderChart();
-    addEventListener('resize', renderChart);
+    loadPharmacySummary();
 
-    document.getElementById('openAnalytics')?.addEventListener('click',()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'}));
+    /* --------------- Register Service Worker (quiet) --------------- */
+    if ('serviceWorker' in navigator) {
+      setTimeout(() => {
+        navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+      }, 300);
+    }
   </script>
 </body>
 </html>
