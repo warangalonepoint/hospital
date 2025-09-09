@@ -1,147 +1,67 @@
-<!doctype html>
-<html lang="en" data-theme="light">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>PIN Login – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=17"/>
+<script type="module">
+  // --- theme toggle ---
+  const themeBtn = document.getElementById('themeToggle');
+  const setTheme = (mode) => {
+    document.documentElement.dataset.theme = mode;
+    localStorage.theme = mode;
+    themeBtn.textContent = mode === 'light' ? '🌞' : '🌙';
+  };
+  setTheme(localStorage.theme || 'light');
+  themeBtn.onclick = () =>
+    setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
 
-  <!-- Page-scoped tweaks: smaller banner + tidy card spacing -->
-  <style>
-    /* Smaller, responsive banner */
-    .banner--slim{
-      --banner-h:110px;               /* phones */
-      height:var(--banner-h);
-      background: url("assets/banner.png") center/cover no-repeat;
-      border-radius: 0 0 14px 14px;
-      position: relative;
-    }
-    @media (min-width:768px){ .banner--slim{ --banner-h:140px; } }   /* tablets */
-    @media (min-width:1024px){ .banner--slim{ --banner-h:160px; } }  /* desktop */
+  // --- cache clear ---
+  document.getElementById('clearCacheBtn').onclick = async () => {
+    try {
+      localStorage.clear();
+      if ('caches' in window) {
+        const ks = await caches.keys();
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const r of regs) await r.unregister();
+      }
+      alert('Cache cleared. Reloading…'); location.reload();
+    } catch { alert('Couldn’t fully clear. Try hard refresh.'); }
+  };
 
-    .floating-toggle{
-      position:absolute; right:14px; top:14px;
-      width:44px; height:44px; line-height:44px; text-align:center;
-      border-radius:999px;
-      backdrop-filter: blur(6px);
-      box-shadow: 0 6px 18px rgba(0,0,0,.15);
-    }
+  // ---- PIN login (digits only) ----
+  const DIGITS_ONLY = /[0-9]/g;
+  const normalizePin = (raw) => ((raw||'').match(DIGITS_ONLY) || []).join('').slice(0,6);
 
-    .login-wrap { padding: 14px; }
-    .login-card { margin-top: 14px; }
-    .login-title { margin: 6px 0 10px; }
-  </style>
-</head>
-<body>
-  <!-- Slim banner for login -->
-  <header class="banner banner--slim">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
-  </header>
+  const roles = { '4321':'doctor', '1111':'supervisor', '2222':'patient' };
+  const pinEl = document.getElementById('pin');
+  pinEl.addEventListener('input', () => {
+    const clean = normalizePin(pinEl.value);
+    if (pinEl.value !== clean) pinEl.value = clean;
+  });
 
-  <!-- Login card -->
-  <section class="login-wrap">
-    <div class="login-card">
-      <h1 class="login-title">PIN Login</h1>
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pin = normalizePin(pinEl.value);
+    const role = roles[pin];
+    if (!role) { alert('Invalid PIN'); return; }
 
-      <form id="loginForm" autocomplete="off">
-        <label for="pin" class="muted" style="display:block;margin:6px 0 6px">Enter PIN</label>
+    // ---- Write ALL expected keys so any guard recognizes auth ----
+    const session = { role, pin, ts: Date.now() };
+    localStorage.setItem('session', JSON.stringify(session)); // JSON session
+    localStorage.setItem('role', role);                       // flat role
+    localStorage.setItem('isLoggedIn', '1');                  // boolean-ish flag
+    sessionStorage.setItem('role', role);                     // some guards use sessionStorage
+    // (Optional) compatibility keys often seen in custom stores:
+    localStorage.setItem('authRole', role);
+    localStorage.setItem('auth', JSON.stringify({ role }));
 
-        <!-- Keep it masked, but force numeric input & strip non-digits -->
-        <input
-          id="pin" name="pin"
-          class="input"
-          type="password"
-          inputmode="numeric"
-          pattern="[0-9]{4,6}"
-          autocomplete="one-time-code"
-          minlength="4" maxlength="6"
-          placeholder="4–6 digits" required
-        />
+    // ---- Route by role ----
+    const go = (p) => { window.location.href = p; };
+    if (role === 'doctor')      go('dashboard.html');
+    else if (role === 'supervisor') go('admin.html');   // supervisor’s landing (pharmacy, bookings)
+    else                        go('portal.html');      // patient portal
+  });
 
-        <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
-          <button class="btn" type="submit">Login</button>
-          <button class="chip" type="button" id="clearCacheBtn">Clear Cache</button>
-        </div>
-
-        <p class="help">Demo: 4321 (Doctor) · 1111 (Supervisor) · 2222 (Patient)</p>
-      </form>
-    </div>
-  </section>
-
-  <script type="module">
-    // --- theme toggle ---
-    const themeBtn = document.getElementById('themeToggle');
-    const setTheme = (mode) => {
-      document.documentElement.dataset.theme = mode;
-      localStorage.theme = mode;
-      themeBtn.textContent = mode === 'light' ? '🌞' : '🌙';
-    };
-    setTheme(localStorage.theme || 'light');
-    themeBtn.onclick = () => setTheme((document.documentElement.dataset.theme === 'light') ? 'dark' : 'light');
-
-    // --- cache clear (useful if an old SW cached the old login) ---
-    document.getElementById('clearCacheBtn').onclick = async () => {
-      try {
-        localStorage.clear();
-        if ('caches' in window) {
-          const ks = await caches.keys();
-          await Promise.all(ks.map(k => caches.delete(k)));
-        }
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const r of regs) await r.unregister();
-        }
-        alert('Cache cleared. Reloading…'); location.reload();
-      } catch { alert('Could not fully clear. Try a hard refresh.'); }
-    };
-
-    // ---- PIN login (digits only; handles unicode & hidden spaces) ----
-    const DIGITS_ONLY = /[0-9]/g;
-    const normalizePin = (raw) => {
-      if (!raw) return '';
-      // Replace any non-ASCII numerals with ASCII; then keep digits only
-      const ascii = raw
-        .replace(/[^\d]/g, c => {         // strip non-digits first pass
-          // handle common unicode numerals (e.g., Arabic-Indic)
-          const code = c.codePointAt(0);
-          // Arabic-Indic 0–9: 0x0660–0x0669, Eastern Arabic-Indic 0x06F0–0x06F9
-          if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
-          if (code >= 0x06F0 && code <= 0x06F9) return String(code - 0x06F0);
-          return '';
-        })
-        + ''; // ensure string
-      const digits = (ascii.match(DIGITS_ONLY) || []).join('');
-      return digits.slice(0, 6);
-    };
-
-    const pinEl = document.getElementById('pin');
-    pinEl.addEventListener('input', () => {
-      const clean = normalizePin(pinEl.value);
-      if (pinEl.value !== clean) pinEl.value = clean;
-    });
-
-    const roles = { '4321':'doctor', '1111':'supervisor', '2222':'patient' };
-
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const pin = normalizePin(pinEl.value);
-      if (pin.length < 4) { alert('Enter a 4–6 digit PIN'); return; }
-
-      const role = roles[pin];
-      if (!role) { alert('Invalid PIN'); return; }
-
-      localStorage.setItem('session', JSON.stringify({ role, ts: Date.now() }));
-      if (role === 'doctor')      location.href = 'dashboard.html';
-      else if (role === 'supervisor') location.href = 'admin.html';
-      else                        location.href = 'portal.html';
-    });
-
-    // SW register quietly
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
-    }
-  </script>
-</body>
-</html>
+  // SW register quietly
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  }
+</script>
