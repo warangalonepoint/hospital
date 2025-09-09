@@ -1,65 +1,50 @@
-/* ====== THEME (Pastel light + clean dark) ====== */
+/* ===== THEME ===== */
 :root{
   --bg:#fff7f7; --text:#1a1d29; --muted:#737b8c;
-  --card-bg:#ffffff; --border:#e9edf5;
+  --card-bg:#fff; --border:#e9edf5;
   --primary:#5166ff; --teal:#18c3a1; --peach:#ffc7b5; --mint:#cdede4; --lav:#e0e6ff; --gray:#eef2f7;
-  --btn-bg:var(--primary); --btn-text:#ffffff; --chip-bg:#f1f5f9; --chip-text:#0f172a;
+  --btn-bg:var(--primary); --btn-text:#fff; --chip-bg:#f1f5f9; --chip-text:#0f172a;
 }
 [data-theme="dark"]{
   --bg:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
   --card-bg:#0f172a; --border:#1f2937;
-  --btn-bg:#0ea5b7; --btn-text:#011;
-  --chip-bg:#1f2937; --chip-text:#e5e7eb;
+  --btn-bg:#0ea5b7; --btn-text:#011; --chip-bg:#1f2937; --chip-text:#e5e7eb;
 }
 
-/* ====== BASE ====== */
+/* ===== BASE ===== */
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
 body{background:var(--bg);color:var(--text);overflow-x:hidden}
 a{color:inherit;text-decoration:none}
 .container{width:min(980px,92vw);margin:16px auto 80px}
 .n8{width:min(800px,92vw)}
+.subtitle{color:var(--muted);font-size:12px}
 
-/* ====== CARDS / INPUTS / BUTTONS ====== */
-.card{
-  background:var(--card-bg);border:1px solid var(--border);border-radius:24px;
-  padding:18px;box-shadow:0 6px 30px #0000000d;margin-bottom:18px
-}
+/* Cards / Inputs / Buttons */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:24px;padding:18px;box-shadow:0 6px 30px #0000000d;margin-bottom:18px}
 .field{display:grid;gap:8px;margin-bottom:12px}
 label{font-size:12px;color:var(--muted)}
 input,select,textarea{
-  width:100%;background:#f6f8fc;color:var(--text);border:1px solid var(--border);
-  border-radius:14px;padding:12px;outline:none
+  width:100%;background:#f6f8fc;color:var(--text);
+  border:1px solid var(--border);border-radius:14px;padding:12px;outline:none
 }
 [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{
   background:#0b1220 !important;color:#e5e7eb !important;border-color:#1f2937 !important
 }
-.btn{
-  display:inline-block;padding:10px 14px;border-radius:14px;border:1px solid var(--border);
-  background:var(--btn-bg);color:var(--btn-text);cursor:pointer;font-weight:700
-}
+.btn{display:inline-block;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:var(--btn-bg);color:var(--btn-text);cursor:pointer;font-weight:700}
 .btn.ghost{background:transparent;color:var(--text)}
-.chip{
-  padding:8px 12px;border-radius:9999px;border:1px solid var(--border);
-  background:var(--chip-bg);color:var(--chip-text);cursor:pointer
-}
-.subtitle{color:var(--muted);font-size:12px}
+.chip{padding:8px 12px;border-radius:9999px;border:1px solid var(--border);background:var(--chip-bg);color:var(--chip-text);cursor:pointer}
 
-/* ====== BANNER ====== */
+/* Banner */
 .banner.clean{
   position:relative;padding:0;min-height:160px;border-radius:16px;border:1px solid var(--border);
   background:url('assets/banner.png') center/cover no-repeat !important;width:100%;display:block
 }
-.banner.clean::after{display:none}
 .floating-toggle{position:fixed;top:14px;right:14px;z-index:1000}
 
-/* ====== TILE GRID (dashboard big buttons) ====== */
+/* Dashboard tiles */
 .tile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.tile{
-  border:1px solid var(--border);border-radius:20px;padding:14px;min-height:110px;
-  display:flex;flex-direction:column;justify-content:center;background:var(--card-bg);
-  box-shadow:0 6px 20px #0000000a;transition:transform .12s ease
-}
+.tile{border:1px solid var(--border);border-radius:20px;padding:14px;min-height:110px;display:flex;flex-direction:column;justify-content:center;background:var(--card-bg);box-shadow:0 6px 20px #0000000a;transition:transform .12s ease}
 .tile:hover{transform:translateY(-2px)}
 .tile .title{font-weight:700}
 .tile .sub{font-size:12px;color:var(--muted);margin-top:6px}
@@ -69,30 +54,30 @@ input,select,textarea{
 .tile.patients{background:var(--peach)}
 .tile.staff{background:#d8faf1}
 .tile.upload{background:var(--gray)}
+.tile.settings{background:#f6f4ff}
 
-/* ====== STATS ====== */
+/* Stats & tables */
 .stat{background:var(--card-bg);border:1px solid var(--border);border-radius:18px;padding:14px;text-align:center}
 .stat .num{font-size:28px;font-weight:800}
 .stat .lbl{font-size:12px;color:var(--muted)}
-
-/* ====== TABLES ====== */
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:10px 8px;border-bottom:1px solid var(--border);font-size:14px}
 .table-wrap{overflow-x:auto}
 
-/* ====== FORMS (mobile-safe grid) ====== */
-.form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px
-}
+/* Responsive form grid */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 
-/* ====== DARK MODE HARD OVERRIDES (Pharmacy) ====== */
+/* Tabs (Settings / Pharmacy) */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.tab-btn{padding:8px 12px;border-radius:9999px;border:1px solid var(--border);background:var(--chip-bg);color:var(--chip-text);cursor:pointer}
+.tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Dark strong overrides */
 [data-theme="dark"] .card{background:#0f172a;border-color:#1f2937}
 [data-theme="dark"] .btn{background:#0ea5b7;color:#011}
 [data-theme="dark"] .chip{background:#1f2937;color:#e5e7eb;border-color:#1f2937}
 
-/* ====== RESPONSIVE ====== */
+/* Responsive */
 @media(min-width:768px){
   .banner.clean{min-height:180px}
   .tile-grid{grid-template-columns:repeat(3,1fr)}
