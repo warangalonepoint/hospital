@@ -1,146 +1,193 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Dashboard – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/><link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=7"/>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=8"/>
 </head>
 <body>
   <!-- Clean banner with small logo -->
   <header class="banner clean">
-    <img class="logo-badge" src="assets/logo.png" alt="Dr. Charan Hospital logo" />
+    <img class="logo-badge" src="assets/logo.png" alt="Dr. Charan Hospital logo">
   </header>
-  <!-- Floating dark/light toggle -->
+  <!-- Floating theme toggle -->
   <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
-  <main class="container">
-    <section class="card" id="tabs">
-      <div class="grid3">
-        <button class="btn" data-tab="pharma">Pharmacy</button>
-        <button class="btn" data-tab="invoices">Invoices</button>
-        <button class="btn" data-tab="analytics">Analytics</button>
+  <main class="container n8">
+    <!-- Big tile menu -->
+    <section class="card">
+      <div class="tile-grid">
+        <a class="tile analytics" id="openAnalytics">
+          <div class="title">Analytics</div>
+          <div class="sub">KPIs & weekly sales</div>
+        </a>
+        <a class="tile pharma" id="openPharmacy">
+          <div class="title">Pharmacy</div>
+          <div class="sub">Sales & invoices</div>
+        </a>
+        <a class="tile bookings" id="openBookings">
+          <div class="title">Bookings</div>
+          <div class="sub">Quick patient slots</div>
+        </a>
+        <a class="tile patients" id="openPatients">
+          <div class="title">Patients</div>
+          <div class="sub">Reminders & history</div>
+        </a>
+        <a class="tile staff" id="openStaff">
+          <div class="title">Staff</div>
+          <div class="sub">Roster & status</div>
+        </a>
+        <a class="tile upload" id="openUpload">
+          <div class="title">Data Upload</div>
+          <div class="sub">5 years CSV import</div>
+        </a>
       </div>
-      <div class="grid3" style="margin-top:10px">
-        <button class="btn" data-tab="patients">Patients</button>
-        <button class="btn" data-tab="staff">Staff HR</button>
-        <button class="btn" data-tab="upload">Data Upload</button>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-        <span id="who" class="chip"></span>
-        <button id="logout" class="chip">Logout</button>
-        <a class="chip" href="admin.html?v=7">Open Admin</a>
-        <a class="chip" href="patient.html?v=7">Patient Booking</a>
-        <button id="clearCacheBtn" class="chip" style="margin-left:auto">Clear Cache</button>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;align-items:center;margin-top:14px;">
+        <button id="logout" class="btn">Logout</button>
+        <button id="clearCacheBtn" class="btn">Clear Cache</button>
       </div>
     </section>
 
-    <!-- Pharma -->
-    <section class="card" data-panel="pharma">
-      <h3>Daily Pharma Sales</h3>
-      <form class="grid3" id="saleForm">
-        <div class="field"><label>Date</label><input type="date" name="date"/></div>
-        <div class="field"><label>Item</label><input name="item" placeholder="Paracetamol 650"/></div>
-        <div class="field"><label>Invoice #</label><input name="invoice" placeholder="INV-001"/></div>
-        <div class="field"><label>Qty</label><input name="qty" type="number" min="1" value="1"/></div>
-        <div class="field"><label>Price (₹)</label><input name="price" type="number" step="0.01"/></div>
-        <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Add</button></div>
-      </form>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
-        <button id="exportSales" class="btn ghost">Export Sales CSV</button>
-      </div>
-      <div class="table-wrap"><table class="table" id="salesTbl"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th><th>Invoice</th></tr></thead><tbody></tbody></table></div>
-    </section>
-
-    <!-- Invoices -->
-    <section class="card" data-panel="invoices" hidden>
-      <h3>Invoices</h3>
-      <div id="invoiceList"></div>
-    </section>
-
-    <!-- Analytics -->
-    <section class="card" data-panel="analytics" hidden>
-      <h3>Pharma Analytics</h3>
-      <div class="grid3">
+    <!-- Analytics panel (default) -->
+    <section class="card" id="analyticsPanel">
+      <h3 style="margin-top:0">Sales Analytics</h3>
+      <div class="tile-grid" style="grid-template-columns:repeat(3,1fr);">
         <div class="stat"><div class="num" id="totalToday">0</div><div class="lbl">Today ₹</div></div>
         <div class="stat"><div class="num" id="totalMonth">0</div><div class="lbl">This Month ₹</div></div>
         <div class="stat"><div class="num" id="topItem">–</div><div class="lbl">Top Item</div></div>
       </div>
-      <canvas id="chart" height="160" style="margin-top:16px;width:100%"></canvas>
-    </section>
-
-    <!-- Patients -->
-    <section class="card" data-panel="patients" hidden>
-      <h3>Patients Panel</h3>
-      <form id="patForm" class="grid3">
-        <div class="field"><label>Name</label><input name="name"/></div>
-        <div class="field"><label>Contact</label><input name="contact" inputmode="tel" placeholder="10-digit"/></div>
-        <div class="field"><label>Diagnosis</label><input name="dx" placeholder="e.g. Fever"/></div>
-        <div class="field"><label>Date</label><input type="date" name="date"/></div>
-        <div class="field"><label>Slot</label><input name="slot" placeholder="10:15 AM"/></div>
-        <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Add</button></div>
-      </form>
-      <div class="table-wrap"><table class="table" id="patTbl"><thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Dx</th><th>WhatsApp</th><th>Reminder</th></tr></thead><tbody></tbody></table></div>
-    </section>
-
-    <!-- Staff -->
-    <section class="card" data-panel="staff" hidden>
-      <h3>Staff Roster</h3>
-      <form id="staffForm" class="grid3">
-        <div class="field"><label>Date</label><input type="date" name="date"/></div>
-        <div class="field"><label>Staff</label><input name="name" placeholder="Nurse A"/></div>
-        <div class="field"><label>Shift</label><select name="shift"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
-        <div class="field"><label>Status</label><select name="status"><option>Scheduled</option><option>Present</option><option>Absent</option></select></div>
-        <div class="field"><label>&nbsp;</label><button class="btn" type="submit">Add</button></div>
-      </form>
-      <div class="table-wrap"><table class="table" id="staffTbl"><thead><tr><th>Date</th><th>Name</th><th>Shift</th><th>Status</th></tr></thead><tbody></tbody></table></div>
-    </section>
-
-    <!-- Upload -->
-    <section class="card" data-panel="upload" hidden>
-      <h3>Bulk Upload – 5 Years Pharma Data</h3>
-      <p class="subtitle">CSV columns: <code>date,item,qty,price,invoice</code></p>
-      <input type="file" id="csv" accept=".csv"/>
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn" id="downloadTemplate">Download Template</button>
-        <button class="btn ghost" id="wipe">Wipe All Demo Data</button>
+      <canvas id="salesChart" height="180" style="width:100%;margin-top:16px"></canvas>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <a class="btn" id="gotoPharmacy">Open Pharmacy</a>
+        <button class="btn ghost" id="exportSales">Export Sales CSV</button>
       </div>
     </section>
   </main>
 
-  <footer class="footer">Role-based demo • Doctor has full access</footer>
+  <footer style="text-align:center;color:var(--muted);margin:20px 0 40px">
+    Role-based demo • Doctor has full access
+  </footer>
 
-  <!-- App logic -->
-  <script type="module" src="js/app.js?v=5"></script>
+  <!-- Dashboard logic (self-contained, uses store.js only) -->
+  <script type="module">
+    import * as S from './js/store.js?v=5';
 
-  <!-- Theme toggle + Clear Cache (page-local) -->
-  <script>
     // Theme toggle
     const tbtn=document.getElementById('themeToggle');
     if(localStorage.theme){
       document.documentElement.setAttribute('data-theme', localStorage.theme);
       tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
     }
-    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme')||'light';
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.setAttribute('data-theme',next); localStorage.theme=next;
+      tbtn.textContent=next==='light'?'🌞':'🌙';
+    };
 
-    // Clear Cache button
-    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
-      try {
+    // Auth guard (simple)
+    const u = (JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}')).user;
+    if(!u){ location.href='login.html?v=8'; }
+
+    // Actions
+    document.getElementById('logout').onclick=()=>{
+      const db=JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}');
+      db.user=null; localStorage.setItem('onestop_hospital_demo_v5', JSON.stringify(db));
+      location.href='login.html?v=8';
+    };
+    document.getElementById('clearCacheBtn').addEventListener('click', async ()=>{
+      try{
         localStorage.clear();
         if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
+          const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k)));
         }
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();
           for (const r of regs) await r.unregister();
         }
-        alert('Cache cleared. Reloading…');
-        location.reload(true);
-      } catch (e) {
-        console.error(e); alert('Could not clear everything. Hard reload if needed.');
-      }
+        alert('Cache cleared. Reloading…'); location.reload(true);
+      }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
     });
+
+    // Tile routes
+    const go = (url)=>location.href=url;
+    document.getElementById('openAnalytics').onclick=()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'});
+    document.getElementById('openPharmacy').onclick=()=>go('admin.html?v=8');      // your pharmacy page
+    document.getElementById('openBookings').onclick=()=>go('patient.html?v=8');     // booking form
+    document.getElementById('openPatients').onclick=()=>go('portal.html?v=8');      // patient portal
+    document.getElementById('openStaff').onclick=()=>go('#');                        // hook to your staff page (or keep)
+    document.getElementById('openUpload').onclick=()=>go('dashboard.html?v=8#upload'); // if you later add a section
+
+    document.getElementById('gotoPharmacy').onclick=()=>go('admin.html?v=8');
+
+    // Export CSV (pharmacy sales)
+    document.getElementById('exportSales').onclick=async ()=>{
+      const rows = await S.listSales?.() || [];
+      const head=['date','item','qty','price','amount','invoice'];
+      const body=(rows||[]).map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
+      const csv=[head,...body].map(r=>r.join(',')).join('\n');
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='pharma_sales.csv'; a.click();
+    };
+
+    // KPI + simple 7-day chart (no external lib)
+    async function renderKPIs(){
+      const t1 = (await S.totalsToday?.() || 0).toFixed(2);
+      const t2 = (await S.totalsMonth?.() || 0).toFixed(2);
+      const top = await S.topItemName?.() || '–';
+      document.getElementById('totalToday').textContent = t1;
+      document.getElementById('totalMonth').textContent = t2;
+      document.getElementById('topItem').textContent = top;
+    }
+
+    async function renderChart(){
+      const rows = await S.listSales?.() || [];
+      // group by last 7 days
+      const fmt = (d)=>d.toISOString().slice(5,10); // MM-DD
+      const days=[]; const today=new Date();
+      for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(fmt(d)); }
+      const totals=Object.fromEntries(days.map(k=>[k,0]));
+      for(const r of rows){
+        if(!r.date) continue;
+        const key=r.date.slice(5,10); // expects YYYY-MM-DD
+        if(key in totals) totals[key]+= (Number(r.qty)||0)*(Number(r.price)||0);
+      }
+      const labels=days, data=days.map(k=>totals[k]);
+
+      // draw bars
+      const c=document.getElementById('salesChart');
+      const ctx=c.getContext('2d');
+      const W=c.width=c.clientWidth*2, H=c.height=c.clientHeight*2;
+      ctx.scale(2,2);
+      const max=Math.max(10, ...data);
+      const pad=24, bw=(c.clientWidth - pad*2)/labels.length * 0.7;
+      ctx.clearRect(0,0,c.clientWidth,c.clientHeight);
+      // axis
+      ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--border');
+      ctx.beginPath(); ctx.moveTo(pad, c.clientHeight-pad); ctx.lineTo(c.clientWidth-pad, c.clientHeight-pad); ctx.stroke();
+      // bars
+      const base = c.clientHeight - pad;
+      const slot = (c.clientWidth - pad*2)/labels.length;
+      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#5166ff';
+      labels.forEach((lb,i)=>{
+        const x = pad + i*slot + (slot-bw)/2;
+        const h = Math.round((data[i]/max) * (c.clientHeight - pad*2));
+        ctx.fillRect(x, base - h, bw, h);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#737b8c';
+        ctx.font = '11px system-ui';
+        ctx.textAlign='center';
+        ctx.fillText(lb, x+bw/2, c.clientHeight-6);
+        ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#5166ff';
+      });
+    }
+
+    await renderKPIs();
+    await renderChart();
+    window.addEventListener('resize', renderChart);
   </script>
 </body>
 </html>
