@@ -6,121 +6,141 @@
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=15"/>
+  <style>
+    .tile-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+  </style>
 </head>
 <body>
-  <!-- Banner with bottom-left chips -->
-  <header class="banner clean">
-    <div class="floating-actions">
-      <a class="chip" id="logoutBtn">Logout</a>
-      <button class="chip" id="clearCacheBtn">Clear Cache</button>
-    </div>
-    <button id="themeToggle" class="chip floating-toggle">🌙</button>
-  </header>
+  <header class="banner clean"></header>
+  <div class="floating-actions">
+    <a href="login.html" id="logout" class="chip">Logout</a>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </div>
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
   <main class="container n8">
 
-    <!-- Big tiles -->
+    <!-- Tiles -->
     <section class="card" style="padding:18px">
       <div class="tile-grid">
-        <a class="tile analytics" id="tileAnalytics" href="analytics.html">
+        <a class="tile lilac" href="analytics.html">
           <div class="title">Analytics</div>
           <div class="sub">KPIs & weekly sales</div>
         </a>
 
-        <a class="tile pharma" id="tilePharma" href="pharmacy-report.html">
+        <a class="tile ice" href="pharmacy-report.html" id="pharmaTile">
           <div class="title">Pharmacy</div>
-          <div class="sub" id="pharmaMeta">Sales & invoices</div>
+          <div class="sub" id="pharmaMeta">Today ₹0.00 • MTD ₹0.00 • Top: –</div>
         </a>
 
-        <a class="tile bookings" href="patient.html">
+        <a class="tile mint" href="patient.html">
           <div class="title">Bookings</div>
           <div class="sub">Quick patient slots</div>
         </a>
 
-        <a class="tile patients" href="portal.html">
+        <a class="tile peach" href="portal.html">
           <div class="title">Patients</div>
           <div class="sub">Reminders & history</div>
         </a>
 
-        <a class="tile staff" href="admin.html#hr">
+        <a class="tile mint" href="admin.html">
           <div class="title">Staff</div>
           <div class="sub">Roster & status</div>
         </a>
 
-        <a class="tile settings" href="settings.html">
+        <a class="tile lilac" href="settings.html">
           <div class="title">Settings</div>
           <div class="sub">PINs, Staff, Patients</div>
         </a>
       </div>
     </section>
 
-    <!-- Sales Analytics snapshot -->
-    <section class="card" style="margin-top:16px">
-      <h3 style="margin:0 0 12px">Sales Analytics</h3>
-      <div class="kpi-wrap">
-        <div class="kpi">
-          <span class="n" id="kToday">0.00</span>
-          <span class="label">Today ₹</span>
-        </div>
-        <div class="kpi">
-          <span class="n" id="kMonth">0.00</span>
-          <span class="label">This Month ₹</span>
-        </div>
-        <div class="kpi">
-          <span class="n" id="kTop">–</span>
-          <span class="label">Top Item</span>
-        </div>
+    <!-- KPIs -->
+    <section class="card" style="margin-top:16px;padding:18px">
+      <h3 style="margin:0 0 8px">Sales Analytics</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="n" id="kToday">0.00</div><div class="muted">Today ₹</div></div>
+        <div class="kpi"><div class="n" id="kMonth">0.00</div><div class="muted">This Month ₹</div></div>
+        <div class="kpi"><div class="n" id="kTop">–</div><div class="muted">Top Item</div></div>
+      </div>
+
+      <div class="chart-card">
+        <canvas id="miniChart" height="170" style="width:100%"></canvas>
       </div>
     </section>
 
   </main>
 
-  <!-- Page logic -->
   <script type="module">
-    import { requireRole, logout, totalsToday, totalsMonth, topItemName, currentUser } from './js/store.js?v=21';
-    requireRole('doctor');
+    import { requireRole, totalsToday, totalsMonth, topItemName, listInvoices } from './js/store.js?v=21';
+    const u=requireRole('doctor'); if(!u) return;
 
     // theme
-    const tbtn=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; tbtn.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    tbtn.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
-
-    // logout
-    document.getElementById('logoutBtn').onclick=()=>{ logout(); location.href='login.html'; };
+    const tb=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; tb.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    tb.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; tb.textContent=next==='light'?'🌞':'🌙'; };
 
     // clear cache
-    document.getElementById('clearCacheBtn').onclick=async ()=>{
+    document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
         localStorage.clear();
         if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
         if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
         alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch(e){ console.error(e); alert('Couldn’t clear everything; try a hard reload.'); }
+      }catch(e){ alert('Could not fully clear. Try hard reload.'); }
     };
 
-    // doctor-only tiles already linked:
-    // Analytics -> analytics.html
-    // Pharmacy -> pharmacy-report.html
-
-    // snapshot KPIs
+    // KPIs + tile meta
     async function refreshKPIs(){
-      const [td, tm, top] = await Promise.all([totalsToday(), totalsMonth(), topItemName()]);
-      document.getElementById('kToday').textContent = Number(td||0).toFixed(2);
-      document.getElementById('kMonth').textContent = Number(tm||0).toFixed(2);
-      document.getElementById('kTop').textContent = top || '–';
-
-      // small meta on the Pharmacy tile
-      const meta = `Today ₹${Number(td||0).toFixed(2)} • MTD ₹${Number(tm||0).toFixed(2)} • Top: ${top||'–'}`;
-      const el = document.getElementById('pharmaMeta'); if (el) el.textContent = meta;
+      const t=await totalsToday();
+      const m=await totalsMonth();
+      const top=await topItemName();
+      kToday.textContent=t.toFixed(2);
+      kMonth.textContent=m.toFixed(2);
+      kTop.textContent=top||'–';
+      document.getElementById('pharmaMeta').textContent = `Today ₹${t.toFixed(2)} • MTD ₹${m.toFixed(2)} • Top: ${top||'–'}`;
+      drawMini();
     }
-    refreshKPIs();
 
-    // Optional: safety role-aware redirect if someone lands here without doctor role
-    const u = currentUser();
-    if(u && u.role!=='doctor'){ location.href = u.role==='supervisor' ? 'admin.html' : 'portal.html'; }
+    function drawMini(){
+      const c=document.getElementById('miniChart'), ctx=c.getContext('2d');
+      c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
+      const W=c.clientWidth, H=c.clientHeight, pad=24;
+      ctx.clearRect(0,0,W,H);
+      const border=getComputedStyle(document.documentElement).getPropertyValue('--border')||'#e9edf5';
+      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+
+      // last 7 days totals
+      const invs=listInvoices(); const today=new Date();
+      const labels=[], data=[];
+      for(let i=6;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
+        const key=d.toISOString().slice(0,10);
+        labels.push(key.slice(5)); // MM-DD
+        const sum=invs.filter(x=>x.date===key).reduce((s,r)=>s+(+r.total||0),0);
+        data.push(sum);
+      }
+
+      const max=Math.max(10,...data);
+      const slot=(W-pad*2)/labels.length, bw=slot*0.6, base=H-pad;
+      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#5166ff';
+
+      data.forEach((v,i)=>{
+        const h=Math.round((v/max)*(H-pad*2));
+        const x=pad+i*slot+(slot-bw)/2;
+        ctx.fillStyle=primary;
+        ctx.fillRect(x,base-h,bw,h);
+      });
+
+      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#7b8';
+      ctx.font='11px system-ui'; ctx.textAlign='center';
+      labels.forEach((lb,i)=>{ const x=pad+i*slot+slot/2; ctx.fillText(lb,x,H-6); });
+    }
+
+    refreshKPIs();
+    addEventListener('resize', drawMini);
   </script>
 
-  <!-- PWA SW -->
   <script>
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
