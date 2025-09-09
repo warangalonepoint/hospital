@@ -1,5 +1,5 @@
 // service-worker.js — offline-first + Chart.js support
-const CACHE_NAME = "charan-hosp-cache-v6"; // bump version whenever assets change
+const CACHE_NAME = "charan-hosp-cache-v3"; // bump version whenever assets change
 
 const ASSETS = [
   "./",
