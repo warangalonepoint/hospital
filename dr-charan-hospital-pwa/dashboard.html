@@ -7,16 +7,16 @@
 
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=21" />
+  <link rel="stylesheet" href="styles.css?v=22" />
   <meta name="theme-color" content="#0b5a83" />
 </head>
 <body>
-  <!-- Banner (fixed height, fully responsive) -->
+  <!-- Banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Small sticky action chips (not on the banner) -->
+  <!-- Small sticky action chips (not on banner) -->
   <div class="fixed-actions">
     <button id="logoutBtn" class="chip" type="button">Logout</button>
     <button id="clearCacheBtn" class="chip" type="button">Clear Cache</button>
@@ -76,7 +76,25 @@
         </div>
       </div>
     </section>
+
+    <!-- Today Charts -->
+    <section class="card" id="todayCharts" style="display:none">
+      <h2>Today’s Sales</h2>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3 class="chart-title">By Hour (₹)</h3>
+          <canvas id="lineToday"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3 class="chart-title">By Item (Qty)</h3>
+          <canvas id="pieToday"></canvas>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <!-- Chart.js (hidden fallback if offline first load) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <script type="module">
     /* ---------------- Role gate: only doctor ---------------- */
@@ -84,14 +102,8 @@
       try {
         const s = JSON.parse(localStorage.getItem('session') || 'null');
         if (!s || !s.role) { location.replace('login.html'); return; }
-        if (s.role !== 'doctor') {
-          // Supervisors/Admins should not see dashboard
-          location.replace('admin.html');
-          return;
-        }
-      } catch {
-        location.replace('login.html');
-      }
+        if (s.role !== 'doctor') { location.replace('admin.html'); return; }
+      } catch { location.replace('login.html'); }
     })();
 
     /* ---------------- Theme toggle ---------------- */
@@ -100,6 +112,18 @@
       document.documentElement.dataset.theme = mode;
       localStorage.theme = mode;
       themeBtn.textContent = mode === 'light' ? '🌞' : '🌙';
+      // if charts exist, update their colors
+      if (window._charts) {
+        for (const ch of window._charts) {
+          ch.options.scales && Object.values(ch.options.scales).forEach(sc=>{
+            sc.ticks.color = getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#0b1220';
+            sc.grid.color  = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e6e8ef';
+          });
+          ch.options.plugins.legend && (ch.options.plugins.legend.labels.color =
+            getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#0b1220');
+          ch.update();
+        }
+      }
     };
     setTheme(localStorage.theme || 'light');
     themeBtn.addEventListener('click', () => {
@@ -114,7 +138,7 @@
 
     document.getElementById('clearCacheBtn').addEventListener('click', async () => {
       try {
-        const sess = localStorage.getItem('session'); // keep session if logged in
+        const sess = localStorage.getItem('session'); // keep session
         localStorage.clear();
         if (sess) localStorage.setItem('session', sess);
 
@@ -128,32 +152,34 @@
         }
         alert('Cache cleared. Reloading…');
         location.reload();
-      } catch (e) {
-        alert('Could not fully clear cache. Try a hard reload.');
-      }
+      } catch { alert('Could not fully clear cache. Try a hard reload.'); }
     });
 
-    /* ---------------- Data: pharmacy summary ----------------
-       Priority:
-       1) If window.fetchPharmacySummary exists (Supabase), use it.
-       2) Else derive from localStorage key "pharma_invoices"
-          invoice shape: {date: "YYYY-MM-DD", items:[{name, qty, price}], total}
-    ---------------------------------------------------------- */
+    /* ---------------- Pharmacy summary + chart data ---------------- */
+    function readInvoicesToday() {
+      const todayStr = new Date().toISOString().slice(0,10);
+      // Supabase hook (optional)
+      if (typeof window.fetchInvoicesToday === 'function') {
+        return window.fetchInvoicesToday(); // should resolve to array of invoices for today
+      }
+      // Local demo storage
+      const all = JSON.parse(localStorage.getItem('pharma_invoices') || '[]');
+      return all.filter(inv => inv && inv.date === todayStr);
+    }
+
     async function loadPharmacySummary() {
       let todayAmt = 0, mtdAmt = 0, topItemName = '–';
 
       try {
         if (typeof window.fetchPharmacySummary === 'function') {
-          // Hook for Supabase integration you’ll add later
           const r = await window.fetchPharmacySummary();
           todayAmt = r.todayAmount ?? 0;
-          mtdAmt = r.monthAmount ?? 0;
+          mtdAmt   = r.monthAmount ?? 0;
           topItemName = r.topItem ?? '–';
         } else {
           const raw = JSON.parse(localStorage.getItem('pharma_invoices') || '[]');
           const todayStr = new Date().toISOString().slice(0,10);
-          const ym = todayStr.slice(0,7); // YYYY-MM
-
+          const ym = todayStr.slice(0,7);
           const itemQty = new Map();
 
           for (const inv of raw) {
@@ -161,33 +187,128 @@
             const total = Number(inv.total || 0);
             if (inv.date === todayStr) todayAmt += total;
             if ((inv.date || '').startsWith(ym)) mtdAmt += total;
-
-            (inv.items || []).forEach(it => {
+            (inv.items || []).forEach(it=>{
               if (!it || !it.name) return;
-              const q = Number(it.qty || 0);
-              itemQty.set(it.name, (itemQty.get(it.name) || 0) + q);
+              itemQty.set(it.name, (itemQty.get(it.name)||0) + Number(it.qty||0));
             });
           }
-
-          if (itemQty.size) {
-            topItemName = [...itemQty.entries()].sort((a,b)=>b[1]-a[1])[0][0];
-          }
+          if (itemQty.size) topItemName = [...itemQty.entries()].sort((a,b)=>b[1]-a[1])[0][0];
         }
-      } catch (e) {
-        console.warn('Summary calc failed', e);
-      }
+      } catch(e){ console.warn(e); }
 
-      // Update UI
       const fmt = (n) => (Number(n || 0)).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
       document.getElementById('pharmaSummary').textContent =
         `Today ₹${fmt(todayAmt)} • MTD ₹${fmt(mtdAmt)} • Top: ${topItemName}`;
-
       document.getElementById('statToday').textContent = fmt(todayAmt);
       document.getElementById('statMonth').textContent = fmt(mtdAmt);
       document.getElementById('statTop').textContent = topItemName;
     }
 
     loadPharmacySummary();
+
+    /* ---------------- Charts: Today (Line + Pie) ---------------- */
+    function makeColors(n){
+      const base = ['#4f46e5','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6','#f97316','#84cc16','#0ea5e9'];
+      const arr = [];
+      for(let i=0;i<n;i++) arr.push(base[i%base.length]);
+      return arr;
+    }
+
+    function buildTodayDatasets(invoices){
+      // Line: hourly amounts (₹)
+      const hours = Array.from({length:24}, (_,i)=>i);
+      const perHour = new Array(24).fill(0);
+      for(const inv of invoices){
+        const t = inv.time || '00:00';
+        const h = parseInt(String(t).slice(0,2),10);
+        perHour[h] += Number(inv.total || 0);
+      }
+
+      // Pie: item quantities
+      const qtyByItem = new Map();
+      for(const inv of invoices){
+        (inv.items || []).forEach(it=>{
+          if(!it || !it.name) return;
+          qtyByItem.set(it.name, (qtyByItem.get(it.name)||0) + Number(it.qty||0));
+        });
+      }
+      const itemLabels = [...qtyByItem.keys()];
+      const itemQtys   = [...qtyByItem.values()];
+
+      return { hours, perHour, itemLabels, itemQtys };
+    }
+
+    function renderCharts(data){
+      const chartsSection = document.getElementById('todayCharts');
+      const hasData = (data.perHour.some(v=>v>0) || data.itemQtys.some(v=>v>0));
+      if (!hasData) { chartsSection.style.display = 'none'; return; }
+      chartsSection.style.display = '';
+
+      window._charts = window._charts || [];
+
+      const tc = getComputedStyle(document.documentElement);
+      const textColor = tc.getPropertyValue('--text-primary') || '#0b1220';
+      const gridColor = tc.getPropertyValue('--border') || '#e6e8ef';
+
+      // Line chart
+      const lineEl = document.getElementById('lineToday');
+      const line = new Chart(lineEl.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: data.hours.map(h => (h+'').padStart(2,'0')+':00'),
+          datasets: [{
+            label: 'Amount (₹)',
+            data: data.perHour,
+            tension: 0.35,
+            fill: false,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: textColor, maxTicksLimit: 8 } },
+            y: { grid: { color: gridColor }, ticks: { color: textColor } }
+          },
+          plugins: { legend: { labels: { color: textColor } } }
+        }
+      });
+
+      // Pie chart
+      const pieEl = document.getElementById('pieToday');
+      const colors = makeColors(data.itemLabels.length || 1);
+      const pie = new Chart(pieEl.getContext('2d'), {
+        type: 'pie',
+        data: {
+          labels: data.itemLabels.length ? data.itemLabels : ['No items'],
+          datasets: [{ data: data.itemQtys.length ? data.itemQtys : [1], backgroundColor: colors }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
+        }
+      });
+
+      window._charts.push(line, pie);
+    }
+
+    function initChartsWhenReady(){
+      const tryInit = () => {
+        if (!window.Chart) return false;
+        const invoices = readInvoicesToday();
+        const data = buildTodayDatasets(invoices);
+        renderCharts(data);
+        return true;
+      };
+      if (!tryInit()) {
+        // try again shortly in case CDN is slow
+        const id = setInterval(()=>{ if (tryInit()) clearInterval(id); }, 300);
+        setTimeout(()=>clearInterval(id), 5000);
+      }
+    }
+    initChartsWhenReady();
 
     /* --------------- Register Service Worker (quiet) --------------- */
     if ('serviceWorker' in navigator) {
@@ -196,5 +317,31 @@
       }, 300);
     }
   </script>
+
+  <style>
+    /* tiny layout helpers for charts (uses your variables) */
+    .charts-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:16px;
+    }
+    .chart-card{
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+      height: 280px;
+    }
+    .chart-title{
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    @media (min-width: 820px){
+      .charts-grid{ grid-template-columns: 1fr 1fr; }
+      .chart-card{ height: 340px; }
+    }
+  </style>
 </body>
 </html>
