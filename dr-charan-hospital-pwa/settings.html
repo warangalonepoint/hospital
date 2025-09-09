@@ -4,175 +4,98 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Settings • Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=18"/>
+  <link rel="stylesheet" href="styles.css?v=23"/>
 </head>
 <body>
-  <!-- Consistent banner -->
+  <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle">🌙</button>
   </header>
 
-  <!-- Fixed actions row -->
-  <nav class="fixed-actions">
+  <!-- Fixed Actions -->
+  <div class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </nav>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+  </div>
 
-  <section class="section">
-    <h1>Settings</h1>
-
-    <!-- Tabs as chips -->
-    <div class="range" id="tabs" style="margin:10px 0 14px">
-      <button class="chip active" data-tab="pins">PINs</button>
-      <button class="chip" data-tab="staff">Staff</button>
-      <button class="chip" data-tab="patients">Patients</button>
-    </div>
-
-    <!-- PINs -->
-    <div class="section" data-panel="pins">
-      <h2>Login PINs</h2>
-      <div class="card-grid" style="margin-top:8px">
-        <div class="card"><h2>Doctor PIN</h2><p><input id="pinDoctor" class="input" placeholder="e.g. 4321" style="width:160px"/></p></div>
-        <div class="card"><h2>Supervisor PIN</h2><p><input id="pinSupervisor" class="input" placeholder="e.g. 1111" style="width:160px"/></p></div>
-        <div class="card"><h2>Patient PIN</h2><p><input id="pinPatient" class="input" placeholder="e.g. 2222" style="width:160px"/></p></div>
-      </div>
-      <div style="margin-top:12px"><button id="savePins" class="btn">Save PINs</button></div>
-      <p class="help">Only the doctor (owner) can change these.</p>
-    </div>
-
-    <!-- Staff -->
-    <div class="section" data-panel="staff" style="display:none">
-      <h2>Staff Directory</h2>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input id="sName" class="input" placeholder="Full name" style="width:220px"/>
-        <input id="sRole" class="input" placeholder="Role" style="width:180px"/>
-        <button id="addStaff" class="chip">Add</button>
-      </div>
-      <table class="table" id="tblStaff">
-        <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <!-- Patients -->
-    <div class="section" data-panel="patients" style="display:none">
-      <h2>Patients</h2>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input id="pName" class="input" placeholder="Patient name" style="width:220px"/>
-        <input id="pPhone" class="input" placeholder="Phone" style="width:160px"/>
-        <button id="addPatient" class="chip">Add</button>
-      </div>
-      <table class="table" id="tblPatients">
-        <thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
+  <!-- Tabs -->
+  <section class="section panel--lilac">
+    <h2>Settings</h2>
+    <div class="chips range mt12" id="tabs">
+      <button class="chip chip--blue active" data-tab="pins">PINs</button>
+      <button class="chip chip--mint" data-tab="staff">Staff</button>
+      <button class="chip chip--peach" data-tab="patients">Patients</button>
     </div>
   </section>
 
-  <script type="module">
+  <!-- PINs -->
+  <section class="section panel--blue" data-panel="pins">
+    <h3>Login PINs</h3>
+    <div class="card-grid mt12">
+      <div class="card panel--lilac"><h4>Doctor</h4><input id="pinDoctor" class="input"/></div>
+      <div class="card panel--mint"><h4>Supervisor</h4><input id="pinSupervisor" class="input"/></div>
+      <div class="card panel--peach"><h4>Patient</h4><input id="pinPatient" class="input"/></div>
+    </div>
+    <button id="savePins" class="btn mt12">Save PINs</button>
+  </section>
+
+  <!-- Staff -->
+  <section class="section panel--mint" data-panel="staff" style="display:none">
+    <h3>Staff Directory</h3>
+    <div class="chips mt12">
+      <input id="sName" class="input" placeholder="Name"/>
+      <input id="sRole" class="input" placeholder="Role"/>
+      <button id="addStaff" class="chip chip--blue">Add</button>
+    </div>
+    <table class="table mt12" id="tblStaff"><thead><tr><th>Name</th><th>Role</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <!-- Patients -->
+  <section class="section panel--peach" data-panel="patients" style="display:none">
+    <h3>Patients</h3>
+    <div class="chips mt12">
+      <input id="pName" class="input" placeholder="Name"/>
+      <input id="pPhone" class="input" placeholder="Phone"/>
+      <button id="addPatient" class="chip chip--blue">Add</button>
+    </div>
+    <table class="table mt12" id="tblPatients"><thead><tr><th>Name</th><th>Phone</th><th>Notes</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <script>
     // Theme
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
+    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'}
 
-    // Guard: doctor only (owner)
-    const ses=JSON.parse(localStorage.getItem('session')||'{}');
-    if(ses.role!=='doctor'){ location.href='login.html'; }
+    // Guard (doctor only)
+    const s=JSON.parse(localStorage.getItem('session')||'{}');
+    if(s.role!=='doctor') location.replace('login.html');
 
     // Actions
-    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
-    document.getElementById('clearCacheBtn').onclick=async()=>{
-      try{
-        localStorage.clear();
-        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-        alert('Cache cleared. Reloading…'); location.reload();
-      }catch(e){ alert('Could not fully clear cache.'); }
-    };
+    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
+    clearCacheBtn.onclick=async()=>{localStorage.clear();if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))};location.reload()}
 
-    /* ---------- Tabs (chips with active state) ---------- */
-    const tabs=[...document.querySelectorAll('#tabs .chip')];
-    const panels=[...document.querySelectorAll('[data-panel]')];
-    tabs.forEach(tab=>{
-      tab.addEventListener('click',()=>{
-        tabs.forEach(t=>t.classList.remove('active'));
-        tab.classList.add('active');
-        const id=tab.dataset.tab;
-        panels.forEach(p=>p.style.display = (p.dataset.panel===id)?'block':'none');
-      });
-    });
+    // Tabs
+    const tabs=document.querySelectorAll('#tabs .chip'); const panels=document.querySelectorAll('[data-panel]');
+    tabs.forEach(tab=>tab.onclick=()=>{tabs.forEach(t=>t.classList.remove('active'));tab.classList.add('active');const id=tab.dataset.tab;panels.forEach(p=>p.style.display=p.dataset.panel===id?'block':'none')});
 
-    /* ---------- PINs ---------- */
-    const PIN_KEY='appPins';
-    const defaults={doctor:'4321', supervisor:'1111', patient:'2222'};
-    const pins=Object.assign({},defaults, JSON.parse(localStorage.getItem(PIN_KEY)||'{}'));
+    // PINs
+    const PIN_KEY='appPins'; const def={doctor:'4321',supervisor:'1111',patient:'2222'};
+    const pins=Object.assign({},def,JSON.parse(localStorage.getItem(PIN_KEY)||'{}'));
     pinDoctor.value=pins.doctor; pinSupervisor.value=pins.supervisor; pinPatient.value=pins.patient;
-    savePins.onclick=()=>{
-      const newPins={doctor:pinDoctor.value.trim(), supervisor:pinSupervisor.value.trim(), patient:pinPatient.value.trim()};
-      if(!/^\d{4,6}$/.test(newPins.doctor) || !/^\d{4,6}$/.test(newPins.supervisor) || !/^\d{4,6}$/.test(newPins.patient)){
-        return alert('PINs must be 4–6 digits.');
-      }
-      localStorage.setItem(PIN_KEY, JSON.stringify(newPins));
-      alert('Saved!');
-    };
+    savePins.onclick=()=>{localStorage.setItem(PIN_KEY,JSON.stringify({doctor:pinDoctor.value,supervisor:pinSupervisor.value,patient:pinPatient.value}));alert('Saved!')};
 
-    /* ---------- Staff directory (local first; ready for Supabase) ---------- */
-    const STAFF_KEY='staffDirectory';
-    const staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');
-    const staffTbody=document.querySelector('#tblStaff tbody');
-    function renderStaff(){
-      staffTbody.innerHTML=staff.map((s,i)=>`
-        <tr>
-          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('cell', {bubbles:true, detail:{i,field:'name',val:this.textContent.trim()}}))">${s.name}</td>
-          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('cell', {bubbles:true, detail:{i,field:'role',val:this.textContent.trim()}}))">${s.role}</td>
-          <td><button class="chip" data-del="${i}">Remove</button></td>
-        </tr>`).join('');
-    }
-    renderStaff();
-    document.getElementById('addStaff').onclick=()=>{
-      const name=sName.value.trim(), role=sRole.value.trim();
-      if(!name) return alert('Name required');
-      staff.push({name,role}); localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
-      sName.value=''; sRole.value=''; renderStaff();
-    };
-    staffTbody.addEventListener('click',e=>{
-      const i=e.target.dataset.del; if(i==null) return;
-      staff.splice(+i,1); localStorage.setItem(STAFF_KEY, JSON.stringify(staff)); renderStaff();
-    });
-    staffTbody.addEventListener('cell', e=>{
-      const {i,field,val}=e.detail; staff[i][field]=val; localStorage.setItem(STAFF_KEY, JSON.stringify(staff));
-    });
+    // Staff directory
+    const staff=[]; function renderStaff(){tblStaff.querySelector('tbody').innerHTML=staff.map((s,i)=>`<tr><td>${s.name}</td><td>${s.role}</td><td><button class="chip chip--rose" data-i="${i}">Remove</button></td></tr>`).join('')}
+    addStaff.onclick=()=>{if(!sName.value)return;staff.push({name:sName.value,role:sRole.value});renderStaff();sName.value='';sRole.value=''}
+    tblStaff.onclick=e=>{if(e.target.dataset.i!=null){staff.splice(e.target.dataset.i,1);renderStaff()}}
 
-    /* ---------- Patients directory (local; ready for Supabase) ---------- */
-    const PAT_KEY='patientsDirectory';
-    const patients=JSON.parse(localStorage.getItem(PAT_KEY)||'[]');
-    const patTbody=document.querySelector('#tblPatients tbody');
-    function renderPatients(){
-      patTbody.innerHTML=patients.map((p,i)=>`
-        <tr>
-          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'name',val:this.textContent.trim()}}))">${p.name}</td>
-          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'phone',val:this.textContent.trim()}}))">${p.phone||''}</td>
-          <td contenteditable onblur="this.dispatchEvent(new CustomEvent('pCell', {bubbles:true, detail:{i,field:'notes',val:this.textContent.trim()}}))">${p.notes||''}</td>
-          <td><button class="chip" data-delp="${i}">Remove</button></td>
-        </tr>`).join('');
-    }
-    renderPatients();
-    document.getElementById('addPatient').onclick=()=>{
-      const name=pName.value.trim(), phone=pPhone.value.trim();
-      if(!name) return alert('Name required');
-      patients.push({name, phone}); localStorage.setItem(PAT_KEY, JSON.stringify(patients));
-      pName.value=''; pPhone.value=''; renderPatients();
-    };
-    patTbody.addEventListener('click',e=>{
-      const i=e.target.dataset.delp; if(i==null) return;
-      patients.splice(+i,1); localStorage.setItem(PAT_KEY, JSON.stringify(patients)); renderPatients();
-    });
-    patTbody.addEventListener('pCell', e=>{
-      const {i,field,val}=e.detail; patients[i][field]=val; localStorage.setItem(PAT_KEY, JSON.stringify(patients));
-    });
+    // Patients directory
+    const patients=[]; function renderPatients(){tblPatients.querySelector('tbody').innerHTML=patients.map((p,i)=>`<tr><td>${p.name}</td><td>${p.phone}</td><td contenteditable>${p.notes||''}</td><td><button class="chip chip--rose" data-p="${i}">Remove</button></td></tr>`).join('')}
+    addPatient.onclick=()=>{if(!pName.value)return;patients.push({name:pName.value,phone:pPhone.value});renderPatients();pName.value='';pPhone.value=''}
+    tblPatients.onclick=e=>{if(e.target.dataset.p!=null){patients.splice(e.target.dataset.p,1);renderPatients()}}
   </script>
 </body>
 </html>
