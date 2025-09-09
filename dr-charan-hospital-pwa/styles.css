@@ -137,3 +137,75 @@ input,select{
 .muted{color:var(--muted)}
 .center{display:flex;justify-content:center;align-items:center}
 .hide{display:none}
+/* ===== Polished theme overrides ===== */
+:root{
+  --bg:#fff7f5;
+  --card:#ffffff;
+  --surface:#f3f6ff;
+  --surface-2:#f7f9ff;
+  --fg:#0f172a;
+  --muted:#5b6475;
+  --primary:#5166ff;
+  --border:#e9edf5;
+
+  /* tile palette */
+  --lilac:#e9e7ff;
+  --mint:#dff6ef;
+  --peach:#ffe1d9;
+  --ice:#eaf0ff;
+}
+[data-theme="dark"]{
+  --bg:#0b1220;
+  --card:#0f1629;
+  --surface:#111a31;
+  --surface-2:#0f1a2e;
+  --fg:#eaf0ff;
+  --muted:#9ba3b4;
+  --primary:#56a3ff;
+  --border:#23304b;
+
+  --lilac:#2a2646;
+  --mint:#1b3b33;
+  --peach:#3f2a2a;
+  --ice:#213048;
+}
+
+/* global base */
+body{ background:var(--bg); color:var(--fg); }
+.card{ background:var(--card); border:1px solid var(--border); box-shadow:0 10px 30px rgba(16,24,40,.08); }
+.tile{ background:var(--ice); border:1px solid var(--border); border-radius:22px; padding:22px; }
+.tile .title{ font-weight:800; font-size:20px; color:var(--fg); }
+.tile .sub{ color:var(--muted); }
+
+/* colorful tiles */
+.tile.lilac{ background:var(--lilac); }
+.tile.mint{ background:var(--mint); }
+.tile.peach{ background:var(--peach); }
+.tile.ice{  background:var(--ice); }
+
+/* fix: readable in dark */
+[data-theme="dark"] .tile .title{ color:var(--fg); }
+[data-theme="dark"] .tile .sub{ color:var(--muted); }
+
+/* banner chips (bottom-left INSIDE banner) */
+.banner{ position:relative; }
+.floating-actions{
+  position:absolute;
+  left:14px; bottom:14px; top:auto !important;
+  z-index:5; display:flex; gap:10px; flex-wrap:wrap;
+}
+.floating-actions .chip{
+  background:#fff; color:#0f172a; border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(16,24,40,.18);
+}
+[data-theme="dark"] .floating-actions .chip{
+  background:#0f1629; color:#eaf0ff; border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+
+/* charts wrapper */
+.kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.kpi{ background:var(--surface-2); border:1px solid var(--border); border-radius:18px; padding:14px; }
+.kpi .n{ font-size:28px; font-weight:800; }
+
+.chart-card{ margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:20px; background:var(--card); }
