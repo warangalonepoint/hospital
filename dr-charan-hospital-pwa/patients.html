@@ -6,20 +6,20 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=27"/>
+  <link rel="stylesheet" href="styles.css?v=28"/>
   <style>
     .section{margin:12px}
     .tint{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.06)}
     .tint-blue{background: color-mix(in srgb, #2563eb 14%, var(--card-bg))}
     .tint-green{background: color-mix(in srgb, #22c55e 14%, var(--card-bg))}
-    .tint-rose{background: color-mix(in srgb, #f43f5e 14%, var(--card-bg))}
     .filters{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
     .chip{height:40px;padding:0 14px;border-radius:999px;background:var(--card-bg);border:1px solid rgba(0,0,0,.06)}
     table{width:100%;border-collapse:collapse;margin-top:10px;background:var(--card-bg);border-radius:12px;overflow:hidden}
     th,td{padding:10px;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px;text-align:left}
     th{background:rgba(0,0,0,.04)}
     html[data-theme="dark"] th{background:rgba(255,255,255,.06)}
-    textarea{width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px}
+    .input, textarea{width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px;background:var(--card-bg)}
+    .row-actions{display:flex;gap:8px;flex-wrap:wrap}
   </style>
 </head>
 <body>
@@ -35,12 +35,13 @@
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </nav>
 
-  <!-- Patients -->
+  <!-- Upcoming (from supervisor tokens) -->
   <section class="section tint tint-blue">
     <h2>Upcoming Patients</h2>
     <div class="filters">
       <button class="chip" data-filter="today">Today</button>
       <button class="chip" data-filter="all">All</button>
+      <input id="searchTxt" class="input" placeholder="Search name/phone" style="max-width:220px">
     </div>
     <table>
       <thead>
@@ -50,11 +51,17 @@
     </table>
   </section>
 
+  <!-- Served & follow-ups -->
   <section class="section tint tint-green">
-    <h2>Served Patients</h2>
+    <h2>Served Patients & Follow-ups</h2>
     <table>
       <thead>
-        <tr><th>Token</th><th>Name</th><th>Date</th><th>Treatment Notes</th><th>Reminder</th></tr>
+        <tr>
+          <th>Token</th><th>Name</th><th>Date</th>
+          <th style="width:34%">Treatment Notes</th>
+          <th>Next Visit (YYYY-MM-DD)</th>
+          <th>Save</th>
+        </tr>
       </thead>
       <tbody id="servedBody"></tbody>
     </table>
@@ -74,17 +81,21 @@
     logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
     clearCacheBtn.onclick=async()=>{localStorage.clear();if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))};location.reload()}
 
-    // --- Data
-    const bookings=()=>JSON.parse(localStorage.getItem('bookings')||'[]');
-    const served=()=>JSON.parse(localStorage.getItem('servedPatients')||'[]');
-    const saveServed=(arr)=>localStorage.setItem('servedPatients',JSON.stringify(arr));
-    const today=new Date().toISOString().slice(0,10);
+    // --- Data helpers
+    const todayISO = new Date().toISOString().slice(0,10);
+    const bookings = () => JSON.parse(localStorage.getItem('bookings')||'[]');
+    const getServed = () => JSON.parse(localStorage.getItem('servedPatients')||'[]');
+    const setServed = (arr) => localStorage.setItem('servedPatients', JSON.stringify(arr));
 
-    function renderUpcoming(filter='today'){
-      const all=bookings();
-      let list=all;
-      if(filter==='today'){list=all.filter(b=>b.date===today)}
-      upcomingBody.innerHTML=list.map(b=>`
+    // ---------- Upcoming ----------
+    let curFilter='today', query='';
+    function renderUpcoming(){
+      let list = bookings().filter(b=>!b.served);
+      if(curFilter==='today') list = list.filter(b=>b.date===todayISO);
+      if(query) list = list.filter(b=>(b.name+b.phone+(b.note||'')).toLowerCase().includes(query));
+      list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time) || a.token - b.token);
+
+      upcomingBody.innerHTML = list.map(b=>`
         <tr>
           <td>${b.token}</td>
           <td>${b.name}</td>
@@ -92,45 +103,94 @@
           <td>${b.date}</td>
           <td>${b.time}</td>
           <td>${b.note||''}</td>
-          <td><button class="chip serveBtn" data-id="${b.id}">Serve</button></td>
-        </tr>`).join('')||`<tr><td colspan="7">No bookings</td></tr>`;
+          <td><div class="row-actions">
+            <button class="chip serveBtn" data-id="${b.id}">Serve</button>
+          </div></td>
+        </tr>`).join('') || `<tr><td colspan="7">No bookings</td></tr>`;
+
       document.querySelectorAll('.serveBtn').forEach(btn=>{
         btn.onclick=()=>servePatient(btn.dataset.id);
       });
     }
 
-    function renderServed(){
-      const list=served();
-      servedBody.innerHTML=list.map(p=>`
-        <tr>
-          <td>${p.token}</td>
-          <td>${p.name}</td>
-          <td>${p.date}</td>
-          <td>${p.treatment||''}</td>
-          <td>${p.reminder||''}</td>
-        </tr>`).join('')||`<tr><td colspan="5">None yet</td></tr>`;
-    }
-
+    // Mark served → moves to served list with empty editable fields
     function servePatient(id){
-      const all=bookings();
-      const rec=all.find(b=>b.id===id);
-      if(!rec) return;
-      const notes=prompt("Treatment / Medicines for "+rec.name,"");
-      const reminder=prompt("Next Visit Reminder (date or text)","");
-      const newServed=served();
-      newServed.push({...rec,treatment:notes,reminder});
-      saveServed(newServed);
+      const list = bookings();
+      const b = list.find(x=>x.id===id);
+      if(!b) return;
+
+      // Mark booking as served (so it won't show again in upcoming locally)
+      b.served = true;
+      localStorage.setItem('bookings', JSON.stringify(list));
+
+      const served = getServed();
+      // create/editable record
+      served.push({
+        id: b.id,
+        token: b.token,
+        name: b.name,
+        phone: b.phone,
+        date: b.date,
+        time: b.time,
+        note: b.note||'',
+        treatment: '',
+        reminderISO: '' // date string YYYY-MM-DD
+      });
+      setServed(served);
+
+      renderUpcoming();
       renderServed();
+      // Let dashboard badge/KPI update if open elsewhere
+      window.dispatchEvent(new StorageEvent('storage', {key:'servedPatients'}));
     }
 
-    // Filters
-    document.querySelectorAll('[data-filter]').forEach(btn=>{
-      btn.onclick=()=>renderUpcoming(btn.dataset.filter);
-    });
+    // ---------- Served ----------
+    function renderServed(){
+      const list = getServed().sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time) );
+      servedBody.innerHTML = list.map(p=>`
+        <tr>
+          <td>${p.token||''}</td>
+          <td>${p.name||''}</td>
+          <td>${p.date||''}</td>
+          <td>
+            <textarea class="input" rows="2" data-note="${p.id}">${p.treatment||''}</textarea>
+          </td>
+          <td>
+            <input class="input" type="date" value="${p.reminderISO||''}" data-rem="${p.id}">
+          </td>
+          <td>
+            <button class="btn" data-save="${p.id}">Save</button>
+          </td>
+        </tr>`).join('') || `<tr><td colspan="6">None yet</td></tr>`;
 
-    renderUpcoming('today');
+      // Save handlers
+      document.querySelectorAll('[data-save]').forEach(btn=>{
+        btn.onclick=()=>{
+          const id = btn.dataset.save;
+          const all = getServed();
+          const rec = all.find(x=>x.id===id);
+          if(!rec) return;
+          rec.treatment   = (document.querySelector(`[data-note="${id}"]`)?.value||'').trim();
+          rec.reminderISO = (document.querySelector(`[data-rem="${id}"]`)?.value||'').trim();
+          setServed(all);
+          alert('Saved');
+          // trigger dashboard refresh if open
+          window.dispatchEvent(new StorageEvent('storage', {key:'servedPatients'}));
+        };
+      });
+    }
+
+    // Filters & search
+    document.querySelectorAll('[data-filter]').forEach(btn=>{
+      btn.onclick=()=>{ curFilter=btn.dataset.filter; renderUpcoming(); };
+    });
+    document.getElementById('searchTxt').oninput=(e)=>{ query=(e.target.value||'').toLowerCase(); renderUpcoming(); };
+
+    // Init
+    renderUpcoming();
     renderServed();
 
+    // SW
     if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
   </script>
 </body>
