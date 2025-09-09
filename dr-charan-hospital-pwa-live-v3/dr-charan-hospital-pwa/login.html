@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Login – Dr. Charan Hospital</title>
+<link rel="manifest" href="manifest.webmanifest"/><link rel="icon" href="assets/logo.png"/>
+<link rel="stylesheet" href="styles.css?v=3"/></head><body>
+<header class="app-header"><h1>Dr. Charan Hospital – Login</h1></header>
+<main class="container"><section class="card">
+  <div class="field"><label>Role</label><select id="role"><option value="doctor">Doctor</option><option value="supervisor">Supervisor</option><option value="patient">Patient</option></select></div>
+  <div class="field"><label>PIN</label><input id="pin" inputmode="numeric" placeholder="4-digit" maxlength="6"/></div>
+  <button class="btn primary" id="loginBtn">Login</button>
+  <p>Demo PINs → Doctor: <b>4321</b> • Supervisor: <b>1111</b> • Patient: <b>2222</b></p>
+</section></main>
+<script type="module">
+  import { login } from './js/store.js?v=3';
+  document.getElementById('loginBtn').addEventListener('click',()=>{
+    const role=document.getElementById('role').value;
+    const pin=document.getElementById('pin').value.trim();
+    const ok=login(role,pin);
+    if(!ok){ alert('Invalid PIN for selected role'); return; }
+    location.href = role==='patient' ? 'portal.html?v=3' : 'dashboard.html?v=3';
+  });
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
+</script>
+</body></html>

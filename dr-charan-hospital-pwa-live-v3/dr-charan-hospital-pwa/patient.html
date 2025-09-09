@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="styles.css?v=3">
+<header class="app-header"><a class="chip" href="login.html?v=3">← Back</a><h1>Patient Booking</h1></header>
+<main class="container"><section class="card">
+<form id="bookingForm">
+  <div class="field"><label>Name</label><input required name="name"/></div>
+  <div class="field"><label>Contact</label><input required name="contact" inputmode="tel"/></div>
+  <div class="field"><label>Reason</label><select name="reason"><option>Consultation</option><option>Follow-up</option><option>Diagnostics</option></select></div>
+  <div class="field"><label>Date</label><input required name="date" type="date"/></div>
+  <div class="field"><label>Slot</label><select name="slot" id="slotSelect"></select></div>
+  <button class="btn primary">Book Slot</button>
+</form>
+<section class="card" id="confirm" hidden><h3>Booking Confirmed ✅</h3><p id="confirmText"></p><a class="btn" id="waBtn" target="_blank">WhatsApp</a></section>
+</section></main>
+<script type="module">
+  import { initSlotsForDate, getAvailableSlots, saveBooking, nextTokenForDate } from './js/store.js?v=3';
+  const form=document.getElementById('bookingForm'); const slotSelect=document.getElementById('slotSelect'); const confirm=document.getElementById('confirm'); const text=document.getElementById('confirmText'); const waBtn=document.getElementById('waBtn');
+  form.date.valueAsDate=new Date(); const render=()=>{ const d=form.date.value; initSlotsForDate(d); slotSelect.innerHTML=''; for(const s of getAvailableSlots(d)){ const o=document.createElement('option'); o.value=s; o.textContent=s; slotSelect.appendChild(o);} }; render(); form.date.addEventListener('change',render);
+  form.addEventListener('submit',e=>{ e.preventDefault(); const data=Object.fromEntries(new FormData(form)); const token=nextTokenForDate(data.date); const rec=saveBooking({name:data.name,contact:data.contact,reason:data.reason,date:data.date,slot:data.slot,token}); form.hidden=true; confirm.hidden=false; text.textContent=`Token ${rec.token} for ${rec.name} on ${rec.date} at ${rec.slot}.`; const msg=encodeURIComponent(`Hi ${rec.name}, your appointment is confirmed. Date: ${rec.date}, Time: ${rec.slot}, Token: ${rec.token}. – Dr. Charan Hospital`); waBtn.href=`https://wa.me/91${rec.contact}?text=${msg}`; });
+</script>

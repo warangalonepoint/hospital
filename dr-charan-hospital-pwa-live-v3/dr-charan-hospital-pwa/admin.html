@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Admin – Dr. Charan Hospital</title>
+<link rel="stylesheet" href="styles.css?v=3"/></head><body>
+<header class="app-header"><a class="chip" href="login.html?v=3">← Back</a><h1>Admin</h1></header>
+<main class="container">
+  <section class="card"><input type="date" id="date"> <input id="q" placeholder="search"> <button class="btn" id="exportCsv">Export CSV</button></section>
+  <section class="card" id="summary"></section>
+  <section class="card table-wrap"><table class="table" id="tbl"><thead><tr><th>Time</th><th>Token</th><th>Name</th><th>Reason</th><th>Contact</th><th>Reminder</th><th>Call</th></tr></thead><tbody></tbody></table></section>
+</main>
+<script type="module">
+  import { getBookingsByDate, markReminder, telLink, exportBookingsCsv, clearForDate, clearAll } from './js/store.js?v=3';
+  const date=document.getElementById('date'); const q=document.getElementById('q'); const tbody=document.querySelector('#tbl tbody'); const summary=document.getElementById('summary');
+  date.valueAsDate=new Date();
+  const render=()=>{ const d=date.value; const rows=getBookingsByDate(d); const filter=q.value.toLowerCase(); const filtered=rows.filter(r=>`${r.name} ${r.reason} ${r.slot}`.toLowerCase().includes(filter)); tbody.innerHTML=''; for(const r of filtered){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.slot}</td><td>${r.token}</td><td>${r.name}</td><td>${r.reason}</td><td>${r.contact}</td><td><button class="chip ${r.reminder==='✔️'?'ok':''}" data-id="${r.id}">${r.reminder||'Send WA'}</button></td><td><a class="chip" href="${telLink(r.contact)}">Call</a></td>`; tbody.appendChild(tr);} summary.textContent=`${d} • ${rows.length} bookings`; };
+  date.addEventListener('change',render); q.addEventListener('input',render);
+  document.addEventListener('click',e=>{ const b=e.target.closest('button.chip'); if(!b) return; if(markReminder(b.dataset.id)){ b.textContent='✔️'; b.classList.add('ok'); } });
+  document.getElementById('exportCsv').addEventListener('click',()=>{ const csv=exportBookingsCsv(date.value); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`bookings_${date.value}.csv`; a.click(); });
+  render();
+</script></body></html>

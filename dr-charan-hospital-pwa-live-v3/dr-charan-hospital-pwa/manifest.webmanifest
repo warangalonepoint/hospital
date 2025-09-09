@@ -1,0 +1,1 @@
+{"name": "Dr. Charan Hospital Demo", "short_name": "Hospital", "start_url": "login.html?v=3", "display": "standalone", "background_color": "#0b1220", "theme_color": "#0f172a", "icons": [{"src": "assets/logo.png", "sizes": "192x192", "type": "image/png"}]}
