@@ -3,282 +3,104 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Pharmacy Reports – Dr. Charan Hospital</title>
+  <title>Pharmacy Records – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=18"/>
 </head>
 <body>
-  <!-- Banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions under banner -->
-  <div class="fixed-actions">
+  <nav class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
-    <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
-  </div>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
+  </nav>
 
-  <main class="section" style="max-width:1100px">
-    <!-- Range selector -->
-    <div class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-      <h2 style="font-size:18px">Pharmacy Records</h2>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="chip" data-range="daily">Daily</button>
+  <section class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <h1>Pharmacy Records</h1>
+      <div class="range">
+        <button class="chip active" data-range="daily">Daily</button>
         <button class="chip" data-range="weekly">Weekly</button>
         <button class="chip" data-range="monthly">Monthly</button>
         <button class="chip" data-range="yearly">Yearly</button>
       </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-      <div class="card card--blue">
-        <h2>Total (selected)</h2>
-        <p id="kpiTotal" style="font-size:28px;font-weight:700;margin-top:6px">0.00</p>
-      </div>
-      <div class="card card--lavender">
-        <h2>Invoices</h2>
-        <p id="kpiInvoices" style="font-size:28px;font-weight:700;margin-top:6px">0</p>
-      </div>
-      <div class="card card--mint">
-        <h2>Avg / Invoice ₹</h2>
-        <p id="kpiAvg" style="font-size:28px;font-weight:700;margin-top:6px">0.00</p>
-      </div>
-      <div class="card card--peach">
-        <h2>Top Item</h2>
-        <p id="kpiTop" style="font-size:20px;font-weight:700;margin-top:10px">—</p>
-      </div>
+    <div class="card-grid" style="margin-top:10px">
+      <div class="card" style="background:var(--blue);"><h2>Total (selected)</h2><p id="rTotal">0.00</p></div>
+      <div class="card" style="background:var(--lilac);"><h2>Invoices</h2><p id="rInv">0</p></div>
+      <div class="card" style="background:var(--mint);"><h2>Avg / Invoice ₹</h2><p id="rAvg">0.00</p></div>
+      <div class="card" style="background:var(--peach);"><h2>Top Item</h2><p id="rTop">—</p></div>
     </div>
 
-    <!-- Charts -->
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:10px">Revenue by Day</h2>
-      <canvas id="lineChart" height="160"></canvas>
+    <div class="section" id="rList" style="margin-top:14px">
+      <h2 style="margin-bottom:8px">Invoices</h2>
+      <table class="table" id="tbl"></table>
     </div>
+  </section>
 
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:10px">Top Items</h2>
-      <canvas id="pieChart" height="160"></canvas>
-    </div>
+  <script type="module">
+    // theme toggle
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    <!-- Records table -->
-    <div class="card">
-      <h2 style="font-size:18px;margin-bottom:10px">Invoices (selected range)</h2>
-      <table class="table" id="invTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Items</th>
-            <th>Total ₹</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </main>
+    // guard: doctor view
+    const ses=JSON.parse(localStorage.getItem('session')||'{}');
+    if(ses.role!=='doctor'){ location.href='login.html'; }
 
-  <!-- Chart.js (offline copy) -->
-  <script src="assets/chart.umd.min.js"></script>
-
-  <script>
-  /******** Theme toggle ********/
-  const t = document.getElementById('themeToggle');
-  const applyThemeIcon = () => t.textContent = (document.documentElement.dataset.theme||'light')==='light' ? '🌞' : '🌙';
-  if(localStorage.theme){ document.documentElement.dataset.theme = localStorage.theme; }
-  applyThemeIcon();
-  t.onclick = () => {
-    const cur = document.documentElement.dataset.theme || 'light';
-    const next = cur === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    localStorage.theme = next;
-    applyThemeIcon();
-    // Chart.js doesn’t auto-recolor; rebuild to match theme backgrounds
-    setTimeout(renderAll, 0);
-  };
-
-  /******** Session guard + logout ********/
-  const session = JSON.parse(localStorage.getItem('session') || '{}');
-  if(!session.role){ location.replace('login.html'); }
-  document.getElementById('logoutBtn').onclick = () => {
-    localStorage.removeItem('session');
-    location.href = 'login.html';
-  };
-
-  /******** Clear cache for PWA ********/
-  document.getElementById('clearCacheBtn').onclick = async () => {
-    try{
-      localStorage.clear();
-      if('caches' in window){ const ks = await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      if('serviceWorker' in navigator){ const regs = await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-      alert('Cache cleared. Reloading…');
-      location.reload(true);
-    }catch(e){ alert('Could not fully clear. Try hard reload.'); }
-  };
-
-  /******** Data source ********/
-  // Prefer your store API if present; else use localStorage('invoices')
-  async function loadInvoices(){
-    try{
-      if(window.Store && Store.getInvoices){
-        return await Store.getInvoices(); // expected: [{id, dateISO, items:[{name,qty,price}], total}]
-      }
-    }catch(e){}
-    const raw = JSON.parse(localStorage.getItem('invoices')||'[]');
-    return raw;
-  }
-
-  /******** Helpers ********/
-  const ranges = {
-    daily: 1, weekly: 7, monthly: 30, yearly: 365
-  };
-  let currentRange = 'daily';
-  const fmtMoney = n => (Number(n||0)).toFixed(2);
-
-  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const withinDays = (iso, days) => {
-    const dt = new Date(iso);
-    const today = startOfDay(new Date());
-    const that = startOfDay(dt);
-    const diff = (today - that) / 86400000; // days
-    return diff >= 0 && diff < days;
-  };
-
-  /******** Aggregation ********/
-  function aggregate(invoices, days){
-    const now = new Date();
-    const labels = [];
-    const map = new Map(); // dateStr -> total
-    for(let i=days-1;i>=0;i--){
-      const d = new Date(now); d.setDate(d.getDate()-i);
-      const key = d.toISOString().slice(0,10);
-      labels.push(key);
-      map.set(key, 0);
-    }
-
-    let total = 0;
-    const itemsCount = new Map(); // name -> qty
-    const filtered = [];
-
-    for(const inv of invoices){
-      const iso = inv.dateISO || inv.date || inv.created_at || inv.ts;
-      if(!iso) continue;
-      if(!withinDays(iso, days)) continue;
-      filtered.push(inv);
-
-      const key = (new Date(iso)).toISOString().slice(0,10);
-      const t = Number(inv.total || 0);
-      total += t;
-      if(map.has(key)) map.set(key, map.get(key)+t);
-
-      // items
-      for(const it of (inv.items||[])){
-        const name = (it.name||it.item||'Unknown').trim();
-        const qty = Number(it.qty||it.quantity||1);
-        itemsCount.set(name, (itemsCount.get(name)||0)+qty);
-      }
-    }
-
-    // top item
-    let topName = '—', topQty = 0;
-    for(const [name, qty] of itemsCount.entries()){
-      if(qty > topQty){ topQty = qty; topName = name; }
-    }
-
-    return {
-      labels,
-      series: labels.map(k => map.get(k)||0),
-      total,
-      count: filtered.length,
-      avg: filtered.length ? total/filtered.length : 0,
-      top: topName,
-      filtered
+    // actions
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      try{
+        localStorage.clear();
+        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload();
+      }catch(e){ alert('Could not fully clear cache.'); }
     };
-  }
 
-  /******** UI wiring ********/
-  const btns = Array.from(document.querySelectorAll('[data-range]'));
-  btns.forEach(b=>b.addEventListener('click', ()=>{
-    currentRange = b.dataset.range;
-    btns.forEach(x=>x.style.outline = '');
-    b.style.outline = '2px solid var(--accent)';
-    renderAll();
-  }));
-  // default highlight
-  document.querySelector('[data-range="'+currentRange+'"]').style.outline = '2px solid var(--accent)';
+    // range chips active state
+    const chips=[...document.querySelectorAll('[data-range]')];
+    function markActive(btn){ chips.forEach(c=>c.classList.remove('active')); btn.classList.add('active'); }
+    chips.forEach(btn=>btn.addEventListener('click', ()=>{ markActive(btn); load(btn.dataset.range); }));
 
-  const kpiTotal = document.getElementById('kpiTotal');
-  const kpiInvoices = document.getElementById('kpiInvoices');
-  const kpiAvg = document.getElementById('kpiAvg');
-  const kpiTop = document.getElementById('kpiTop');
-  const invTbody = document.querySelector('#invTable tbody');
+    // helpers
+    function sum(arr,fn){ return arr.reduce((a,b)=>a+fn(b),0); }
+    function rowsBetween(start,end){
+      const s=start.toISOString().slice(0,10), e=end.toISOString().slice(0,10);
+      const store=JSON.parse(localStorage.getItem('sales')||'[]');
+      return store.filter(r=>r.date>=s && r.date<=e);
+    }
+    function load(key){
+      const end=new Date(); const start=new Date(end);
+      if(key==='daily'){ /* start today */ }
+      if(key==='weekly'){ start.setDate(end.getDate()-6); }
+      if(key==='monthly'){ start.setDate(end.getDate()-29); }
+      if(key==='yearly'){ start.setFullYear(end.getFullYear()-1); }
+      const rows=rowsBetween(start,end);
 
-  let lineChart, pieChart;
+      const total=sum(rows,r=>+r.total||0);
+      const inv=rows.length;
+      document.getElementById('rTotal').textContent=total.toFixed(2);
+      document.getElementById('rInv').textContent=inv;
+      document.getElementById('rAvg').textContent=(inv? total/inv : 0).toFixed(2);
 
-  function buildLine(ctx, labels, data){
-    if(lineChart) lineChart.destroy();
-    lineChart = new Chart(ctx, {
-      type:'line',
-      data:{ labels, datasets:[{ label:'Revenue ₹', data, tension:.35, fill:false }]},
-      options:{ responsive:true, scales:{ x:{ ticks:{ color:getTick() } }, y:{ ticks:{ color:getTick() } } }, plugins:{ legend:{ display:false } } }
-    });
-  }
-  function buildPie(ctx, items){
-    if(pieChart) pieChart.destroy();
-    const labels = items.map(x=>x[0]);
-    const data = items.map(x=>x[1]);
-    pieChart = new Chart(ctx, {
-      type:'doughnut',
-      data:{ labels, datasets:[{ data }]},
-      options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:getTick() } } } }
-    });
-  }
-  const getTick = () => (document.documentElement.dataset.theme||'light')==='light' ? '#0f172a' : '#e6edf7';
+      const byItem={}; rows.forEach(r=> (r.items||[]).forEach(i=>{ byItem[i.name]=(byItem[i.name]||0)+((+i.qty||0)*(+i.price||0)); }));
+      const top=Object.entries(byItem).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+      document.getElementById('rTop').textContent=top;
 
-  async function renderAll(){
-    const invoices = await loadInvoices();
-    const days = ranges[currentRange] || 7;
-    const agg = aggregate(invoices, days);
-
-    // KPIs
-    kpiTotal.textContent = fmtMoney(agg.total);
-    kpiInvoices.textContent = agg.count;
-    kpiAvg.textContent = fmtMoney(agg.avg);
-    kpiTop.textContent = agg.top;
-
-    // Table
-    invTbody.innerHTML = '';
-    for(const inv of agg.filtered.slice().sort((a,b)=>new Date(b.dateISO||b.date)-new Date(a.dateISO||a.date))){
-      const tr = document.createElement('tr');
-      const iso = inv.dateISO || inv.date || inv.created_at || inv.ts;
-      const dateStr = new Date(iso).toLocaleDateString();
-      const itemsStr = (inv.items||[]).map(i=>`${i.name||i.item}×${i.qty||1}`).join(', ');
-      tr.innerHTML = `<td>${dateStr}</td><td>${itemsStr}</td><td>${fmtMoney(inv.total||0)}</td>`;
-      invTbody.appendChild(tr);
+      const tbl=document.getElementById('tbl');
+      tbl.innerHTML = `<thead><tr><th>Date</th><th>Invoice</th><th>Lines</th><th>Total ₹</th></tr></thead><tbody>${
+        rows.map(r=>`<tr><td>${r.date}</td><td>${r.no||'-'}</td><td>${(r.items||[]).length}</td><td>${(+r.total||0).toFixed(2)}</td></tr>`).join('')
+      }</tbody>`;
     }
 
-    // Charts
-    const ctxL = document.getElementById('lineChart').getContext('2d');
-    buildLine(ctxL, agg.labels, agg.series);
-
-    const itemPairs = Array.from(agg.filtered.reduce((m,inv)=>{
-      (inv.items||[]).forEach(it=>{
-        const k=(it.name||it.item||'Unknown').trim();
-        m.set(k,(m.get(k)||0)+(Number(it.qty||1)));
-      });
-      return m;
-    }, new Map())).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    const ctxP = document.getElementById('pieChart').getContext('2d');
-    buildPie(ctxP, itemPairs);
-  }
-
-  // initial render
-  renderAll();
-
-  // Register SW quietly
-  if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    load('daily');
   </script>
 </body>
 </html>
