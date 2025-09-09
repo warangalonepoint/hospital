@@ -5,7 +5,7 @@
   <title>Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=10"/>
+  <link rel="stylesheet" href="styles.css?v=14"/>
 </head>
 <body>
   <!-- Banner already has logo+title inside the image -->
@@ -21,15 +21,15 @@
           <div class="sub">KPIs & weekly sales</div>
         </a>
         <!-- Direct link to Billing v1 -->
-        <a class="tile pharma" id="openPharmacy" href="admin.html?v=12">
+        <a class="tile pharma" id="openPharmacy" href="admin.html?v=15">
           <div class="title">Pharmacy</div>
           <div class="sub">Sales & invoices</div>
         </a>
-        <a class="tile bookings" id="openBookings" href="patient.html?v=12">
+        <a class="tile bookings" id="openBookings" href="patient.html?v=15">
           <div class="title">Bookings</div>
           <div class="sub">Quick patient slots</div>
         </a>
-        <a class="tile patients" id="openPatients" href="portal.html?v=12">
+        <a class="tile patients" id="openPatients" href="portal.html?v=15">
           <div class="title">Patients</div>
           <div class="sub">Reminders & history</div>
         </a>
@@ -37,9 +37,9 @@
           <div class="title">Staff</div>
           <div class="sub">Roster & status</div>
         </a>
-        <a class="tile upload" id="openUpload" href="dashboard.html?v=12#upload">
-          <div class="title">Data Upload</div>
-          <div class="sub">5 years CSV import</div>
+        <a class="tile settings" href="settings.html?v=14">
+          <div class="title">Settings</div>
+          <div class="sub">PINs, Staff, Patients</div>
         </a>
       </div>
 
@@ -60,7 +60,7 @@
       </div>
       <canvas id="salesChart" height="180" style="width:100%;margin-top:16px"></canvas>
       <div style="display:flex;gap:10px;margin-top:10px">
-        <a class="btn" id="gotoPharmacy" href="admin.html?v=12">Open Pharmacy</a>
+        <a class="btn" id="gotoPharmacy" href="admin.html?v=15">Open Pharmacy</a>
         <button class="btn ghost" id="exportSales">Export Sales CSV</button>
       </div>
     </section>
@@ -71,7 +71,7 @@
   </footer>
 
   <script type="module">
-    import * as S from './js/store.js?v=12';
+    import * as S from './js/store.js?v=14';
 
     // Theme toggle
     const tbtn=document.getElementById('themeToggle');
@@ -89,13 +89,13 @@
 
     // Auth guard
     const u = (JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}')).user;
-    if(!u){ location.href='login.html?v=12'; }
+    if(!u){ location.href='login.html?v=14'; }
 
     // Actions
     document.getElementById('logout').onclick=()=>{
       const db=JSON.parse(localStorage.getItem('onestop_hospital_demo_v5')||'{}');
       db.user=null; localStorage.setItem('onestop_hospital_demo_v5', JSON.stringify(db));
-      location.href='login.html?v=12';
+      location.href='login.html?v=14';
     };
     document.getElementById('clearCacheBtn').addEventListener('click', async ()=>{
       try{
@@ -111,7 +111,18 @@
       }catch(e){ console.error(e); alert('Could not clear everything. Try hard reload.'); }
     });
 
-    // Analytics KPIs
+    // Export (from derived sales)
+    document.getElementById('exportSales').onclick=()=>{
+      const rows = S.listSales?.() || [];
+      const head=['date','item','qty','price','amount','invoice'];
+      const body=(rows||[]).map(r=>[r.date,r.item,r.qty,r.price,(r.qty*r.price).toFixed(2),r.invoice||'']);
+      const csv=[head,...body].map(r=>r.join(',')).join('\\n');
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      a.download='pharma_sales.csv'; a.click();
+    };
+
+    // KPIs
     async function renderKPIs(){
       const t1 = (await S.totalsToday?.() || 0).toFixed(2);
       const t2 = (await S.totalsMonth?.() || 0).toFixed(2);
@@ -121,7 +132,7 @@
       document.getElementById('topItem').textContent = top;
     }
 
-    // Simple 7-day bar chart (no external libs)
+    // Simple 7-day bar chart
     async function renderChart(){
       const rows = await S.listSales?.() || [];
       const fmt = (d)=>d.toISOString().slice(5,10); // MM-DD
@@ -142,11 +153,9 @@
       const W=c.clientWidth, H=c.clientHeight, pad=24;
       ctx.clearRect(0,0,W,H);
 
-      // axis
       const border=getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e9edf5';
       ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
 
-      // bars
       const max=Math.max(10, ...data);
       const slot=(W - pad*2)/labels.length;
       const bw=slot*0.7;
@@ -167,7 +176,6 @@
     await renderChart();
     addEventListener('resize', renderChart);
 
-    // Scroll to analytics on tile click (Pharmacy tile uses href)
     document.getElementById('openAnalytics').onclick=()=>document.getElementById('analyticsPanel').scrollIntoView({behavior:'smooth'});
   </script>
 </body>
