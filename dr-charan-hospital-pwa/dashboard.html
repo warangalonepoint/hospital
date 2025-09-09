@@ -3,22 +3,21 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Doctor Dashboard – Dr. Charan Hospital</title>
+  <title>Doctor Dashboard – Dr. Charan</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=16"/>
+  <link rel="stylesheet" href="styles.css?v=20"/>
 </head>
 <body>
-  <!-- Banner -->
   <header class="banner">
-    <!-- small logo overlay (optional: replace with your logo.png if you want) -->
-    <img class="logo" src="assets/logo.png" alt="Dr. Charan Hospital">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
-    <div class="floating-actions">
-      <a href="login.html" id="logoutBtn" class="chip">Logout</a>
-      <button id="clearCacheBtn" class="chip">Clear Cache</button>
-    </div>
+    <button id="themeToggle" class="chip floating-toggle small" aria-label="Theme">🌙</button>
   </header>
+
+  <!-- toolbar BELOW the banner -->
+  <div class="toolbar">
+    <a href="login.html" id="logoutBtn" class="chip small">Logout</a>
+    <button id="clearCacheBtn" class="chip small">Clear Cache</button>
+  </div>
 
   <main class="container">
     <!-- Tiles -->
@@ -29,7 +28,7 @@
           <div class="sub">KPIs & weekly sales</div>
         </a>
 
-        <a class="tile ice" href="pharmacy-report.html" id="pharmaTile">
+        <a class="tile ice" href="pharmacy.html" id="pharmaTile">
           <div class="title">Pharmacy</div>
           <div class="sub" id="pharmaMeta">Today ₹0.00 • MTD ₹0.00 • Top: –</div>
         </a>
@@ -58,7 +57,7 @@
 
     <!-- KPIs + mini chart -->
     <section class="card" style="margin-top:16px;padding:18px">
-      <h3 style="margin:0 0 8px">Sales Analytics</h3>
+      <h3 class="section-title">Sales Analytics</h3>
       <div class="kpis">
         <div class="kpi"><div class="n" id="kToday">0.00</div><div class="muted">Today ₹</div></div>
         <div class="kpi"><div class="n" id="kMonth">0.00</div><div class="muted">This Month ₹</div></div>
@@ -72,17 +71,16 @@
   </main>
 
   <script type="module">
-    import { requireRole, totalsToday, totalsMonth, topItemName, listInvoices } from './js/store.js?v=21';
+    import { requireRole, totalsToday, totalsMonth, topItemName, listInvoices, logout as doLogout } from './js/store.js?v=21';
 
-    // gate
-    const u=requireRole('doctor'); if(!u) { location.href='login.html'; }
+    const u=requireRole('doctor'); if(!u){ location.href='login.html'; }
 
     // theme
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
     t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // clear cache
+    // cache + logout
     document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
         localStorage.clear();
@@ -91,8 +89,8 @@
         alert('Cache cleared. Reloading…'); location.reload(true);
       }catch(e){ alert('Could not fully clear. Try hard reload.'); }
     };
+    document.getElementById('logoutBtn').onclick=(e)=>{ e.preventDefault(); doLogout(); location.href='login.html'; };
 
-    // KPIs + tile meta
     async function refreshKPIs(){
       const t=await totalsToday();
       const m=await totalsMonth();
@@ -100,11 +98,10 @@
       document.getElementById('kToday').textContent=t.toFixed(2);
       document.getElementById('kMonth').textContent=m.toFixed(2);
       document.getElementById('kTop').textContent=top||'–';
-      document.getElementById('pharmaMeta').textContent = `Today ₹${t.toFixed(2)} • MTD ₹${m.toFixed(2)} • Top: ${top||'–'}`;
+      document.getElementById('pharmaMeta').textContent=`Today ₹${t.toFixed(2)} • MTD ₹${m.toFixed(2)} • Top: ${top||'–'}`;
       drawMini();
     }
 
-    // mini bar chart (last 7 days)
     function drawMini(){
       const c=document.getElementById('miniChart'), ctx=c.getContext('2d');
       c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
@@ -121,7 +118,6 @@
         labels.push(key.slice(5)); // MM-DD
         data.push(invs.filter(x=>x.date===key).reduce((s,r)=>s+(+r.total||0),0));
       }
-
       const max=Math.max(10,...data);
       const slot=(W-pad*2)/labels.length, bw=slot*0.6, base=H-pad;
       const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#5166ff';
@@ -138,10 +134,7 @@
       labels.forEach((lb,i)=>{ const x=pad+i*slot+slot/2; ctx.fillText(lb,x,H-6); });
     }
 
-    refreshKPIs();
-    addEventListener('resize', drawMini);
-
-    // register SW quietly
+    refreshKPIs(); addEventListener('resize', drawMini);
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
