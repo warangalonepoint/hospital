@@ -1,301 +1,207 @@
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
 
-  <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=24">
-
-  <!-- Chart.js (local, offline-first) -->
-  <script defer src="assets/chart.umd.min.js"></script>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=24" />
 </head>
 <body>
   <!-- Banner -->
-  <header class="banner" role="img" aria-label="Dr. Charan Hospital">
-    <!-- theme toggle -->
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+  <header class="banner">
+    <button id="themeToggle" class="chip floating-toggle" aria-label="Toggle theme">🌙</button>
   </header>
 
-  <!-- Top actions (NOT on the banner) -->
-  <div class="top-actions container">
+  <!-- Sticky actions (NOT on the banner) -->
+  <div class="fixed-actions">
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </div>
 
-  <!-- Quick grid -->
-  <main class="container">
-    <section class="card grid-2 gap-16">
-      <a class="tile tile--lav" href="analytics.html">
-        <h3>Analytics</h3>
-        <p>KPIs & weekly sales</p>
-      </a>
-      <a class="tile tile--sky" href="pharmacy.html">
-        <h3>Pharmacy</h3>
-        <p id="pharmaToday">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
-      </a>
-      <a class="tile tile--mint" href="bookings.html">
-        <h3>Bookings</h3>
-        <p>Quick patient slots</p>
-      </a>
-      <a class="tile tile--peach" href="patient.html">
-        <h3>Patients</h3>
-        <p>Reminders & history</p>
-      </a>
-      <a class="tile tile--mint" href="staff.html">
-        <h3>Staff</h3>
-        <p>Roster & status</p>
-      </a>
-      <a class="tile tile--lav" href="settings.html">
-        <h3>Settings</h3>
-        <p>PINs, Staff, Patients</p>
-      </a>
-    </section>
+  <!-- App tiles -->
+  <section class="card-grid" style="max-width:1120px;margin:0 auto;">
+    <a class="card" href="analytics.html">
+      <h2>Analytics</h2>
+      <p>KPIs & weekly sales</p>
+    </a>
 
-    <!-- Sales Analytics -->
-    <section class="card">
-      <h2>Sales Analytics</h2>
+    <a class="card" href="pharmacy.html">
+      <h2>Pharmacy</h2>
+      <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
+    </a>
 
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="kpi-num" id="kpiToday">0.00</div>
-          <div class="kpi-label">Today ₹</div>
+    <a class="card" href="bookings.html">
+      <h2>Bookings</h2>
+      <p>Quick patient slots</p>
+    </a>
+
+    <a class="card" href="patient.html">
+      <h2>Patients</h2>
+      <p>Reminders & history</p>
+    </a>
+
+    <a class="card" href="staff.html">
+      <h2>Staff</h2>
+      <p>Roster & status</p>
+    </a>
+
+    <a class="card" href="settings.html">
+      <h2>Settings</h2>
+      <p>PINs, Staff, Patients</p>
+    </a>
+  </section>
+
+  <!-- Sales Analytics -->
+  <section style="max-width:1120px;margin:12px auto;padding:12px;">
+    <div class="card" style="padding:18px;">
+      <h2 style="text-align:left;margin-bottom:12px;font-size:18px;">Sales Analytics (Today)</h2>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:18px;">
+        <div class="card" style="padding:16px;">
+          <canvas id="todayLine" height="160"></canvas>
         </div>
-        <div class="kpi">
-          <div class="kpi-num" id="kpiMonth">0.00</div>
-          <div class="kpi-label">This Month ₹</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-num" id="kpiTop">—</div>
-          <div class="kpi-label">Top Item</div>
+        <div class="card" style="padding:16px;">
+          <canvas id="todayPie" height="160"></canvas>
         </div>
       </div>
 
-      <div class="charts">
-        <div class="chart-card">
-          <h4>Today by Item</h4>
-          <canvas id="pieToday"></canvas>
+      <div class="card-grid" style="margin-top:14px;">
+        <div class="card">
+          <h2 id="kpiToday">0.00</h2><p>Today ₹</p>
         </div>
-        <div class="chart-card">
-          <h4>Last 7 Days Revenue</h4>
-          <canvas id="line7"></canvas>
+        <div class="card">
+          <h2 id="kpiMonth">0.00</h2><p>This Month ₹</p>
+        </div>
+        <div class="card">
+          <h2 id="kpiTopItem">—</h2><p>Top Item</p>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+  </section>
 
-  <script>
-    /* -------------------------
-       Session guard (doctor only)
-    -------------------------- */
-    (function guard() {
-      try {
-        const s = JSON.parse(localStorage.getItem('session') || '{}');
-        if (!s.role) location.replace('login.html');
-        if (s.role !== 'doctor') {
-          // Supervisors & others don’t see doctor dashboard
-          location.replace(s.role === 'supervisor' ? 'admin.html' : 'login.html');
-        }
-      } catch { location.replace('login.html'); }
+  <!-- Local Chart.js for offline-first -->
+  <script src="assets/chart.umd.min.js"></script>
+
+  <script type="module">
+    // -------- Session gate (doctor only) ----------
+    const session = (() => {
+      try { return JSON.parse(localStorage.getItem('session') || 'null'); }
+      catch { return null; }
     })();
 
-    /* -------------------------
-       Theme
-    -------------------------- */
-    const html = document.documentElement;
+    if (!session) {
+      location.replace('login.html'); // no session
+    } else if (session.role !== 'doctor') {
+      // Redirect non-doctor roles
+      if (session.role === 'supervisor') location.replace('admin.html');
+      else location.replace('portal.html');
+    }
+
+    // -------- Theme toggle ----------
     const themeBtn = document.getElementById('themeToggle');
-    function applyTheme(t) {
-      html.dataset.theme = t;
+    const applyTheme = (t) => {
+      document.documentElement.dataset.theme = t;
       themeBtn.textContent = t === 'light' ? '🌞' : '🌙';
       localStorage.theme = t;
-    }
+    };
     applyTheme(localStorage.theme || 'light');
     themeBtn.addEventListener('click', () => {
-      applyTheme((html.dataset.theme || 'light') === 'light' ? 'dark' : 'light');
+      applyTheme((document.documentElement.dataset.theme || 'light') === 'light' ? 'dark' : 'light');
     });
 
-    /* -------------------------
-       Actions
-    -------------------------- */
+    // -------- Logout / Clear Cache ----------
     document.getElementById('logoutBtn').onclick = () => {
       localStorage.removeItem('session');
-      location.href = 'login.html';
+      location.replace('login.html');
     };
 
     document.getElementById('clearCacheBtn').onclick = async () => {
       try {
-        // keep session, nuke everything else
-        const session = localStorage.getItem('session');
+        // keep session, only clear app data/caches
+        const keepSession = localStorage.getItem('session');
         localStorage.clear();
-        if (session) localStorage.setItem('session', session);
+        if (keepSession) localStorage.setItem('session', keepSession);
 
         if ('caches' in window) {
-          const ks = await caches.keys();
-          await Promise.all(ks.map(k => caches.delete(k)));
-        }
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
         }
         alert('Cache cleared. Reloading…');
         location.reload(true);
-      } catch {
-        alert('Could not fully clear cache.');
+      } catch(e) {
+        alert('Could not fully clear cache. Try hard reload.');
       }
     };
 
-    /* -------------------------
-       Data helpers
-       Reads invoices from localStorage.invoices (array of:
-       {date: "YYYY-MM-DD", lines: [{name, qty, price}], paid})
-       Falls back to seeded demo so charts always render.
-    -------------------------- */
-    function fmtINR(n) {
-      return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+    // -------- Mock data loader (replace later with Supabase/store.js) ----------
+    // Expect localStorage.sales like:
+    // { todayByHour:[n,n,...24], todayByItem:[{label, value}], todayTotal, monthTotal, topItem }
+    const sales = (() => {
+      try { return JSON.parse(localStorage.getItem('sales') || '{}'); } catch { return {}; }
+    })();
 
-    function startOfDayStr(d = new Date()) {
-      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      return x.toISOString().slice(0,10);
-    }
+    const byHour = Array.isArray(sales.todayByHour) ? sales.todayByHour : new Array(12).fill(0);
+    const byItem = Array.isArray(sales.todayByItem) ? sales.todayByItem : [
+      { label: 'Paracetamol', value: 0 },
+      { label: 'Cough Syrup',  value: 0 },
+      { label: 'Antibiotic',   value: 0 }
+    ];
+    const todayTotal = Number(sales.todayTotal || 0);
+    const monthTotal = Number(sales.monthTotal || 0);
+    const topItem = sales.topItem || (byItem.sort((a,b)=>b.value-a.value)[0]?.label ?? '—');
 
-    function getInvoices() {
-      try {
-        const raw = localStorage.getItem('invoices');
-        const arr = raw ? JSON.parse(raw) : null;
-        if (Array.isArray(arr) && arr.length) return arr;
-      } catch {}
-      // Seed 7 days of demo if nothing exists
-      const names = ['Paracetamol 650', 'Amoxicillin', 'Cough Syrup', 'Vitamin D', 'Ibuprofen'];
-      const today = new Date();
-      const demo = [];
-      for (let i=6;i>=0;i--) {
-        const d = new Date(today); d.setDate(today.getDate()-i);
-        const lines = Array.from({length: 3 + (i%3)}, () => {
-          const name = names[Math.floor(Math.random()*names.length)];
-          const qty = 1 + Math.floor(Math.random()*3);
-          const price = 50 + Math.floor(Math.random()*250);
-          return { name, qty, price };
-        });
-        demo.push({ date: startOfDayStr(d), lines, paid: true });
-      }
-      return demo;
-    }
+    // Update summaries
+    document.getElementById('pharmacySummary').textContent =
+      `Today ₹${todayTotal.toFixed(2)} • MTD ₹${monthTotal.toFixed(2)} • Top: ${topItem}`;
+    document.getElementById('kpiToday').textContent = todayTotal.toFixed(2);
+    document.getElementById('kpiMonth').textContent = monthTotal.toFixed(2);
+    document.getElementById('kpiTopItem').textContent = topItem;
 
-    function summarize(invoices) {
-      const todayStr = startOfDayStr();
-      let todayTotal = 0;
-      const todayByItem = new Map();
-      const monthPrefix = new Date().toISOString().slice(0,7); // YYYY-MM
-      let monthTotal = 0;
-      const dayMap = new Map(); // date -> total
-
-      for (const inv of invoices) {
-        const invTotal = (inv.lines || []).reduce((s,l)=>s + (l.qty||0)*(l.price||0), 0);
-        // per-day
-        dayMap.set(inv.date, (dayMap.get(inv.date)||0) + invTotal);
-        // month
-        if ((inv.date||'').startsWith(monthPrefix)) monthTotal += invTotal;
-        // today
-        if (inv.date === todayStr) {
-          todayTotal += invTotal;
-          for (const l of inv.lines || []) {
-            const key = l.name || 'Item';
-            const amount = (l.qty||0)*(l.price||0);
-            todayByItem.set(key, (todayByItem.get(key)||0) + amount);
-          }
+    // -------- Charts ----------
+    // Line chart: today by time buckets
+    const lineCtx = document.getElementById('todayLine');
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: byHour.map((_,i)=>`T${i+1}`),
+        datasets: [{
+          label: 'Sales (₹)',
+          data: byHour,
+          tension: 0.35,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback:v=>'₹'+v } }
         }
       }
+    });
 
-      // top item label
-      let topItem = '—';
-      if (todayByItem.size) {
-        topItem = [...todayByItem.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    // Pie chart: item share today
+    const pieCtx = document.getElementById('todayPie');
+    new Chart(pieCtx, {
+      type: 'pie',
+      data: {
+        labels: byItem.map(i=>i.label),
+        datasets: [{
+          data: byItem.map(i=>i.value)
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
       }
+    });
 
-      return { todayTotal, monthTotal, todayByItem, dayMap, topItem };
-    }
-
-    /* -------------------------
-       Render KPIs + Charts
-    -------------------------- */
-    function render() {
-      const invoices = getInvoices();
-      const sum = summarize(invoices);
-
-      // KPIs
-      document.getElementById('kpiToday').textContent = fmtINR(sum.todayTotal);
-      document.getElementById('kpiMonth').textContent = fmtINR(sum.monthTotal);
-      document.getElementById('kpiTop').textContent = sum.topItem;
-      const pharmaToday = document.getElementById('pharmaToday');
-      if (pharmaToday) {
-        pharmaToday.textContent = `Today ₹${fmtINR(sum.todayTotal)} • MTD ₹${fmtINR(sum.monthTotal)} • Top: ${sum.topItem || '—'}`;
-      }
-
-      // Pie: today by item
-      const pieCtx = document.getElementById('pieToday').getContext('2d');
-      const pieLabels = [...sum.todayByItem.keys()];
-      const pieValues = [...sum.todayByItem.values()];
-      new Chart(pieCtx, {
-        type: 'pie',
-        data: {
-          labels: pieLabels.length ? pieLabels : ['No sales'],
-          datasets: [{
-            data: pieValues.length ? pieValues : [1],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { position: 'bottom' },
-            tooltip: { callbacks: { label: (c)=> `₹${fmtINR(c.parsed)}` } }
-          }
-        }
-      });
-
-      // Line: last 7 days
-      const lineCtx = document.getElementById('line7').getContext('2d');
-      const labels = [];
-      const values = [];
-      for (let i=6;i>=0;i--) {
-        const d = new Date(); d.setDate(d.getDate()-i);
-        const key = startOfDayStr(d);
-        labels.push(d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' }));
-        values.push(sum.dayMap.get(key) || 0);
-      }
-      new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            data: values,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 3,
-            borderWidth: 2
-          }]
-        },
-        options: {
-          scales: {
-            y: { ticks: { callback: v => '₹' + fmtINR(v) } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (c)=> '₹' + fmtINR(c.parsed.y) } }
-          }
-        }
-      });
-    }
-
-    // Run when Chart.js is ready
-    if (window.Chart) render(); else {
-      document.addEventListener('DOMContentLoaded', () => {
-        const iv = setInterval(() => {
-          if (window.Chart) { clearInterval(iv); render(); }
-        }, 30);
-      });
+    // -------- Service Worker (silent) ----------
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
     }
   </script>
 </body>
