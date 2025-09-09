@@ -4,19 +4,15 @@
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/><link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=5"/>
+  <link rel="stylesheet" href="styles.css?v=7"/>
 </head>
 <body>
-  <header class="banner">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Logo">
-      <div>
-        <h1 class="title">Dr. Charan Hospital</h1>
-        <p class="subtitle">Dashboard</p>
-      </div>
-    </div>
-    <button id="themeToggle" class="chip">🌙</button>
+  <!-- Clean banner with small logo -->
+  <header class="banner clean">
+    <img class="logo-badge" src="assets/logo.png" alt="Dr. Charan Hospital logo" />
   </header>
+  <!-- Floating dark/light toggle -->
+  <button id="themeToggle" class="chip floating-toggle">🌙</button>
 
   <main class="container">
     <section class="card" id="tabs">
@@ -33,8 +29,9 @@
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
         <span id="who" class="chip"></span>
         <button id="logout" class="chip">Logout</button>
-        <a class="chip" href="admin.html?v=5">Open Admin</a>
-        <a class="chip" href="patient.html?v=5">Patient Booking</a>
+        <a class="chip" href="admin.html?v=7">Open Admin</a>
+        <a class="chip" href="patient.html?v=7">Patient Booking</a>
+        <button id="clearCacheBtn" class="chip" style="margin-left:auto">Clear Cache</button>
       </div>
     </section>
 
@@ -112,6 +109,38 @@
   </main>
 
   <footer class="footer">Role-based demo • Doctor has full access</footer>
+
+  <!-- App logic -->
   <script type="module" src="js/app.js?v=5"></script>
+
+  <!-- Theme toggle + Clear Cache (page-local) -->
+  <script>
+    // Theme toggle
+    const tbtn=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.setAttribute('data-theme', localStorage.theme);
+      tbtn.textContent = localStorage.theme==='light'?'🌞':'🌙';
+    }
+    tbtn.onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); const next=cur==='light'?'dark':'light'; document.documentElement.setAttribute('data-theme',next); localStorage.theme=next; tbtn.textContent=next==='light'?'🌞':'🌙'; };
+
+    // Clear Cache button
+    document.getElementById('clearCacheBtn')?.addEventListener('click', async () => {
+      try {
+        localStorage.clear();
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) await r.unregister();
+        }
+        alert('Cache cleared. Reloading…');
+        location.reload(true);
+      } catch (e) {
+        console.error(e); alert('Could not clear everything. Hard reload if needed.');
+      }
+    });
+  </script>
 </body>
 </html>
