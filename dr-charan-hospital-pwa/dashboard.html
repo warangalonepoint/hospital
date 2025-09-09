@@ -4,8 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=22"/>
+  <link rel="stylesheet" href="styles.css?v=27"/>
 </head>
 <body>
   <!-- Banner -->
@@ -13,7 +14,7 @@
     <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions below banner -->
+  <!-- Fixed actions -->
   <div class="fixed-actions">
     <button class="chip" id="logoutBtn">Logout</button>
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
@@ -32,12 +33,13 @@
         <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
       </a>
 
-      <a href="bookings.html" class="card panel--mint">
-        <h3>Bookings</h3>
-        <p>Quick patient slots</p>
+      <!-- Bookings ➜ Booking Status -->
+      <a href="bookings-status.html" class="card panel--mint">
+        <h3>Booking Status</h3>
+        <p>Today / Week / Month counts</p>
       </a>
 
-      <a href="patient.html" class="card panel--rose">
+      <a href="patients.html" class="card panel--rose">
         <h3>Patients</h3>
         <p>Reminders & history</p>
       </a>
@@ -115,9 +117,7 @@
     // --- Session guard
     (() => {
       const s = JSON.parse(localStorage.getItem('session') || 'null');
-      if (!s || s.role !== 'doctor') {
-        location.replace('login.html');
-      }
+      if (!s || s.role !== 'doctor') location.replace('login.html');
     })();
 
     // --- Actions
@@ -139,13 +139,14 @@
       } catch(e){ alert('Could not clear all caches.'); }
     };
 
-    // --- Minimal local sales read (works with js/store.js invoices)
+    // --- Data helpers
     function getInvoices() {
       try { return JSON.parse(localStorage.getItem('invoices') || '[]'); }
       catch { return []; }
     }
     function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
     function isSameDay(a,b){ return startOfDay(a).getTime()===startOfDay(b).getTime(); }
+    function money(n){ return (Number(n)||0).toFixed(2); }
 
     function summarize(range='today'){
       const inv = getInvoices();
@@ -167,7 +168,6 @@
       const avg = total / days;
       const count = picked.length;
 
-      // top item by revenue
       const itemMap = {};
       picked.forEach(i=>{
         (i.items||[]).forEach(it=>{
@@ -178,7 +178,6 @@
       });
       const top = Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
 
-      // daily buckets for line
       const byDay = {};
       for(let i=0;i<days;i++){
         const d = new Date(from); d.setDate(from.getDate()+i);
@@ -194,8 +193,6 @@
       return { total, avg, count, top, lineLabels:Object.keys(byDay), lineData:Object.values(byDay), pieData:itemMap };
     }
 
-    function money(n){ return (Number(n)||0).toFixed(2); }
-
     function paintSummary(range='today'){
       const s = summarize(range);
       // KPIs
@@ -204,7 +201,7 @@
       document.getElementById('kpiInv').textContent = s.count;
       document.getElementById('kpiTop').textContent = s.top;
 
-      // Banner pharmacy snippet (today + month)
+      // Pharmacy snippet
       const inv = getInvoices();
       const today = inv.filter(i=>isSameDay(new Date(i.date||i.createdAt||Date.now()), new Date())).reduce((a,i)=>a+(+i.total||0),0);
       const mStart = new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
@@ -238,9 +235,7 @@
 
     // Range chips
     const rangeBar = document.querySelector('.range');
-    let active = 'today';
     function setActive(name){
-      active = name;
       rangeBar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       const el = rangeBar.querySelector(`[data-range="${name}"]`);
       if (el) el.classList.add('active');
@@ -252,7 +247,7 @@
     });
     setActive('today');
 
-    // SW (quiet)
+    // SW
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
