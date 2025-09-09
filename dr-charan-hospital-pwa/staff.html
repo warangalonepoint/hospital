@@ -3,297 +3,172 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Staff – Dr. Charan Hospital</title>
-
+  <title>Staff • Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=18"/>
 </head>
 <body>
-  <!-- Banner -->
+  <!-- Consistent banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
-  <div class="fixed-actions">
+  <!-- Fixed actions row -->
+  <nav class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
-    <a class="chip" href="admin.html">Supervisor</a>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </div>
+  </nav>
 
-  <main class="section" style="max-width:1100px">
-    <!-- Staff roster / status -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Team</h2>
-      <table class="table" id="staffTable">
+  <section class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <h1>Staff • Roster & Status</h1>
+      <div class="range" id="viewChips">
+        <button class="chip active" data-view="today">Today</button>
+        <button class="chip" data-view="week">This Week</button>
+        <button class="chip" data-view="month">This Month</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="card-grid" style="margin-top:10px">
+      <div class="card" style="background:var(--blue);">
+        <h2>On Duty</h2><p id="sumOn">0</p>
+      </div>
+      <div class="card" style="background:var(--mint);">
+        <h2>On Leave</h2><p id="sumLeave">0</p>
+      </div>
+      <div class="card" style="background:var(--peach);">
+        <h2>Late</h2><p id="sumLate">0</p>
+      </div>
+      <div class="card" style="background:var(--lilac);">
+        <h2>Total Staff</h2><p id="sumTotal">0</p>
+      </div>
+    </div>
+
+    <!-- Attendance table -->
+    <div class="section" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <h2 style="margin:0">Attendance</h2>
+        <input id="search" class="input" placeholder="Search name or role" style="width:220px"/>
+        <button id="markAllOnDuty" class="chip">Mark All On Duty</button>
+        <button id="exportCsv" class="chip">Export CSV</button>
+      </div>
+      <table class="table" id="tbl">
         <thead>
           <tr>
-            <th>Name</th><th>Role</th><th>Phone</th>
-            <th>Status</th>
-            <th>Shift</th>
-            <th>Actions</th>
+            <th>Name</th><th>Role</th><th>Status</th><th>Check-in</th><th>Notes</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="tbody"></tbody>
       </table>
-      <p class="help" style="margin-top:8px">Status: Active (available), On Duty (currently working), Off (not available).</p>
-    </section>
-
-    <!-- Roster editor -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Roster / Default Shifts</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end">
-        <div>
-          <label class="muted">Staff</label>
-          <select id="rStaff" class="input"></select>
-        </div>
-        <div>
-          <label class="muted">Start</label>
-          <input id="rStart" class="input" type="time" value="09:00"/>
-        </div>
-        <div>
-          <label class="muted">End</label>
-          <input id="rEnd" class="input" type="time" value="18:00"/>
-        </div>
-        <div>
-          <button id="rSave" class="btn">Save Shift</button>
-        </div>
-      </div>
-      <p class="help" style="margin-top:6px">Saved shifts auto-fill on Check-In.</p>
-    </section>
-
-    <!-- Attendance -->
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <h2 style="font-size:18px;margin-bottom:8px">Attendance</h2>
-        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
-          <div><label class="muted">From</label><input id="aFrom" class="input" type="date"/></div>
-          <div><label class="muted">To</label><input id="aTo" class="input" type="date"/></div>
-          <button id="aApply" class="chip">Apply</button>
-          <button id="aExport" class="chip">Export CSV</button>
-        </div>
-      </div>
-
-      <table class="table" id="attTable">
-        <thead>
-          <tr>
-            <th>Date</th><th>Name</th><th>Role</th>
-            <th>Check-In</th><th>Check-Out</th><th>Total (hh:mm)</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <script type="module">
-    /* ---------- Role guard: doctor or supervisor ---------- */
-    const sess = JSON.parse(localStorage.getItem('session')||'null');
-    if(!sess || !['doctor','supervisor'].includes(sess.role)) location.replace('login.html');
+    // Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    /* ---------- Theme ---------- */
-    const t = document.getElementById('themeToggle');
-    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
-    setTheme(localStorage.theme || 'light');
-    t.onclick = ()=> setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+    // Guard: Staff page allowed for doctor & supervisor
+    const ses=JSON.parse(localStorage.getItem('session')||'{}');
+    if(!['doctor','supervisor'].includes(ses.role)){ location.href='login.html'; }
 
-    /* ---------- Logout/Clear ---------- */
-    document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async ()=>{
-      try{ const s=localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session',s);
+    // Actions
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
+      try{
+        localStorage.clear();
         if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{}
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload();
+      }catch(e){ alert('Could not fully clear cache.'); }
     };
 
-    /* ---------- Storage helpers ---------- */
-    const get = (k,f)=>{ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(f)); }catch{ return f; } };
-    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    // Demo local storage structure for staff (works with your future Supabase sync)
+    const LS_KEY='staffRoster';
+    if(!localStorage.getItem(LS_KEY)){
+      localStorage.setItem(LS_KEY, JSON.stringify([
+        {id:'S001', name:'Rohit',   role:'Nurse',   status:'On Duty', checkin:'09:02', notes:''},
+        {id:'S002', name:'Swathi',  role:'Admin',   status:'On Leave', checkin:'—',    notes:'Casual leave'},
+        {id:'S003', name:'Anil',    role:'Pharmacist', status:'Late', checkin:'10:15', notes:''},
+        {id:'S004', name:'Sana',    role:'Lab Tech',status:'On Duty', checkin:'08:55', notes:''}
+      ]));
+    }
 
-    const STAFF_KEY = 'staff';              // [{name, role, phone, status}]
-    const ROSTER_KEY = 'staff_roster';      // { phone: {start:'09:00', end:'18:00'} }
-    const ATT_KEY = 'staff_attendance';     // [{date:'YYYY-MM-DD', phone, name, role, in:'09:10', out:'17:55', status:'Present'|'Leave'|'Off'}]
+    const chips=[...document.querySelectorAll('#viewChips .chip')];
+    chips.forEach(c=>c.addEventListener('click',()=>{ chips.forEach(b=>b.classList.remove('active')); c.classList.add('active'); render(); }));
+    document.getElementById('search').addEventListener('input', render);
 
-    const today = () => new Date().toISOString().slice(0,10);
-    const nowHM = () => new Date().toTimeString().slice(0,5);
+    function getRows(){
+      const q=(document.getElementById('search').value||'').toLowerCase();
+      const rows=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+      return rows.filter(r=> r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q));
+    }
 
-    function loadStaff(){ return get(STAFF_KEY, []); }
-    function saveStaff(arr){ set(STAFF_KEY, arr); }
-    function loadRoster(){ return get(ROSTER_KEY, {}); }
-    function saveRoster(obj){ set(ROSTER_KEY, obj); }
-    function loadAtt(){ return get(ATT_KEY, []); }
-    function saveAtt(arr){ set(ATT_KEY, arr); }
-
-    /* ---------- Staff table ---------- */
-    const staffTbody = document.querySelector('#staffTable tbody');
-    const rSelect = document.getElementById('rStaff');
-
-    function renderStaff(){
-      const staff = loadStaff();
-      const roster = loadRoster();
-
-      // Fill roster select
-      rSelect.innerHTML = '';
-      staff.forEach(s=>{
-        const opt=document.createElement('option');
-        opt.value = s.phone || s.name; opt.textContent = `${s.name} — ${s.role||''}`;
-        rSelect.appendChild(opt);
-      });
-
-      staffTbody.innerHTML='';
-      staff.forEach(s=>{
-        const key = s.phone || s.name;
-        const shift = roster[key] ? `${roster[key].start}–${roster[key].end}` : '—';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${s.name||''}</td>
-          <td>${s.role||''}</td>
-          <td>${s.phone||''}</td>
+    function render(){
+      const rows=getRows();
+      const tbody=document.getElementById('tbody');
+      tbody.innerHTML = rows.map(r=>`
+        <tr>
+          <td>${r.name}</td>
+          <td>${r.role}</td>
           <td>
-            <select class="input stStatus" data-key="${key}" style="width:auto">
-              <option ${s.status==='Active'?'selected':''}>Active</option>
-              <option ${s.status==='On Duty'?'selected':''}>On Duty</option>
-              <option ${s.status==='Off'?'selected':''}>Off</option>
+            <select data-id="${r.id}" class="input" style="padding:4px 8px;width:auto">
+              ${['On Duty','On Leave','Late','Off'].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}
             </select>
           </td>
-          <td>${shift}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="chip stIn"  data-key="${key}">Check-In</button>
-            <button class="chip stOut" data-key="${key}">Check-Out</button>
-          </td>
-        `;
-        staffTbody.appendChild(tr);
+          <td>${r.checkin}</td>
+          <td contenteditable data-id="${r.id}" data-field="notes">${r.notes||''}</td>
+        </tr>`).join('');
+
+      // summary
+      const on = rows.filter(r=>r.status==='On Duty').length;
+      const lv = rows.filter(r=>r.status==='On Leave').length;
+      const lt = rows.filter(r=>r.status==='Late').length;
+      document.getElementById('sumOn').textContent=on;
+      document.getElementById('sumLeave').textContent=lv;
+      document.getElementById('sumLate').textContent=lt;
+      document.getElementById('sumTotal').textContent=rows.length;
+
+      // listeners after render
+      tbody.querySelectorAll('select').forEach(sel=>{
+        sel.addEventListener('change', e=>{
+          const id=e.target.dataset.id;
+          const staff=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+          const row=staff.find(s=>s.id===id); if(!row) return;
+          row.status=e.target.value;
+          localStorage.setItem(LS_KEY, JSON.stringify(staff));
+          render();
+        });
+      });
+
+      tbody.querySelectorAll('[contenteditable]').forEach(cell=>{
+        cell.addEventListener('blur', e=>{
+          const id=e.target.dataset.id, field=e.target.dataset.field;
+          const staff=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+          const row=staff.find(s=>s.id===id); if(!row) return;
+          row[field]=e.target.textContent.trim();
+          localStorage.setItem(LS_KEY, JSON.stringify(staff));
+        });
       });
     }
 
-    // status changes
-    staffTbody.addEventListener('change', (e)=>{
-      const sel = e.target.closest('.stStatus'); if(!sel) return;
-      const key = sel.dataset.key;
-      const staff = loadStaff();
-      const i = staff.findIndex(x => (x.phone||x.name)===key);
-      if(i>=0){ staff[i].status = sel.value; saveStaff(staff); }
-    });
-
-    // check-in/out
-    staffTbody.addEventListener('click', (e)=>{
-      const btnIn = e.target.closest('.stIn');
-      const btnOut= e.target.closest('.stOut');
-      if(!btnIn && !btnOut) return;
-      const key = (btnIn||btnOut).dataset.key;
-      const staff = loadStaff();
-      const st = staff.find(x => (x.phone||x.name)===key);
-      if(!st) return;
-
-      const arr = loadAtt();
-      const d = today();
-      let row = arr.find(x => x.date===d && x.phone===(st.phone||st.name));
-      if(!row){
-        row = { date:d, phone:(st.phone||st.name), name:st.name, role:st.role||'', in:'', out:'', status:'Present' };
-        arr.push(row);
-      }
-      if(btnIn){
-        // Prefer roster start if empty
-        const roster = loadRoster();
-        row.in = row.in || (roster[key]?.start || nowHM());
-        st.status = 'On Duty';
-      }
-      if(btnOut){
-        row.out = nowHM();
-        // Auto compute status if needed
-        if(!row.in) row.in = row.out;
-        st.status = 'Active';
-      }
-      saveAtt(arr); saveStaff(staff);
-      renderStaff(); renderAttendance();
-    });
-
-    /* ---------- Roster ---------- */
-    document.getElementById('rSave').onclick = ()=>{
-      const key = rSelect.value;
-      if(!key) return alert('Select a staff.');
-      const start = (document.getElementById('rStart').value || '09:00');
-      const end   = (document.getElementById('rEnd').value || '18:00');
-      const ro = loadRoster();
-      ro[key] = { start, end };
-      saveRoster(ro);
-      renderStaff();
-      alert('Shift saved.');
+    // quick helpers
+    document.getElementById('markAllOnDuty').onclick=()=>{
+      const staff=JSON.parse(localStorage.getItem(LS_KEY)||'[]').map(s=>({...s,status:'On Duty'}));
+      localStorage.setItem(LS_KEY, JSON.stringify(staff)); render();
+    };
+    document.getElementById('exportCsv').onclick=()=>{
+      const rows=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+      const csv=['id,name,role,status,checkin,notes',...rows.map(r=>[r.id,r.name,r.role,r.status,r.checkin,(r.notes||'').replaceAll(',',';')].join(','))].join('\n');
+      const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download='staff.csv'; a.click();
     };
 
-    /* ---------- Attendance table ---------- */
-    const aFrom = document.getElementById('aFrom');
-    const aTo   = document.getElementById('aTo');
-    const aApply= document.getElementById('aApply');
-    const aExport = document.getElementById('aExport');
-    const attTbody = document.querySelector('#attTable tbody');
-
-    // defaults (this month)
-    const dt = new Date();
-    aFrom.value = new Date(dt.getFullYear(), dt.getMonth(), 1).toISOString().slice(0,10);
-    aTo.value   = today();
-
-    function hhmmDiff(inHM, outHM){
-      if(!inHM || !outHM) return '00:00';
-      const [ih,im] = inHM.split(':').map(Number);
-      const [oh,om] = outHM.split(':').map(Number);
-      let mins = (oh*60+om) - (ih*60+im);
-      if(mins < 0) mins += 24*60;
-      const h = Math.floor(mins/60), m = mins%60;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-    }
-
-    function renderAttendance(){
-      const from = aFrom.value || '1900-01-01';
-      const to   = aTo.value   || '2999-12-31';
-      const staff = loadStaff();
-      const mapRole = new Map(staff.map(s=>[(s.phone||s.name), s.role||'']));
-      const arr = loadAtt()
-        .filter(x => x.date >= from && x.date <= to)
-        .sort((a,b)=> (a.date<b.date?1:-1) || (a.name||'').localeCompare(b.name||''));
-
-      attTbody.innerHTML='';
-      arr.forEach(r=>{
-        const tr=document.createElement('tr');
-        const role = mapRole.get(r.phone) || r.role || '';
-        tr.innerHTML = `
-          <td>${r.date}</td>
-          <td>${r.name||''}</td>
-          <td>${role}</td>
-          <td>${r.in||''}</td>
-          <td>${r.out||''}</td>
-          <td>${hhmmDiff(r.in, r.out)}</td>
-          <td>${r.status||'Present'}</td>
-        `;
-        attTbody.appendChild(tr);
-      });
-    }
-    aApply.onclick = renderAttendance;
-
-    /* ---------- Export CSV ---------- */
-    aExport.onclick = ()=>{
-      const rows = [['Date','Name','Role','Check-In','Check-Out','Total(hh:mm)','Status']];
-      document.querySelectorAll('#attTable tbody tr').forEach(tr=>{
-        const cells = [...tr.children].map(td=>td.textContent.replace(/\s+/g,' ').trim());
-        rows.push(cells);
-      });
-      const csv = rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], {type:'text/csv'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `staff-attendance-${aFrom.value || 'from'}_to_${aTo.value || 'to'}.csv`;
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-    };
-
-    /* ---------- Init ---------- */
-    renderStaff();
-    renderAttendance();
-
-    // SW register
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    render();
   </script>
 </body>
 </html>
