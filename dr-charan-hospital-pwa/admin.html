@@ -4,116 +4,58 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Supervisor – Dr. Charan Hospital</title>
-
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=18"/>
 </head>
 <body>
-  <!-- Banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions (not on the banner) -->
-  <div class="fixed-actions">
+  <nav class="fixed-actions">
     <a class="chip" href="login.html">← Login</a>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </div>
+  </nav>
 
-  <!-- Supervisor tiles -->
-  <main style="max-width:1120px;margin:0 auto;padding:0 12px 24px;">
-    <section class="card-grid">
-      <a class="card card--blue" href="bookings.html">
+  <section class="section">
+    <div class="card-grid menu">
+      <a class="card menu card--blue" href="bookings.html">
         <h2>Bookings</h2>
         <p>Create tokens & manage appointments</p>
       </a>
-
-      <a class="card card--mint" href="pharmacy.html">
+      <a class="card menu card--mint" href="pharmacy.html">
         <h2>Pharmacy – Billing</h2>
         <p>Multi-item invoices, discounts, payments</p>
       </a>
-
-      <a class="card card--peach" href="pharmacy-report.html">
+      <a class="card menu card--peach" href="pharmacy-report.html">
         <h2>Pharmacy – Reports</h2>
         <p>Daily/Weekly/Monthly/Yearly sales & items</p>
       </a>
-    </section>
-
-    <!-- Quick glance (optional, reads local or Store) -->
-    <section class="card" style="margin-top:14px;">
-      <h2 style="text-align:left;margin-bottom:10px;">Today Snapshot</h2>
-      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-        <div class="card"><h2 id="kpiToday">0.00</h2><p>Today ₹</p></div>
-        <div class="card"><h2 id="kpiMonth">0.00</h2><p>This Month ₹</p></div>
-        <div class="card"><h2 id="kpiTop">—</h2><p>Top Item</p></div>
-      </div>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <script type="module">
-    /* ---------- Role gate: supervisor only ---------- */
-    const sess = JSON.parse(localStorage.getItem('session') || 'null');
-    if (!sess || !sess.role) location.replace('login.html');
-    if (sess.role !== 'supervisor') {
-      // Doctors go to dashboard; others to login
-      if (sess.role === 'doctor') location.replace('dashboard.html');
-      else location.replace('login.html');
-    }
+    // theme toggle
+    const toggle=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; toggle.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    toggle.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; toggle.textContent=next==='light'?'🌞':'🌙'; };
 
-    /* ---------- Theme ---------- */
-    const t = document.getElementById('themeToggle');
-    const setTheme = (m)=>{ document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
-    setTheme(localStorage.theme || 'light');
-    t.onclick = ()=> setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+    // session guard (supervisor only)
+    const ses=JSON.parse(localStorage.getItem('session')||'{}');
+    if(ses.role!=='supervisor'){ location.href='login.html'; }
 
-    /* ---------- Logout / Clear Cache ---------- */
-    document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async ()=>{
+    // logout & cache
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
-        const s = localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session', s);
+        localStorage.clear();
         if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{ alert('Could not fully clear cache.'); }
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload();
+      }catch(e){ alert('Could not fully clear cache.'); }
     };
-
-    /* ---------- Snapshot (uses Store if available; else local) ---------- */
-    async function loadSnapshot(){
-      try{
-        if (window.Store && Store.getTodayBreakdown) {
-          const s = await Store.getTodayBreakdown();
-          document.getElementById('kpiToday').textContent = (s.todayTotal||0).toFixed(2);
-          document.getElementById('kpiMonth').textContent = (s.monthTotal||0).toFixed(2);
-          document.getElementById('kpiTop').textContent = s.topItem || '—';
-          return;
-        }
-      }catch{}
-      // Fallback: derive from localStorage.invoices
-      const invs = JSON.parse(localStorage.getItem('invoices')||'[]');
-      const today = new Date().toISOString().slice(0,10);
-      const ym = today.slice(0,7);
-      let todaySum=0, monthSum=0; const byItem=new Map();
-      invs.forEach(inv=>{
-        const d=(inv.dateISO||inv.date||'').slice(0,10);
-        const tot = Number(inv.total||0);
-        if(d===today) todaySum += tot;
-        if((d||'').startsWith(ym)) monthSum += tot;
-        (inv.items||[]).forEach(it=>{
-          const k=it.name||'Item'; const amt=Number(it.amount||((+it.qty||0)*(+it.price||0)));
-          byItem.set(k,(byItem.get(k)||0)+amt);
-        });
-      });
-      const top = byItem.size ? [...byItem.entries()].sort((a,b)=>b[1]-a[1])[0][0] : '—';
-      document.getElementById('kpiToday').textContent = todaySum.toFixed(2);
-      document.getElementById('kpiMonth').textContent = monthSum.toFixed(2);
-      document.getElementById('kpiTop').textContent = top;
-    }
-    loadSnapshot();
-
-    /* ---------- Register SW (quiet) ---------- */
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
