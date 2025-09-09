@@ -4,131 +4,255 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
-  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=22"/>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Top actions -->
+  <!-- Fixed actions below banner -->
   <div class="fixed-actions">
     <button class="chip" id="logoutBtn">Logout</button>
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <!-- Feature cards -->
-  <section class="section section--surface">
+  <!-- Main app cards -->
+  <section class="section">
     <div class="card-grid">
-      <a class="card card--lavender" href="analytics.html">
-        <h2>Analytics</h2><p>KPIs & weekly sales</p>
+      <a href="analytics.html" class="card panel--lilac">
+        <h3>Analytics</h3>
+        <p>KPIs & weekly sales</p>
       </a>
-      <a class="card card--blue" href="pharmacy.html">
-        <h2>Pharmacy</h2><p id="phSnap">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
+
+      <a href="pharmacy-report.html" class="card panel--blue">
+        <h3>Pharmacy</h3>
+        <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
       </a>
-      <a class="card card--mint" href="bookings.html">
-        <h2>Bookings</h2><p>Quick patient slots</p>
+
+      <a href="bookings.html" class="card panel--mint">
+        <h3>Bookings</h3>
+        <p>Quick patient slots</p>
       </a>
-      <a class="card card--peach" href="patients.html">
-        <h2>Patients</h2><p>Reminders & history</p>
+
+      <a href="patient.html" class="card panel--rose">
+        <h3>Patients</h3>
+        <p>Reminders & history</p>
       </a>
-      <a class="card card--mint2" href="staff.html">
-        <h2>Staff</h2><p>Roster & status</p>
+
+      <a href="staff.html" class="card panel--peach">
+        <h3>Staff</h3>
+        <p>Roster & status</p>
       </a>
-      <a class="card card--lavender2" href="settings.html">
-        <h2>Settings</h2><p>PINs, Staff, Patients</p>
+
+      <a href="settings.html" class="card panel--lilac">
+        <h3>Settings</h3>
+        <p>PINs, Staff, Patients</p>
       </a>
     </div>
   </section>
 
-  <!-- Charts -->
-  <section class="section section--surface">
-    <div class="section__head"><h2>Sales Analytics (Today)</h2></div>
-    <div class="section__body">
-      <div class="chart-grid">
-        <div class="chart-card"><canvas id="lineChart"></canvas></div>
-        <div class="chart-card"><canvas id="pieChart"></canvas></div>
+  <!-- Sales analytics snapshot -->
+  <section class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>Sales Analytics (Today)</h2>
+      <div class="chips range">
+        <button class="chip chip--blue"  data-range="today">Today</button>
+        <button class="chip chip--mint"  data-range="7d">7D</button>
+        <button class="chip chip--peach" data-range="30d">30D</button>
+        <button class="chip chip--lilac" data-range="ytd">YTD</button>
       </div>
-      <div class="stat-grid">
-        <div class="stat"><div class="stat__value" id="todayAmt">0.00</div><div class="stat__label">Today ₹</div></div>
-        <div class="stat"><div class="stat__value" id="monthAmt">0.00</div><div class="stat__label">This Month ₹</div></div>
-        <div class="stat"><div class="stat__value" id="topItem">—</div><div class="stat__label">Top Item</div></div>
+    </div>
+
+    <div class="kpi-grid mt12">
+      <div class="kpi panel--blue">
+        <h4>Total (₹)</h4>
+        <div class="num" id="kpiTotal">0.00</div>
       </div>
+      <div class="kpi panel--lilac">
+        <h4>Avg / Day (₹)</h4>
+        <div class="num" id="kpiAvg">0.00</div>
+      </div>
+      <div class="kpi panel--mint">
+        <h4>Invoices</h4>
+        <div class="num" id="kpiInv">0</div>
+      </div>
+      <div class="kpi panel--rose">
+        <h4>Top Item</h4>
+        <div class="num" id="kpiTop">–</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Revenue by Day</div>
+      <canvas id="lineChart" height="160"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Top Items (Share)</div>
+      <canvas id="pieChart" height="160"></canvas>
     </div>
   </section>
 
+  <!-- Local Chart.js -->
   <script src="assets/chart.umd.min.js"></script>
-  <script type="module">
-    // Theme
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
-
-    // Guard: doctor only
-    try{
-      const s = JSON.parse(localStorage.getItem('session')||'{}');
-      if(s.role!=='doctor'){ location.href='login.html'; }
-    }catch{ location.href='login.html'; }
-
-    // Buttons
-    document.getElementById('clearCacheBtn').onclick=async()=>{
-      localStorage.clear();
-      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-      alert('Cache cleared'); location.reload();
+  <script>
+    // --- Theme toggle
+    const t = document.getElementById('themeToggle');
+    if (localStorage.theme) {
+      document.documentElement.dataset.theme = localStorage.theme;
+      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
+    }
+    t.onclick = () => {
+      const cur = document.documentElement.dataset.theme || 'light';
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      localStorage.theme = next;
+      t.textContent = next === 'light' ? '🌞' : '🌙';
     };
-    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
 
-    // Data helpers
-    const fmt = n => (n||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const todayKey = new Date().toISOString().slice(0,10);
-    const monthKey = new Date().toISOString().slice(0,7);
-    const invoices = JSON.parse(localStorage.getItem('invoices')||'[]'); // {date, items:[{name, qty, price}], total}
-
-    // Snap
-    let todayTotal = 0, monthTotal = 0, byItem = {};
-    invoices.forEach(inv=>{
-      if((inv.date||'').startsWith(monthKey)) monthTotal += Number(inv.total||0);
-      if(inv.date===todayKey){
-        todayTotal += Number(inv.total||0);
-        (inv.items||[]).forEach(it=>{
-          byItem[it.name] = (byItem[it.name]||0) + (Number(it.qty||0)*Number(it.price||0));
-        });
+    // --- Session guard
+    (() => {
+      const s = JSON.parse(localStorage.getItem('session') || 'null');
+      if (!s || s.role !== 'doctor') {
+        location.replace('login.html');
       }
-    });
-    const topItem = Object.entries(byItem).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
-    document.getElementById('todayAmt').textContent = fmt(todayTotal);
-    document.getElementById('monthAmt').textContent = fmt(monthTotal);
-    document.getElementById('topItem').textContent  = topItem;
-    document.getElementById('phSnap').textContent   = `Today ₹${fmt(todayTotal)} • MTD ₹${fmt(monthTotal)} • Top: ${topItem}`;
+    })();
 
-    // Charts (simple placeholders if no data)
-    const hours = Array.from({length:12}, (_,i)=> (i*2).toString().padStart(2,'0') + ':00');
-    const hourData = Array.from({length:12}, ()=>0);
-    invoices.filter(i=>i.date===todayKey).forEach(inv=>{
-      const h = (inv.time||'00:00').slice(0,2);
-      const idx = Math.floor(Number(h)/2);
-      hourData[idx] += Number(inv.total||0);
+    // --- Actions
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem('session');
+      location.href = 'login.html';
+    };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      try {
+        const keep = localStorage.getItem('session');
+        localStorage.clear();
+        if (keep) localStorage.setItem('session', keep);
+        if ('caches' in window) {
+          const ks = await caches.keys();
+          await Promise.all(ks.map(k => caches.delete(k)));
+        }
+        alert('Cache cleared.');
+        location.reload();
+      } catch(e){ alert('Could not clear all caches.'); }
+    };
+
+    // --- Minimal local sales read (works with js/store.js invoices)
+    function getInvoices() {
+      try { return JSON.parse(localStorage.getItem('invoices') || '[]'); }
+      catch { return []; }
+    }
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function isSameDay(a,b){ return startOfDay(a).getTime()===startOfDay(b).getTime(); }
+
+    function summarize(range='today'){
+      const inv = getInvoices();
+      const now = new Date();
+      let from;
+      if (range==='today') from = startOfDay(now);
+      else if (range==='7d') { from = new Date(now); from.setDate(now.getDate()-6); from = startOfDay(from); }
+      else if (range==='30d'){ from = new Date(now); from.setDate(now.getDate()-29); from = startOfDay(from); }
+      else if (range==='ytd'){ from = new Date(now.getFullYear(),0,1); }
+      else from = startOfDay(now);
+
+      const picked = inv.filter(i=>{
+        const t = new Date(i.date||i.createdAt||Date.now());
+        return t>=from && t<=now;
+      });
+
+      const total = picked.reduce((s,i)=> s + (Number(i.total)||0), 0);
+      const days = Math.max(1, Math.round( (startOfDay(now)-from)/86400000 ) + 1);
+      const avg = total / days;
+      const count = picked.length;
+
+      // top item by revenue
+      const itemMap = {};
+      picked.forEach(i=>{
+        (i.items||[]).forEach(it=>{
+          const key = (it.name||'Item').trim();
+          const amt = (Number(it.qty)||0) * (Number(it.price)||0);
+          itemMap[key] = (itemMap[key]||0)+amt;
+        });
+      });
+      const top = Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+      // daily buckets for line
+      const byDay = {};
+      for(let i=0;i<days;i++){
+        const d = new Date(from); d.setDate(from.getDate()+i);
+        const key = d.toISOString().slice(0,10);
+        byDay[key] = 0;
+      }
+      picked.forEach(i=>{
+        const d = new Date(i.date||i.createdAt||Date.now());
+        const key = d.toISOString().slice(0,10);
+        if (byDay[key] != null) byDay[key] += Number(i.total)||0;
+      });
+
+      return { total, avg, count, top, lineLabels:Object.keys(byDay), lineData:Object.values(byDay), pieData:itemMap };
+    }
+
+    function money(n){ return (Number(n)||0).toFixed(2); }
+
+    function paintSummary(range='today'){
+      const s = summarize(range);
+      // KPIs
+      document.getElementById('kpiTotal').textContent = money(s.total);
+      document.getElementById('kpiAvg').textContent = money(s.avg);
+      document.getElementById('kpiInv').textContent = s.count;
+      document.getElementById('kpiTop').textContent = s.top;
+
+      // Banner pharmacy snippet (today + month)
+      const inv = getInvoices();
+      const today = inv.filter(i=>isSameDay(new Date(i.date||i.createdAt||Date.now()), new Date())).reduce((a,i)=>a+(+i.total||0),0);
+      const mStart = new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
+      const mtd = inv.filter(i=> new Date(i.date||i.createdAt||Date.now())>=mStart).reduce((a,i)=>a+(+i.total||0),0);
+      const top = s.top || '—';
+      document.getElementById('pharmacySummary').textContent = `Today ₹${money(today)} • MTD ₹${money(mtd)} • Top: ${top}`;
+
+      // Charts
+      line.data.labels = s.lineLabels;
+      line.data.datasets[0].data = s.lineData;
+      line.update();
+
+      const pieLabels = Object.keys(s.pieData);
+      const pieVals = Object.values(s.pieData);
+      pie.data.labels = pieLabels.length? pieLabels: ['No data'];
+      pie.data.datasets[0].data = pieVals.length? pieVals: [1];
+      pie.update();
+    }
+
+    // Charts init
+    const line = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label:'Revenue', data: [], borderWidth:2, tension:.3 }] },
+      options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+    });
+    const pie = new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: { labels: [], datasets: [{ data: [] }] },
+      options: { responsive:true, maintainAspectRatio:false }
     });
 
-    new Chart(document.getElementById('lineChart'),{
-      type:'line',
-      data:{ labels:hours, datasets:[{ label:'Revenue (₹)', data:hourData, tension:.35, fill:false }]},
-      options:{ responsive:true, plugins:{ legend:{display:false} } }
+    // Range chips
+    const rangeBar = document.querySelector('.range');
+    let active = 'today';
+    function setActive(name){
+      active = name;
+      rangeBar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      const el = rangeBar.querySelector(`[data-range="${name}"]`);
+      if (el) el.classList.add('active');
+      paintSummary(name);
+    }
+    rangeBar.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if (!btn) return;
+      setActive(btn.dataset.range);
     });
+    setActive('today');
 
-    const pieLabels = Object.keys(byItem).length? Object.keys(byItem):['No Sales'];
-    const pieVals   = Object.keys(byItem).length? Object.values(byItem):[1];
-    new Chart(document.getElementById('pieChart'),{
-      type:'pie',
-      data:{ labels:pieLabels, datasets:[{ data:pieVals }]},
-      options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
-    });
-
-    // SW
+    // SW (quiet)
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
