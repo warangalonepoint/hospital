@@ -6,21 +6,13 @@ const ASSETS = [
   "./login.html",
   "./dashboard.html",
   "./admin.html",
-  "./settings.html",
   "./analytics.html",
-  "./pharmacy.html",
-  "./pharmacy-report.html",
-  "./patient.html",
-  "./portal.html",
-  "./offline.html",
-
-  "./styles.css",
+  "./settings.html",
+  "./styles.css?v=24",
   "./js/store.js",
-
-  "./assets/logo.png",
   "./assets/banner.png",
-  "./assets/chart.umd.min.js",   // ✅ Chart.js local copy
-
+  "./assets/logo.png",
+  "./assets/chart.umd.min.js",
   "./manifest.webmanifest"
 ];
 
