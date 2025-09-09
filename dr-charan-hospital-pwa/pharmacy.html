@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Pharmacy – Sales Records</title>
+  <link rel="stylesheet" href="styles.css?v=20"/>
+</head>
+<body>
+  <header class="banner">
+    <button id="themeToggle" class="chip floating-toggle small">🌙</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h3 class="section-title">Pharmacy Records</h3>
+        <div class="pillbar">
+          <button class="pill active" data-range="day">Daily</button>
+          <button class="pill" data-range="week">Weekly</button>
+          <button class="pill" data-range="month">Monthly</button>
+          <button class="pill" data-range="year">Yearly</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:12px">
+        <div class="stat">
+          <div class="k" id="sum">0.00</div>
+          <div class="muted">Total (selected)</div>
+        </div>
+        <div class="stat">
+          <div class="k" id="avg">0.00</div>
+          <div class="muted">Average per invoice</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <canvas id="chart" height="220" style="width:100%"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { listInvoices } from './js/store.js?v=21';
+
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+
+    let range='day';
+    document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{ document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); p.classList.add('active'); range=p.dataset.range; draw(); });
+
+    function filterByRange(invs){
+      const now=new Date(); let start=new Date(now);
+      if(range==='day') start.setDate(now.getDate()-6);
+      if(range==='week') start.setDate(now.getDate()-27);
+      if(range==='month') start=new Date(now.getFullYear(), now.getMonth()-11, 1);
+      if(range==='year') start=new Date(now.getFullYear()-5, 0, 1);
+      const sISO=start.toISOString().slice(0,10);
+      return invs.filter(i=>i.date>=sISO);
+    }
+
+    function draw(){
+      const invs=filterByRange(listInvoices());
+      const sum=invs.reduce((s,i)=>s+(+i.total||0),0);
+      const avg=invs.length?sum/invs.length:0;
+      document.getElementById('sum').textContent=sum.toFixed(2);
+      document.getElementById('avg').textContent=avg.toFixed(2);
+
+      const map=new Map();
+      invs.forEach(i=>{ map.set(i.date,(map.get(i.date)||0)+(+i.total||0)); });
+      const labels=[...map.keys()].sort();
+      const data=labels.map(k=>map.get(k));
+
+      const c=document.getElementById('chart'), ctx=c.getContext('2d');
+      c.width=c.clientWidth*2; c.height=c.clientHeight*2; ctx.scale(2,2);
+      const W=c.clientWidth, H=c.clientHeight, pad=30;
+      ctx.clearRect(0,0,W,H);
+      const border=getComputedStyle(document.documentElement).getPropertyValue('--border');
+      const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary');
+      ctx.strokeStyle=border; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+
+      const max=Math.max(10,...data);
+      const slot=(W-pad*2)/(Math.max(1,labels.length)); const bw=slot*0.6; const base=H-pad;
+      data.forEach((v,i)=>{ const h=Math.round((v/max)*(H-pad*2)); const x=pad+i*slot+(slot-bw)/2; ctx.fillStyle=primary; ctx.fillRect(x,base-h,bw,h); });
+      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted'); ctx.font='11px system-ui'; ctx.textAlign='center';
+      labels.forEach((lb,i)=>{ const x=pad+i*slot+slot/2; ctx.fillText(lb.slice(5),x,H-8); });
+    }
+
+    draw(); addEventListener('resize', draw);
+  </script>
+</body>
+</html>
