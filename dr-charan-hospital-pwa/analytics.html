@@ -4,304 +4,143 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Analytics – Dr. Charan Hospital</title>
-
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
-
-  <!-- Local, offline-first -->
+  <link rel="stylesheet" href="styles.css?v=18"/>
   <script defer src="assets/chart.umd.min.js"></script>
-  <script defer src="js/store.js"></script>
 </head>
 <body>
-  <!-- Banner -->
   <header class="banner">
     <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
-  <div class="fixed-actions">
+  <nav class="fixed-actions">
     <a class="chip" href="dashboard.html">← Dashboard</a>
     <button id="logoutBtn" class="chip">Logout</button>
     <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </div>
+  </nav>
 
-  <main class="section" style="max-width:1100px">
-    <!-- Range selector -->
-    <section class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-      <h1 class="login-title" style="margin:0">Sales Analytics</h1>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="chip" data-range="7d">7D</button>
+  <section class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <h1>Sales Analytics</h1>
+      <div class="range">
+        <button class="chip active" data-range="7d">7D</button>
         <button class="chip" data-range="30d">30D</button>
         <button class="chip" data-range="ytd">YTD</button>
         <button class="chip" data-range="custom" id="btnCustom">Custom</button>
-        <input id="from" type="date" class="input" style="width:auto;padding:6px 10px;display:none;">
-        <input id="to"   type="date" class="input" style="width:auto;padding:6px 10px;display:none;">
+        <input id="from" type="date" class="input" style="width:auto;display:none;">
+        <input id="to"   type="date" class="input" style="width:auto;display:none;">
         <button id="applyCustom" class="btn" style="display:none;">Apply</button>
       </div>
-    </section>
+    </div>
 
-    <!-- KPIs -->
-    <section class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-      <div class="card card--blue">
-        <h2>Total (₹)</h2>
-        <p id="kpiTotal" style="font-size:28px;font-weight:700;margin-top:6px">0.00</p>
-      </div>
-      <div class="card card--lavender">
-        <h2>Avg / Day (₹)</h2>
-        <p id="kpiAvg" style="font-size:28px;font-weight:700;margin-top:6px">0.00</p>
-      </div>
-      <div class="card card--mint">
-        <h2>Invoices</h2>
-        <p id="kpiCount" style="font-size:28px;font-weight:700;margin-top:6px">0</p>
-      </div>
-      <div class="card card--peach">
-        <h2>Top Item</h2>
-        <p id="kpiTop" style="font-size:20px;font-weight:700;margin-top:10px">—</p>
-      </div>
-    </section>
+    <div class="card-grid" style="margin-top:10px">
+      <div class="card" style="background:var(--blue);"><h2>Total (₹)</h2><p id="mTotal">0.00</p></div>
+      <div class="card" style="background:var(--lilac);"><h2>Avg / Day (₹)</h2><p id="mAvg">0.00</p></div>
+      <div class="card" style="background:var(--mint);"><h2>Invoices</h2><p id="mInv">0</p></div>
+      <div class="card" style="background:var(--peach);"><h2>Top Item</h2><p id="mTop">—</p></div>
+    </div>
 
-    <!-- Charts -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Revenue by Day</h2>
-      <canvas id="lineChart" height="160"></canvas>
-    </section>
+    <div class="section" style="margin:16px 0;">
+      <h2>Revenue by Day</h2>
+      <canvas id="line"></canvas>
+    </div>
 
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Top Items (Selected Range)</h2>
-      <canvas id="pieChart" height="160"></canvas>
-    </section>
-
-    <!-- Records table -->
-    <section class="card">
-      <h2 style="font-size:18px;margin-bottom:8px">Invoices (Selected Range)</h2>
-      <table class="table" id="invTable">
-        <thead>
-          <tr><th>Date</th><th>Items</th><th>Total ₹</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+    <div class="section">
+      <h2>Top Items</h2>
+      <canvas id="pie"></canvas>
+    </div>
+  </section>
 
   <script type="module">
-    // ----- Role: doctor only -----
-    const session = JSON.parse(localStorage.getItem('session')||'null');
-    if(!session || session.role!=='doctor') location.replace('login.html');
+    // theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // ----- Theme -----
-    const t = document.getElementById('themeToggle');
-    const setTheme = m => { document.documentElement.dataset.theme=m; localStorage.theme=m; t.textContent=m==='light'?'🌞':'🌙'; };
-    setTheme(localStorage.theme || 'light');
-    t.onclick = () => setTheme((document.documentElement.dataset.theme||'light')==='light'?'dark':'light');
+    // guard: doctor only
+    const ses=JSON.parse(localStorage.getItem('session')||'{}');
+    if(ses.role!=='doctor'){ location.href='login.html'; }
 
-    // ----- Logout / Clear cache -----
-    document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('session'); location.replace('login.html'); };
-    document.getElementById('clearCacheBtn').onclick = async () => {
+    // actions
+    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    document.getElementById('clearCacheBtn').onclick=async()=>{
       try{
-        const s = localStorage.getItem('session'); localStorage.clear(); if(s) localStorage.setItem('session', s);
+        localStorage.clear();
         if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        alert('Cache cleared. Reloading…'); location.reload(true);
-      }catch{}
+        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+        alert('Cache cleared. Reloading…'); location.reload();
+      }catch(e){ alert('Could not fully clear cache.'); }
     };
 
-    // ----- Range state -----
-    let currentRange = '7d';
-    const chips = [...document.querySelectorAll('[data-range]')];
-    const fromEl = document.getElementById('from');
-    const toEl = document.getElementById('to');
-    const applyBtn = document.getElementById('applyCustom');
+    // chips active state
+    const chips=[...document.querySelectorAll('.range [data-range]')];
+    function markActive(btn){ chips.forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+    chips.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(btn.dataset.range==='custom') return;
+        markActive(btn);
+        loadRange(btn.dataset.range);
+      });
+    });
 
-    function highlightChip(k){
-      chips.forEach(c=>c.style.outline='');
-      const btn = document.querySelector(`[data-range="${k}"]`);
-      if(btn) btn.style.outline = '2px solid var(--accent)';
-    }
-    highlightChip(currentRange);
+    // custom flow
+    const btnCustom=document.getElementById('btnCustom');
+    const from=document.getElementById('from');
+    const to=document.getElementById('to');
+    const apply=document.getElementById('applyCustom');
+    btnCustom.addEventListener('click', ()=>{
+      from.style.display=to.style.display=apply.style.display='inline-block';
+    });
+    apply.addEventListener('click', ()=>{
+      markActive(btnCustom);
+      loadRange('custom',{from:from.value,to:to.value});
+    });
 
-    document.getElementById('btnCustom').onclick = ()=>{
-      fromEl.style.display = 'inline-block';
-      toEl.style.display = 'inline-block';
-      applyBtn.style.display = 'inline-block';
-    };
-    applyBtn.onclick = ()=>{
-      if(!fromEl.value || !toEl.value){ alert('Pick From & To'); return; }
-      currentRange = { from: fromEl.value, to: toEl.value };
-      highlightChip('custom');
-      render();
-    };
-    chips.forEach(c => c.addEventListener('click', e=>{
-      const k = e.currentTarget.dataset.range;
-      if(k==='custom') return; // handled by btnCustom
-      fromEl.style.display='none'; toEl.style.display='none'; applyBtn.style.display='none';
-      currentRange = k; highlightChip(k); render();
-    }));
-
-    // ----- Charts -----
+    // charts
     let lineChart, pieChart;
-    const tickColor = () => (document.documentElement.dataset.theme||'light')==='light' ? '#0f172a' : '#e6edf7';
-
-    function drawLine(labels, values){
-      lineChart?.destroy();
-      lineChart = new Chart(document.getElementById('lineChart').getContext('2d'), {
-        type:'line',
-        data:{ labels, datasets:[{ data: values, tension:.35, borderWidth:2, fill:false }] },
-        options:{
-          responsive:true,
-          plugins:{ legend:{ display:false }},
-          scales:{ x:{ ticks:{ color:tickColor() } }, y:{ ticks:{ color:tickColor(), callback:v=>'₹'+v } } }
-        }
-      });
-    }
-    function drawPie(labels, values){
-      pieChart?.destroy();
-      pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
-        type:'pie',
-        data:{ labels: labels.length?labels:['No data'], datasets:[{ data: values.length?values:[1] }] },
-        options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ color:tickColor() } } } }
-      });
+    function renderCharts(days, items){
+      const ctx1=document.getElementById('line'); const ctx2=document.getElementById('pie');
+      lineChart?.destroy(); pieChart?.destroy();
+      lineChart=new Chart(ctx1,{type:'line',data:{labels:days.map(d=>d.label), datasets:[{data:days.map(d=>d.total)}]}});
+      pieChart =new Chart(ctx2,{type:'pie', data:{labels:items.map(i=>i.name), datasets:[{data:items.map(i=>i.total)}]}} );
     }
 
-    // ----- Data fetch + render -----
-    const kpiTotal = document.getElementById('kpiTotal');
-    const kpiAvg   = document.getElementById('kpiAvg');
-    const kpiCount = document.getElementById('kpiCount');
-    const kpiTop   = document.getElementById('kpiTop');
-    const invTbody = document.querySelector('#invTable tbody');
+    // stubbed aggregator (still reads from localStorage store format)
+    function getSalesBetween(start,end){
+      const store=JSON.parse(localStorage.getItem('sales')||'[]');
+      return store.filter(r=>r.date>=start && r.date<=end);
+    }
+    function sum(arr,fn){ return arr.reduce((a,b)=>a+fn(b),0); }
 
-    async function getStats(rangeKey){
-      // Prefer Store.getStats; fallback to local invoices
-      if(window.Store && Store.getStats){
-        return await Store.getStats(rangeKey);
-      }
-      // Fallback (local)
-      const invs = JSON.parse(localStorage.getItem('invoices')||'[]');
-      const today = new Date().toISOString().slice(0,10);
-      let from=today, to=today;
-      if(rangeKey==='7d'){ const d=new Date(); d.setDate(d.getDate()-6); from=d.toISOString().slice(0,10); }
-      if(rangeKey==='30d'){ const d=new Date(); d.setDate(d.getDate()-29); from=d.toISOString().slice(0,10); }
-      if(rangeKey==='ytd'){ const d=new Date(new Date().getFullYear(),0,1); from=d.toISOString().slice(0,10); }
-      if(typeof rangeKey==='object'){ from=rangeKey.from; to=rangeKey.to; }
-      const inRange = invs.filter(x=>{
-        const iso=(x.dateISO||x.date||'').slice(0,10);
-        return iso>=from && iso<=to;
-      });
-      // Aggregate
-      const byDay = new Map();
-      for(let d=new Date(from); d<=new Date(to); d=new Date(d.getTime()+86400000)){
-        byDay.set(d.toISOString().slice(0,10), 0);
-      }
-      let total=0; const byItem = new Map();
-      inRange.forEach(inv=>{
-        const k=(inv.dateISO||inv.date||'').slice(0,10);
-        const amt=Number(inv.total||0); total+=amt;
-        if(byDay.has(k)) byDay.set(k, byDay.get(k)+amt);
-        (inv.items||[]).forEach(it=>{
-          const name=it.name||'Item'; const val=Number(it.amount||((+it.qty||0)*(+it.price||0)));
-          byItem.set(name,(byItem.get(name)||0)+val);
-        });
-      });
-      const days = Math.max(1, Math.ceil((new Date(to)-new Date(from))/86400000)+1);
-      let topItem='—', topVal=0; byItem.forEach((v,k)=>{ if(v>topVal){ topVal=v; topItem=k; } });
+    function loadRange(key,opts={}){
+      const now=new Date(); let start,end;
+      if(key==='7d'){ end=new Date(); start=new Date(); start.setDate(end.getDate()-6); }
+      else if(key==='30d'){ end=new Date(); start=new Date(); start.setDate(end.getDate()-29); }
+      else if(key==='ytd'){ end=new Date(); start=new Date(end.getFullYear(),0,1); }
+      else { start=new Date(opts.from||now); end=new Date(opts.to||now); }
 
-      return {
-        total,
-        avgPerDay: total/days,
-        count: inRange.length,
-        topItem,
-        series: Array.from(byDay.entries()).map(([date,total])=>({date,total}))
-      };
+      const s=start.toISOString().slice(0,10), e=end.toISOString().slice(0,10);
+      const rows=getSalesBetween(s,e);
+      const total=sum(rows,r=>+r.total||0);
+      const days=Math.max(1, Math.ceil((end-start)/86400000)+1);
+      const byDay={}; rows.forEach(r=>{ byDay[r.date]=(byDay[r.date]||0)+(+r.total||0); });
+      const labels=[]; for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){ labels.push(d.toISOString().slice(0,10)); }
+      const daySeries=labels.map(lbl=>({label:lbl,total:byDay[lbl]||0}));
+
+      const byItem={}; rows.forEach(r=> (r.items||[]).forEach(i=>{ byItem[i.name]=(byItem[i.name]||0)+((+i.qty||0)*(+i.price||0)); }));
+      const items=Object.entries(byItem).map(([name,total])=>({name,total}));
+
+      document.getElementById('mTotal').textContent=total.toFixed(2);
+      document.getElementById('mAvg').textContent=(total/days).toFixed(2);
+      document.getElementById('mInv').textContent=rows.length;
+      document.getElementById('mTop').textContent=(items.sort((a,b)=>b.total-a.total)[0]?.name)||'—';
+
+      renderCharts(daySeries, items.slice(0,6));
     }
 
-    async function loadInvoicesForTable(rangeKey){
-      // minimal table feed; prefer Store.getInvoices
-      try{
-        if(window.Store && Store.getInvoices){
-          if(typeof rangeKey==='object') return await Store.getInvoices({from:rangeKey.from,to:rangeKey.to});
-          if(rangeKey==='7d'){ const d=new Date(); d.setDate(d.getDate()-6); return await Store.getInvoices({from:d.toISOString().slice(0,10), to:new Date().toISOString().slice(0,10)}); }
-          if(rangeKey==='30d'){ const d=new Date(); d.setDate(d.getDate()-29); return await Store.getInvoices({from:d.toISOString().slice(0,10), to:new Date().toISOString().slice(0,10)}); }
-          if(rangeKey==='ytd'){ const d=new Date(new Date().getFullYear(),0,1); return await Store.getInvoices({from:d.toISOString().slice(0,10), to:new Date().toISOString().slice(0,10)}); }
-          return await Store.getInvoices({from:new Date().toISOString().slice(0,10), to:new Date().toISOString().slice(0,10)});
-        }
-      }catch{}
-      // fallback local
-      return JSON.parse(localStorage.getItem('invoices')||'[]');
-    }
-
-    function refillTable(invoices, rangeKey){
-      // Filter locally for safety on fallback
-      let from, to;
-      if(typeof rangeKey==='object'){ from=rangeKey.from; to=rangeKey.to; }
-      else{
-        const today = new Date().toISOString().slice(0,10);
-        from = today; to = today;
-        if(rangeKey==='7d'){ const d=new Date(); d.setDate(d.getDate()-6); from=d.toISOString().slice(0,10); }
-        if(rangeKey==='30d'){ const d=new Date(); d.setDate(d.getDate()-29); from=d.toISOString().slice(0,10); }
-        if(rangeKey==='ytd'){ const d=new Date(new Date().getFullYear(),0,1); from=d.toISOString().slice(0,10); }
-      }
-      const filtered = invoices.filter(inv=>{
-        const iso=(inv.dateISO||inv.date||'').slice(0,10);
-        return (!from || iso>=from) && (!to || iso<=to);
-      }).sort((a,b)=> new Date(b.dateISO||b.date)-new Date(a.dateISO||a.date));
-
-      invTbody.innerHTML='';
-      filtered.slice(0,50).forEach(inv=>{
-        const iso = (inv.dateISO||inv.date||'').slice(0,10);
-        const itemsStr = (inv.items||[]).map(i=>`${i.name||'Item'}×${i.qty||1}`).join(', ');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${iso}</td><td>${itemsStr}</td><td>${Number(inv.total||0).toFixed(2)}</td>`;
-        invTbody.appendChild(tr);
-      });
-    }
-
-    async function render(){
-      // Wait until Store (and Chart) ready
-      if(!window.Chart){ setTimeout(render, 40); return; }
-      if(!(window.Store && Store.getStats)){ /* still works with fallback */ }
-
-      // Stats
-      const stats = await getStats(currentRange);
-      kpiTotal.textContent = (stats.total||0).toFixed(2);
-      kpiAvg.textContent   = (stats.avgPerDay||0).toFixed(2);
-      kpiCount.textContent = stats.count||0;
-      kpiTop.textContent   = stats.topItem || '—';
-
-      // Line
-      const labels = (stats.series||[]).map(s=>s.date.slice(5)); // MM-DD
-      const values = (stats.series||[]).map(s=>s.total||0);
-      drawLine(labels, values);
-
-      // Pie: derive from invoices in range (aggregate by item amount)
-      const invs = await loadInvoicesForTable(currentRange);
-      const byItem = new Map();
-      invs.forEach(inv=>{
-        const iso=(inv.dateISO||inv.date||'').slice(0,10);
-        const inRange = (typeof currentRange==='object')
-          ? (iso>=currentRange.from && iso<=currentRange.to)
-          : (labels.includes(iso.slice(5)));
-        if(!inRange) return;
-        (inv.items||[]).forEach(it=>{
-          const k=it.name||'Item';
-          const amt = Number(it.amount || ((+it.qty||0)*(+it.price||0)));
-          byItem.set(k,(byItem.get(k)||0)+amt);
-        });
-      });
-      const topPairs = [...byItem.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8);
-      drawPie(topPairs.map(p=>p[0]), topPairs.map(p=>p[1]));
-
-      // Table
-      refillTable(invs, currentRange);
-    }
-
-    // Repaint on theme change
-    const mo = new MutationObserver(()=> render());
-    mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
-
-    // Kickoff
-    render();
-
-    // SW register (quiet)
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
+    // initial
+    loadRange('7d');
   </script>
 </body>
 </html>
