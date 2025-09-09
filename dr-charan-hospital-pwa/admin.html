@@ -6,56 +6,176 @@
   <title>Supervisor – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=18"/>
+  <link rel="stylesheet" href="styles.css?v=24"/>
+
+  <style>
+    /* Page accents (re-using your “thick tint” look) */
+    .wrap { max-width: 1120px; margin: 0 auto; }
+    .section { margin:12px; }
+
+    .tint      { border-radius:16px; padding:16px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.06); }
+    .tint-blue   { background: color-mix(in srgb, #2563eb 16%, var(--card-bg)); }
+    .tint-green  { background: color-mix(in srgb, #22c55e 16%, var(--card-bg)); }
+    .tint-rose   { background: color-mix(in srgb, #f43f5e 16%, var(--card-bg)); }
+    .tint-purple { background: color-mix(in srgb, #8b5cf6 14%, var(--card-bg)); }
+    .tint-sky    { background: color-mix(in srgb, #06b6d4 14%, var(--card-bg)); }
+
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin:10px 12px; }
+    .chip { height:40px; padding:0 14px; border-radius:999px; background:var(--card-bg); border:1px solid rgba(0,0,0,.06); box-shadow:var(--shadow); }
+
+    .tile-grid { display:grid; gap:16px; grid-template-columns:1fr; }
+    @media (min-width:760px){ .tile-grid { grid-template-columns:1fr 1fr; } }
+
+    .tile {
+      border-radius:18px; padding:22px; text-align:center; box-shadow:var(--shadow);
+      border:1px solid rgba(0,0,0,.06); text-decoration:none; display:block; color:inherit;
+    }
+    .tile h3 { font-size:22px; margin-bottom:6px; text-decoration: underline; text-underline-offset: 4px; }
+    .tile p  { color:var(--muted); }
+
+    .kpi-grid { display:grid; gap:14px; grid-template-columns:1fr; }
+    @media (min-width:720px){ .kpi-grid { grid-template-columns:repeat(2, 1fr); } }
+    @media (min-width:1024px){ .kpi-grid { grid-template-columns:repeat(4, 1fr); } }
+    .kpi { border-radius:16px; padding:16px; box-shadow:var(--shadow); border:1px solid rgba(0,0,0,.06); }
+    .kpi h4 { font-size:14px; opacity:.85; margin-bottom:6px; }
+    .kpi .num { font-size:28px; font-weight:800; letter-spacing:.3px; }
+
+    .heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+    .muted { color:var(--muted); font-size:13px; }
+  </style>
 </head>
 <body>
-  <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
-  </header>
+  <div class="wrap">
+    <!-- Banner -->
+    <header class="banner">
+      <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    </header>
 
-  <nav class="fixed-actions">
-    <a class="chip" href="login.html">← Login</a>
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </nav>
+    <!-- Actions -->
+    <nav class="toolbar">
+      <a class="chip" href="login.html">← Login</a>
+      <button id="logoutBtn" class="chip">Logout</button>
+      <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    </nav>
 
-  <section class="section">
-    <div class="card-grid menu">
-      <a class="card menu card--blue" href="bookings.html">
-        <h2>Bookings</h2>
-        <p>Create tokens & manage appointments</p>
-      </a>
-      <a class="card menu card--mint" href="pharmacy.html">
-        <h2>Pharmacy – Billing</h2>
-        <p>Multi-item invoices, discounts, payments</p>
-      </a>
-      <a class="card menu card--peach" href="pharmacy-report.html">
-        <h2>Pharmacy – Reports</h2>
-        <p>Daily/Weekly/Monthly/Yearly sales & items</p>
-      </a>
-    </div>
-  </section>
+    <!-- Supervisor Tiles -->
+    <section class="section">
+      <div class="tile-grid">
+        <a class="tile tint-blue" href="bookings.html">
+          <h3>Bookings</h3>
+          <p>Create tokens & manage appointments</p>
+        </a>
+
+        <a class="tile tint-green" href="pharmacy.html">
+          <h3>Pharmacy – Billing</h3>
+          <p>Multi-item invoices, discounts, payments</p>
+        </a>
+
+        <a class="tile tint-rose" style="grid-column: 1 / -1" href="pharmacy-report.html">
+          <h3>Pharmacy – Reports</h3>
+          <p>Daily / Weekly / Monthly / Yearly sales & items</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Snapshot -->
+    <section class="section tint tint-purple">
+      <div class="heading">
+        <h2 style="font-size:22px;">Today Snapshot</h2>
+        <span class="muted" id="dateLabel"></span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi tint-blue">
+          <h4>Today (₹)</h4>
+          <div class="num" id="todayAmt">0.00</div>
+        </div>
+        <div class="kpi tint-green">
+          <h4>This Month (₹)</h4>
+          <div class="num" id="mtdAmt">0.00</div>
+        </div>
+        <div class="kpi tint-sky">
+          <h4>Top Item (Today)</h4>
+          <div class="num" id="topItem">—</div>
+        </div>
+        <div class="kpi tint-rose">
+          <h4>Invoices (Today)</h4>
+          <div class="num" id="invCnt">0</div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <script type="module">
-    // theme toggle
-    const toggle=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; toggle.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    toggle.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; toggle.textContent=next==='light'?'🌞':'🌙'; };
+    // Theme toggle
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // session guard (supervisor only)
-    const ses=JSON.parse(localStorage.getItem('session')||'{}');
-    if(ses.role!=='supervisor'){ location.href='login.html'; }
+    // Session guard (Supervisor only)
+    const sess = JSON.parse(localStorage.getItem('session')||'{}');
+    if(!sess.role){ location.replace('login.html'); }
+    if(sess.role!=='supervisor'){ 
+      // Doctor or others shouldn’t be here
+      location.replace(sess.role==='doctor' ? 'dashboard.html' : 'portal.html');
+    }
 
-    // logout & cache
+    // Actions
     document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
     document.getElementById('clearCacheBtn').onclick=async()=>{
-      try{
-        localStorage.clear();
-        if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-        if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-        alert('Cache cleared. Reloading…'); location.reload();
-      }catch(e){ alert('Could not fully clear cache.'); }
+      localStorage.clear(); sessionStorage.clear();
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      alert('Cleared. Reloading…'); location.reload();
     };
+
+    // Data helpers
+    function fmt(n){ return (Number(n)||0).toFixed(2); }
+    function iso(d){ return new Date(d).toISOString().slice(0,10); }
+
+    async function getInvoicesAll(){
+      // If you later expose Supabase helpers, prefer them:
+      if (window.Store && Store.getAllInvoices) return Store.getAllInvoices();
+      return JSON.parse(localStorage.getItem('invoices')||'[]');
+    }
+
+    function sumLines(items){
+      return (items||[]).reduce((s,it)=> s + (Number(it.price)||0)*(Number(it.qty)||1), 0);
+    }
+
+    // Snapshot
+    (async function render(){
+      const todayISO = iso(new Date());
+      const monthStartISO = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+      document.getElementById('dateLabel').textContent = todayISO;
+
+      const invoices = await getInvoicesAll();
+
+      const todays = invoices.filter(i => (i.date || iso(i.ts||Date.now())) === todayISO);
+      const mtd    = invoices.filter(i => (i.date || iso(i.ts||Date.now())) >= monthStartISO);
+
+      const todayAmt = todays.reduce((s,i)=> s + (Number(i.total)||sumLines(i.items||[])), 0);
+      const mtdAmt   = mtd.reduce((s,i)=> s + (Number(i.total)||sumLines(i.items||[])), 0);
+
+      // Top item today (by revenue)
+      const map = {};
+      todays.forEach(inv=>{
+        (inv.items||[]).forEach(it=>{
+          const name = it.name || it.item || '—';
+          const line = (Number(it.price)||0) * (Number(it.qty)||1);
+          map[name] = (map[name]||0)+line;
+        });
+      });
+      const topItem = Object.entries(map).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+      // Bind
+      document.getElementById('todayAmt').textContent = fmt(todayAmt);
+      document.getElementById('mtdAmt').textContent   = fmt(mtdAmt);
+      document.getElementById('invCnt').textContent   = todays.length;
+      document.getElementById('topItem').textContent  = topItem;
+    })();
+
+    // SW
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
