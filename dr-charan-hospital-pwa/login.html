@@ -25,7 +25,7 @@
           <button id="loginBtn" class="btn">Login</button>
         </div>
       </div>
-      <div id="err" style="color:var(--danger);margin-top:8px"></div>
+      <div id="err" style="color:#d33;margin-top:8px"></div>
     </section>
   </main>
 
@@ -33,8 +33,17 @@
     Demo PINs → Doctor: 4321 • Supervisor: 1111 • Patient: 2222
   </footer>
 
+  <!-- App logic -->
   <script type="module">
-    import { authenticatePin } from './js/store.js?v=14';
+    import { authenticatePin, currentUser } from './js/store.js?v=14';
+
+    // Auto-skip login if already authenticated
+    const u = currentUser?.();
+    if (u) {
+      if (u.role === 'doctor') location.href = 'dashboard.html?v=15';
+      else if (u.role === 'supervisor') location.href = 'admin.html?v=15';
+      else if (u.role === 'patient') location.href = 'portal.html?v=15';
+    }
 
     // Theme toggle
     const tbtn=document.getElementById('themeToggle');
@@ -63,11 +72,55 @@
       else if(user.role==='patient'){ location.href='portal.html?v=15'; }
       else{ err.textContent='Unknown role'; }
     };
-
-    // Allow pressing Enter
     document.getElementById('pin').addEventListener('keyup',e=>{
       if(e.key==='Enter') document.getElementById('loginBtn').click();
     });
+  </script>
+
+  <!-- SW registration + install prompt -->
+  <script>
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(err => console.error("SW failed:", err));
+    }
+
+    // Handle install prompt (Add to Home Screen)
+    let deferredPrompt;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+
+      // Create a floating install button
+      const btn = document.createElement("button");
+      btn.textContent = "Install App";
+      btn.className = "btn";
+      btn.style = "position:fixed;bottom:20px;right:20px;z-index:9999";
+      document.body.appendChild(btn);
+
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          deferredPrompt.prompt();
+          await deferredPrompt.userChoice; // {outcome: 'accepted'|'dismissed'}
+        } finally {
+          deferredPrompt = null;
+          btn.remove();
+        }
+      });
+    });
+
+    // iOS hint (no A2HS event)
+    (function iosHint(){
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isIOS && !isStandalone) {
+        const hint = document.createElement('div');
+        hint.textContent = 'On iPhone: Share ▶ Add to Home Screen to install the app';
+        hint.style = 'position:fixed;left:12px;right:12px;bottom:12px;padding:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:12px;box-shadow:0 6px 30px #0002;z-index:9999;text-align:center';
+        document.body.appendChild(hint);
+        setTimeout(()=>hint.remove(), 8000);
+      }
+    })();
   </script>
 </body>
 </html>
