@@ -6,212 +6,257 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=34"/>
+  <link rel="stylesheet" href="styles.css?v=29"/>
+
+  <!-- Minimal fixes to ensure perfect readability & layout -->
   <style>
-    /* --- layout frame --- */
-    .container{max-width:1080px;margin:0 auto;padding:0 10px}
-    .section{margin:12px}
-    .tint{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.08)}
-    .tint-blue{background:linear-gradient(0deg,rgba(37,99,235,.10),rgba(37,99,235,.10)),var(--card-bg)}
-    .tint-green{background:linear-gradient(0deg,rgba(34,197,94,.10),rgba(34,197,94,.10)),var(--card-bg)}
-    html[data-theme="dark"] .tint{border-color:rgba(255,255,255,.10)}
-    html[data-theme="dark"] .tint-blue{background:linear-gradient(0deg,rgba(59,130,246,.22),rgba(59,130,246,.22)),var(--card-bg)}
-    html[data-theme="dark"] .tint-green{background:linear-gradient(0deg,rgba(34,197,94,.20),rgba(34,197,94,.20)),var(--card-bg)}
+    .container { max-width: 980px; margin: 0 auto; padding: 12px; }
+    .section { padding: 12px 0; }
+    .card { border-radius: 18px; }
+    .subtle { opacity:.8; font-size:.95rem; }
 
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    .chip{height:40px;padding:0 14px;border-radius:999px;background:var(--card-bg);border:1px solid rgba(0,0,0,.10)}
-    html[data-theme="dark"] .chip{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
-    .chip.is-active{background:var(--accent);color:#fff;border-color:transparent}
+    /* Pills row */
+    .chip-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .chip.active{ box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset; transform: translateY(-1px); }
 
-    /* tables */
-    .table-wrap{margin-top:10px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;font-size:13px;text-align:left;vertical-align:top}
+    /* Search input */
+    .searchbar{ width:100%; max-width:560px; display:block; margin:10px 0 14px; }
 
-    /* light mode */
-    th{background:rgba(0,0,0,.04);font-weight:600;color:#111}
-    td{background:#fff;color:#111;border-bottom:1px solid rgba(0,0,0,.08)}
+    /* Table: readable in both themes, mobile-friendly */
+    .table-wrap{ background: var(--surface, rgba(255,255,255,.5)); border-radius: 14px; padding: 10px; box-shadow: var(--shadow, 0 6px 24px rgba(0,0,0,.08)); overflow:auto; }
+    table{ width:100%; border-collapse: collapse; font-size: .95rem; }
+    thead th{ text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; background: var(--thead, rgba(240,240,245,.6)); backdrop-filter: blur(6px); }
+    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); }
+    tbody tr:hover{ background: rgba(0,0,0,.03); }
 
-    /* dark mode */
-    html[data-theme="dark"] th{background:rgba(255,255,255,.12);color:#f1f5f9}
-    html[data-theme="dark"] td{
-      background:rgba(255,255,255,.06);
-      color:#e2e8f0;
-      border-bottom:1px solid rgba(255,255,255,.12)
-    }
+    /* Empty state */
+    .empty{ padding:14px; opacity:.8; }
 
-    /* zebra rows */
-    tbody tr:nth-child(odd) td{background:rgba(0,0,0,.02)}
-    html[data-theme="dark"] tbody tr:nth-child(odd) td{background:rgba(255,255,255,.10)}
+    /* Badges */
+    .badge{ display:inline-block; padding:2px 8px; border-radius:12px; font-size:.8rem; }
+    .badge--today{ background: #e7f1ff; color:#1a4d9b; }
+    .badge--due{ background:#fff4e5; color:#7a3c00; }
+    .badge--ok{ background:#e7f8ee; color:#146c43; }
 
-    /* inputs */
-    .input, textarea, select{
-      width:100%;border-radius:10px;border:1px solid rgba(0,0,0,.12);padding:8px;font-size:13px;background:var(--card-bg);color:var(--fg)
-    }
-    html[data-theme="dark"] .input, html[data-theme="dark"] textarea, html[data-theme="dark"] select{
-      border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.06)
-    }
-    .row-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .muted{color:var(--muted);font-size:12px}
-    .right{margin-left:auto}
-    .nowrap{white-space:nowrap}
-    .banner{max-width:1120px;margin-left:auto;margin-right:auto}
+    /* Dark theme tune */
+    [data-theme="dark"] thead th{ background: rgba(30,30,38,.6); }
+    [data-theme="dark"] .table-wrap{ background: rgba(22,22,28,.6); }
+    [data-theme="dark"] tbody tr:hover{ background: rgba(255,255,255,.04); }
   </style>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Actions under banner -->
-  <nav class="fixed-actions container">
-    <a href="dashboard.html" class="chip">← Dashboard</a>
-    <button id="logoutBtn" class="chip">Logout</button>
-    <button id="clearCacheBtn" class="chip">Clear Cache</button>
-  </nav>
+  <!-- Fixed actions -->
+  <div class="fixed-actions">
+    <a href="dashboard.html" class="chip">Dashboard</a>
+    <button class="chip" id="logoutBtn">Logout</button>
+    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+  </div>
 
   <main class="container">
-    <!-- Upcoming -->
-    <section class="section tint tint-blue">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between">
-        <h2>Upcoming Patients</h2>
-        <span class="muted right">Source: Bookings created by Supervisor</span>
+
+    <!-- UPCOMING PATIENTS -->
+    <section class="section card panel--lilac">
+      <h2 style="margin:0 0 6px">Upcoming Patients</h2>
+      <div class="subtle">Source: Bookings created by Supervisor</div>
+
+      <div class="chip-row" style="margin:14px 0 6px">
+        <button class="chip chip--blue active" data-scope="today">Today</button>
+        <button class="chip chip--mint" data-scope="all">All</button>
       </div>
 
-      <div class="filters">
-        <button class="chip is-active" data-filter="today">Today</button>
-        <button class="chip" data-filter="all">All</button>
-        <input id="searchTxt" class="input" placeholder="Search name/phone" style="max-width:240px">
-      </div>
+      <input id="upSearch" class="searchbar" placeholder="Search name / phone"/>
 
-      <div class="table-wrap">
-        <table>
+      <div class="table-wrap" id="upTableWrap">
+        <table id="upTable">
           <thead>
             <tr>
-              <th class="nowrap">Token</th><th>Name</th><th>Phone</th><th>Date</th><th>Time</th><th>Notes</th><th>Action</th>
+              <th>Token</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Notes</th>
             </tr>
           </thead>
-          <tbody id="upcomingBody"></tbody>
+          <tbody id="upBody">
+            <tr><td class="empty" colspan="6">No bookings</td></tr>
+          </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Served -->
-    <section class="section tint tint-green">
-      <h2>Served Patients & Follow-ups</h2>
+    <!-- SERVED + FOLLOW UPS -->
+    <section class="section card panel--mint" style="margin-top:16px">
+      <h2 style="margin:0 0 6px">Served Patients &amp; Follow-ups</h2>
+
       <div class="table-wrap">
-        <table>
+        <table id="servedTable">
           <thead>
             <tr>
-              <th class="nowrap">Token</th><th>Name</th><th>Date</th>
-              <th style="width:36%">Treatment Notes</th>
-              <th class="nowrap">Next Visit</th>
-              <th>Save</th><th>Delete</th>
+              <th>Token</th>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Treatment Notes</th>
+              <th>Next Visit</th>
+              <th>Status</th>
             </tr>
           </thead>
-          <tbody id="servedBody"></tbody>
+          <tbody id="servedBody">
+            <tr><td class="empty" colspan="6">None yet</td></tr>
+          </tbody>
         </table>
       </div>
     </section>
+
   </main>
 
-  <script type="module">
-    // ===== Theme toggle =====
-    const themeBtn=document.getElementById('themeToggle');
-    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;themeBtn.textContent=localStorage.theme==='light'?'🌞':'🌙'}
-    themeBtn.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const nxt=cur==='light'?'dark':'light';document.documentElement.dataset.theme=nxt;localStorage.theme=nxt;themeBtn.textContent=nxt==='light'?'🌞':'🌙'}
-
-    // ===== Guard: doctor only =====
-    const sess=JSON.parse(localStorage.getItem('session')||'{}');
-    if(sess.role!=='doctor'){ location.replace('login.html'); }
-
-    // ===== Header actions =====
-    document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
-    document.getElementById('clearCacheBtn').onclick=async()=>{ localStorage.clear(); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } location.reload(); };
-
-    // ===== Data helpers =====
-    const todayISO = new Date().toISOString().slice(0,10);
-    const getBookings  = () => JSON.parse(localStorage.getItem('bookings')||'[]');
-    const saveBookings = (arr) => localStorage.setItem('bookings', JSON.stringify(arr));
-    const getServed    = () => JSON.parse(localStorage.getItem('servedPatients')||'[]');
-    const saveServed   = (arr) => localStorage.setItem('servedPatients', JSON.stringify(arr));
-
-    const plusDays = (iso, n=7) => { const d=new Date(iso); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
-
-    // ===== Upcoming list =====
-    let curFilter='today', query='';
-    function setActiveChip(){
-      document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('is-active', b.dataset.filter===curFilter));
+  <script>
+    // === Theme toggle (same as dashboard)
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){
+      document.documentElement.dataset.theme=localStorage.theme;
+      t.textContent=localStorage.theme==='light'?'🌞':'🌙';
     }
-    function renderUpcoming(){
-      let list = getBookings().filter(b=>!b.served);
-      if(curFilter==='today') list = list.filter(b=>b.date===todayISO);
-      if(query) list = list.filter(b => (b.name+b.phone+(b.note||'')).toLowerCase().includes(query));
-      list.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time) || a.token - b.token);
+    t.onclick=()=>{
+      const cur=document.documentElement.dataset.theme||'light';
+      const next=cur==='light'?'dark':'light';
+      document.documentElement.dataset.theme=next;
+      localStorage.theme=next;
+      t.textContent=next==='light'?'🌞':'🌙';
+    };
 
-      const rows = list.map(b=>`
-        <tr>
-          <td>${b.token}</td>
-          <td>${b.name}</td>
-          <td>${b.phone}</td>
-          <td>${b.date}</td>
-          <td>${b.time}</td>
-          <td>${b.note||''}</td>
-          <td><div class="row-actions"><button class="btn serveBtn" data-id="${b.id}">Serve</button></div></td>
-        </tr>`).join('');
-      document.getElementById('upcomingBody').innerHTML = rows || `<tr><td colspan="7" class="muted">No bookings</td></tr>`;
-      document.querySelectorAll('.serveBtn').forEach(btn=> btn.onclick=()=>servePatient(btn.dataset.id));
-      setActiveChip();
-    }
-    function servePatient(id){
-      const books = getBookings();
-      const rec   = books.find(x=>x.id===id);
-      if(!rec) return;
-      rec.served = true; saveBookings(books);
-      const served = getServed();
-      served.push({ id: rec.id, token: rec.token, name: rec.name, phone: rec.phone, date: rec.date, time: rec.time, note: rec.note||'', treatment: '', reminderISO: plusDays(todayISO, 7) });
-      saveServed(served);
-      renderUpcoming(); renderServed();
-      window.dispatchEvent(new StorageEvent('storage', { key: 'servedPatients' }));
+    // === Session guard (doctor only)
+    (() => {
+      const s = JSON.parse(localStorage.getItem('session') || 'null');
+      if (!s || s.role !== 'doctor') location.replace('login.html');
+    })();
+
+    // === Actions
+    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    clearCacheBtn.onclick=async()=>{
+      const keep=localStorage.getItem('session');
+      localStorage.clear(); if(keep) localStorage.setItem('session',keep);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      alert('Cache cleared.'); location.reload();
+    };
+
+    // === Data helpers
+    const get = (k, fallback=[]) => { try{ return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }catch{ return fallback; } };
+    const fmtDate = (d)=>{
+      const x = new Date(d);
+      if(isNaN(x)) return '';
+      return x.toISOString().slice(0,10);
+    };
+    const fmtTime12 = (d)=>{
+      const x = new Date(d);
+      if(isNaN(x)) return '';
+      let h = x.getHours(), m = x.getMinutes();
+      const ampm = h>=12?'PM':'AM';
+      h = h%12 || 12;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
+    };
+    const isToday = (d)=>{
+      const x = new Date(d); const t = new Date();
+      return x.toDateString() === t.toDateString();
+    };
+
+    // === Upcoming renderer
+    function renderUpcoming(scope='today', q=''){
+      const tbody = document.getElementById('upBody');
+      tbody.innerHTML='';
+      const bookings = get('bookings'); // expected fields: token,name,phone,date,time,notes
+      const filtered = bookings.filter(b=>{
+        const inScope = scope==='all' ? true : isToday(b.date||b.slotISO||b.createdAt);
+        const text = `${b.token||''} ${b.name||''} ${b.phone||''} ${b.notes||''}`.toLowerCase();
+        return inScope && text.includes(q.toLowerCase());
+      });
+
+      if(!filtered.length){
+        tbody.innerHTML = `<tr><td class="empty" colspan="6">No bookings</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(b=>{
+        const dISO = b.date || b.slotISO || b.createdAt;
+        const time = b.time || fmtTime12(dISO);
+        const date = b.dateOnly || fmtDate(dISO);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${b.token ?? '-'}</td>
+          <td>${b.name ?? '-'}</td>
+          <td>${b.phone ?? '-'}</td>
+          <td><span class="badge badge--today">${date}</span></td>
+          <td>${time}</td>
+          <td>${b.notes ?? '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
-    // ===== Served list =====
+    // === Served renderer
     function renderServed(){
-      const list = getServed().sort((a,b)=> (b.date+b.time).localeCompare(a.date+a.time));
-      const rows = list.map(p=>`
-        <tr>
-          <td>${p.token||''}</td>
-          <td>${p.name||''}</td>
-          <td>${p.date||''}</td>
-          <td><textarea class="input" rows="2" data-note="${p.id}">${p.treatment||''}</textarea></td>
-          <td><input class="input" type="date" data-rem="${p.id}" value="${p.reminderISO||''}"></td>
-          <td><button class="btn" data-save="${p.id}">Save</button></td>
-          <td><button class="chip" data-del="${p.id}">Delete</button></td>
-        </tr>`).join('');
-      document.getElementById('servedBody').innerHTML = rows || `<tr><td colspan="7" class="muted">None yet</td></tr>`;
-      document.querySelectorAll('[data-save]').forEach(btn=>{
-        btn.onclick=()=>{
-          const id=btn.dataset.save; const all=getServed(); const rec=all.find(x=>x.id===id); if(!rec) return;
-          rec.treatment=(document.querySelector(`[data-note="${id}"]`)?.value||'').trim();
-          rec.reminderISO=(document.querySelector(`[data-rem="${id}"]`)?.value||'').trim();
-          saveServed(all); alert('Saved'); window.dispatchEvent(new StorageEvent('storage',{key:'servedPatients'}));
-        };
-      });
-      document.querySelectorAll('[data-del]').forEach(btn=>{
-        btn.onclick=()=>{ const id=btn.dataset.del; if(!confirm('Delete this served record?'))return; saveServed(getServed().filter(x=>x.id!==id)); renderServed(); window.dispatchEvent(new StorageEvent('storage',{key:'servedPatients'})); };
-      });
+      const tbody = document.getElementById('servedBody');
+      tbody.innerHTML='';
+      const served = get('servedPatients'); // expected: token,name,dateISO,notes,nextVisitISO,reminder/ReminderISO
+      if(!served.length){
+        tbody.innerHTML = `<tr><td class="empty" colspan="6">None yet</td></tr>`;
+        return;
+      }
+
+      served
+        .sort((a,b)=> new Date(b.dateISO||b.createdAt) - new Date(a.dateISO||a.createdAt))
+        .forEach(p=>{
+          const nextISO = p.reminderISO || (p.reminder && (p.reminder.match(/\d{4}-\d{2}-\d{2}/)||[])[0]);
+          const status = nextISO
+              ? (new Date(nextISO) <= new Date(new Date().toISOString().slice(0,10)) ? 'Due' : 'Scheduled')
+              : '—';
+
+          const badgeClass = status==='Due' ? 'badge--due' : (status==='Scheduled' ? 'badge--ok' : '');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.token ?? '-'}</td>
+            <td>${p.name ?? '-'}</td>
+            <td>${fmtDate(p.dateISO || p.createdAt) }</td>
+            <td>${p.notes ?? '-'}</td>
+            <td>${nextISO ? fmtDate(nextISO) : '—'}</td>
+            <td><span class="badge ${badgeClass}">${status}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
     }
 
-    // Filters & search
-    document.querySelectorAll('[data-filter]').forEach(btn=> btn.onclick=()=>{ curFilter=btn.dataset.filter; renderUpcoming(); });
-    document.getElementById('searchTxt').oninput=(e)=>{ query=(e.target.value||'').toLowerCase().trim(); renderUpcoming(); };
+    // === UI wiring
+    // scope chips
+    const chipBar = document.querySelectorAll('[data-scope]');
+    chipBar.forEach(c=>c.addEventListener('click',()=>{
+      document.querySelectorAll('[data-scope]').forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+      renderUpcoming(c.dataset.scope, document.getElementById('upSearch').value);
+    }));
 
-    // Init
-    renderUpcoming(); renderServed();
+    // search
+    document.getElementById('upSearch').addEventListener('input', (e)=>{
+      const active = document.querySelector('[data-scope].active')?.dataset.scope || 'today';
+      renderUpcoming(active, e.target.value);
+    });
 
-    // SW
-    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}) }
+    // init
+    renderUpcoming('today','');
+    renderServed();
+
+    // live refresh if other tabs update
+    window.addEventListener('storage', e=>{
+      if(e.key==='bookings') renderUpcoming(document.querySelector('[data-scope].active')?.dataset.scope || 'today', document.getElementById('upSearch').value);
+      if(e.key==='servedPatients') renderServed();
+    });
+
+    // SW (optional)
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); }
   </script>
 </body>
 </html>
