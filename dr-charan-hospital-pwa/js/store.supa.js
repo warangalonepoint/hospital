@@ -1,0 +1,1 @@
+// supabase store adapter
