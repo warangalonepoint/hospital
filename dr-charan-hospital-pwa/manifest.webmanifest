@@ -1,21 +1,14 @@
 {
   "name": "Dr. Charan Hospital",
   "short_name": "Charan Hosp",
-  "start_url": "login.html",
+  "start_url": "./login.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0ea5b7",
   "description": "Hospital PWA with Billing, Patients, Staff, and Analytics",
   "icons": [
-    {
-      "src": "assets/logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "assets/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/logo.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
