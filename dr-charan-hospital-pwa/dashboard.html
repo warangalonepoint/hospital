@@ -8,12 +8,19 @@
   <link rel="icon" href="assets/logo.png"/>
   <link rel="stylesheet" href="styles.css?v=29"/>
 
-  <!-- Local, non-invasive layout tweak for charts -->
   <style>
+    /* Charts layout */
     .charts-grid { display:grid; grid-template-columns: 1fr; gap:12px; }
     @media (min-width: 900px){ .charts-grid { grid-template-columns: 1fr 1fr; } }
-    .charts-grid .chart-wrap { height: 320px; }     /* keep your look; just ensures good height on desktop */
+    .charts-grid .chart-wrap { height: 320px; }
     @media (max-width: 899px){ .charts-grid .chart-wrap { height: 260px; } }
+
+    /* Two cards per row */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
   </style>
 </head>
 <body>
