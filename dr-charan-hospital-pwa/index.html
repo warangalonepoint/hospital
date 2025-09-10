@@ -3,50 +3,28 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Dr. Charan Hospital – Home</title>
+  <title>Dr. Charan Hospital – Portal</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=61"/>
-  <style>
-    .wrap{max-width:1000px;margin:0 auto}
-    .section{margin:12px;padding:18px;border-radius:var(--radius);background:var(--card-bg);box-shadow:var(--shadow)}
-    .tiles{display:grid;gap:16px;grid-template-columns:1fr}
-    @media(min-width:760px){.tiles{grid-template-columns:1fr 1fr}}
-    .tile{display:block;padding:26px;border-radius:18px;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow);text-decoration:none;color:inherit}
-    .tile h3{font-size:22px;margin:0 0 6px;text-decoration:underline;text-underline-offset:4px}
-    .tile p{opacity:.85;margin:0}
-    .fine{font-size:13px;color:var(--muted)}
-  </style>
+  <link rel="stylesheet" href="styles.css?v=25"/>
 </head>
-<script>
-  // kill direct access to index.html
-  if (!localStorage.getItem('session')) {
-    // if no login, always go to login
-    location.replace('login.html');
-  } else {
-    const sess = JSON.parse(localStorage.getItem('session'));
-    if (sess.role === 'doctor')      location.replace('dashboard.html');
-    else if (sess.role === 'supervisor') location.replace('admin.html');
-    else                              location.replace('login.html');
-  }
-</script>
-  <body>
+<body>
   <div class="wrap">
     <!-- Banner -->
     <header class="banner">
-      <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
+      <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
     </header>
 
-    <!-- Quick actions -->
-    <nav class="fixed-actions">
-      <a href="login.html" class="chip">🔐 Login</a>
+    <!-- Actions -->
+    <nav class="toolbar">
+      <a class="chip" href="login.html">🔐 Login</a>
       <button id="clearCacheBtn" class="chip">Clear Cache</button>
     </nav>
 
-    <!-- Entry tiles -->
+    <!-- Welcome -->
     <section class="section">
-      <h2 style="margin-bottom:10px">Welcome</h2>
-      <div class="tiles">
+      <h2>Welcome</h2>
+      <div class="tile-grid">
         <a class="tile panel--lilac" href="dashboard.html">
           <h3>Doctor Dashboard</h3>
           <p>Patients, follow-ups, analytics (read-only staff view)</p>
@@ -56,72 +34,66 @@
           <p>Bookings, Pharmacy Billing & Reports, Staff (edit)</p>
         </a>
       </div>
-      <p class="fine mt12">Tip: use PIN <strong>4321</strong> for Doctor, <strong>1111</strong> for Supervisor (demo).</p>
+      <p class="muted mt12">
+        Tip: use PIN <b>4321</b> for Doctor, <b>1111</b> for Supervisor (demo).
+      </p>
     </section>
 
-    <!-- Connectivity status -->
-    <section class="section panel--blue">
-      <h3 style="margin-bottom:6px">System Check</h3>
-      <div id="sbStatus" class="fine">Checking Supabase connection…</div>
+    <!-- System Check -->
+    <section class="section tint tint-lilac">
+      <h3>System Check</h3>
+      <p id="syscheck-status">⏳ Checking Supabase connection...</p>
     </section>
   </div>
 
-  <!-- Supabase client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module">
-    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
-    window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/config.js';
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    const statusEl = document.getElementById('sbStatus');
-
-    (async () => {
-      try {
-        // Quick read-only check (your schema has "invoices")
-        const { data, error } = await sb.from('invoices').select('id').limit(1);
-
-        if (error) throw error;
-
-        console.log("✅ Supabase connected. Sample:", data);
-        statusEl.textContent = '✅ Supabase connected';
-        toast('Supabase connected', '#16a34a');
-      } catch (e) {
-        console.error("❌ Supabase connection failed:", e);
-        statusEl.textContent = '❌ Supabase FAILED (see console)';
-        toast('Supabase FAILED', '#dc2626', 4000);
-      }
-    })();
-
-    function toast(msg, bg='#111827', ms=2500){
-      const d=document.createElement('div');
-      d.textContent=msg;
-      d.style.cssText=`position:fixed;bottom:14px;left:14px;padding:8px 12px;border-radius:12px;color:#fff;background:${bg};z-index:9999;box-shadow:var(--shadow)`;
-      document.body.appendChild(d);
-      setTimeout(()=>d.remove(), ms);
-    }
-  </script>
-
-  <!-- Theme + utilities -->
-  <script>
     // Theme toggle
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light';
-      document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙';
+    const t = document.getElementById('themeToggle');
+    if (localStorage.theme) {
+      document.documentElement.dataset.theme = localStorage.theme;
+      t.textContent = localStorage.theme === 'light' ? '🌞' : '🌙';
+    }
+    t.onclick = () => {
+      const cur = document.documentElement.dataset.theme || 'light';
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      localStorage.theme = next;
+      t.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
     // Clear cache
-    clearCacheBtn.onclick=async()=>{
-      const keep=localStorage.getItem('session'); localStorage.clear(); sessionStorage.clear();
-      if(keep) localStorage.setItem('session', keep);
-      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
-      alert('Cache cleared. Reloading…'); location.reload();
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      localStorage.clear();
+      sessionStorage.clear();
+      if ('caches' in window) {
+        const ks = await caches.keys();
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }
+      alert('Cache cleared. Reloading…');
+      location.reload();
     };
 
-    // SW
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    // Supabase System Check
+    async function checkSupabase() {
+      const statusEl = document.getElementById('syscheck-status');
+      try {
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await sb.from('staff').select('id').limit(1);
+
+        if (error) throw error;
+
+        statusEl.textContent = "✅ Connected to Supabase";
+        statusEl.style.color = "green";
+      } catch (err) {
+        console.error("Supabase check failed:", err.message);
+        statusEl.textContent = "❌ Connection failed (check CORS or config.js)";
+        statusEl.style.color = "red";
+      }
     }
+    checkSupabase();
   </script>
 </body>
 </html>
