@@ -6,42 +6,55 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=29"/>
+  <link rel="stylesheet" href="styles.css?v=31"/>
 
-  <!-- Minimal fixes to ensure perfect readability & layout -->
   <style>
     .container { max-width: 980px; margin: 0 auto; padding: 12px; }
     .section { padding: 12px 0; }
     .card { border-radius: 18px; }
     .subtle { opacity:.8; font-size:.95rem; }
 
-    /* Pills row */
     .chip-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .chip.active{ box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset; transform: translateY(-1px); }
 
-    /* Search input */
     .searchbar{ width:100%; max-width:560px; display:block; margin:10px 0 14px; }
 
-    /* Table: readable in both themes, mobile-friendly */
     .table-wrap{ background: var(--surface, rgba(255,255,255,.5)); border-radius: 14px; padding: 10px; box-shadow: var(--shadow, 0 6px 24px rgba(0,0,0,.08)); overflow:auto; }
     table{ width:100%; border-collapse: collapse; font-size: .95rem; }
     thead th{ text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; background: var(--thead, rgba(240,240,245,.6)); backdrop-filter: blur(6px); }
-    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); }
+    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); vertical-align: top; }
     tbody tr:hover{ background: rgba(0,0,0,.03); }
 
-    /* Empty state */
     .empty{ padding:14px; opacity:.8; }
-
-    /* Badges */
     .badge{ display:inline-block; padding:2px 8px; border-radius:12px; font-size:.8rem; }
-    .badge--today{ background: #e7f1ff; color:#1a4d9b; }
+    .badge--today{ background:#e7f1ff; color:#1a4d9b; }
     .badge--due{ background:#fff4e5; color:#7a3c00; }
     .badge--ok{ background:#e7f8ee; color:#146c43; }
 
-    /* Dark theme tune */
     [data-theme="dark"] thead th{ background: rgba(30,30,38,.6); }
     [data-theme="dark"] .table-wrap{ background: rgba(22,22,28,.6); }
     [data-theme="dark"] tbody tr:hover{ background: rgba(255,255,255,.04); }
+
+    /* Edit modal */
+    .modal {
+      position: fixed; inset: 0; display:none;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,.35); z-index: 50; padding: 16px;
+    }
+    .modal.open{ display:flex; }
+    .modal-card{
+      width:100%; max-width: 560px; border-radius: 16px; padding: 16px;
+      background: var(--surface, #fff); box-shadow: 0 16px 40px rgba(0,0,0,.18);
+    }
+    .modal h3{ margin:0 0 8px; }
+    .form-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .form-row > *{ flex:1; min-width: 180px; }
+    textarea, input[type="date"]{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.12);
+      min-height: 92px;
+    }
+    input[type="date"]{ min-height: unset; }
+    .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
   </style>
 </head>
 <body>
@@ -52,13 +65,12 @@
 
   <!-- Fixed actions -->
   <div class="fixed-actions">
-    <a href="dashboard.html" class="chip">Dashboard</a>
+    <a href="dashboard.html" class="chip">← Dashboard</a>
     <button class="chip" id="logoutBtn">Logout</button>
     <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
   <main class="container">
-
     <!-- UPCOMING PATIENTS -->
     <section class="section card panel--lilac">
       <h2 style="margin:0 0 6px">Upcoming Patients</h2>
@@ -104,19 +116,38 @@
               <th>Treatment Notes</th>
               <th>Next Visit</th>
               <th>Status</th>
+              <th id="thActions">Actions</th>
             </tr>
           </thead>
           <tbody id="servedBody">
-            <tr><td class="empty" colspan="6">None yet</td></tr>
+            <tr><td class="empty" colspan="7">None yet</td></tr>
           </tbody>
         </table>
       </div>
     </section>
-
   </main>
 
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal" aria-hidden="true">
+    <div class="modal-card panel--lilac">
+      <h3>Edit Patient</h3>
+      <div id="editMeta" class="subtle"></div>
+      <div class="form-row" style="margin-top:8px">
+        <textarea id="editNotes" placeholder="Treatment notes"></textarea>
+        <div>
+          <label style="display:block; margin-bottom:6px;">Next visit</label>
+          <input id="editNextDate" type="date"/>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="cancelEdit" class="chip">Cancel</button>
+        <button id="saveEdit" class="chip chip--blue">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // === Theme toggle (same as dashboard)
+    // === Theme toggle (same as elsewhere)
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){
       document.documentElement.dataset.theme=localStorage.theme;
@@ -131,10 +162,8 @@
     };
 
     // === Session guard (doctor only)
-    (() => {
-      const s = JSON.parse(localStorage.getItem('session') || 'null');
-      if (!s || s.role !== 'doctor') location.replace('login.html');
-    })();
+    const session = JSON.parse(localStorage.getItem('session') || 'null');
+    if (!session || session.role !== 'doctor') location.replace('login.html');
 
     // === Actions
     logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
@@ -147,29 +176,17 @@
 
     // === Data helpers
     const get = (k, fallback=[]) => { try{ return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }catch{ return fallback; } };
-    const fmtDate = (d)=>{
-      const x = new Date(d);
-      if(isNaN(x)) return '';
-      return x.toISOString().slice(0,10);
-    };
-    const fmtTime12 = (d)=>{
-      const x = new Date(d);
-      if(isNaN(x)) return '';
-      let h = x.getHours(), m = x.getMinutes();
-      const ampm = h>=12?'PM':'AM';
-      h = h%12 || 12;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
-    };
-    const isToday = (d)=>{
-      const x = new Date(d); const t = new Date();
-      return x.toDateString() === t.toDateString();
-    };
+    const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const isoDate = d => new Date(d).toISOString().slice(0,10);
+    const fmtDate = d => { const x=new Date(d); return isNaN(x)?'':isoDate(x); };
+    const fmtTime12 = d => { const x=new Date(d); if(isNaN(x)) return ''; let h=x.getHours(),m=x.getMinutes(); const ampm=h>=12?'PM':'AM'; h=h%12||12; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`; };
+    const isToday = d => new Date(d).toDateString() === new Date().toDateString();
 
-    // === Upcoming renderer
+    // === UPCOMING
     function renderUpcoming(scope='today', q=''){
       const tbody = document.getElementById('upBody');
       tbody.innerHTML='';
-      const bookings = get('bookings'); // expected fields: token,name,phone,date,time,notes
+      const bookings = get('bookings'); // token,name,phone,date/time/slotISO,notes
       const filtered = bookings.filter(b=>{
         const inScope = scope==='all' ? true : isToday(b.date||b.slotISO||b.createdAt);
         const text = `${b.token||''} ${b.name||''} ${b.phone||''} ${b.notes||''}`.toLowerCase();
@@ -198,61 +215,123 @@
       });
     }
 
-    // === Served renderer
+    // === SERVED + EDIT
+    const servedBody = document.getElementById('servedBody');
+    const thActions = document.getElementById('thActions');
+
     function renderServed(){
-      const tbody = document.getElementById('servedBody');
-      tbody.innerHTML='';
-      const served = get('servedPatients'); // expected: token,name,dateISO,notes,nextVisitISO,reminder/ReminderISO
+      servedBody.innerHTML='';
+      const served = get('servedPatients'); // token,name,dateISO,notes,reminderISO/reminder
       if(!served.length){
-        tbody.innerHTML = `<tr><td class="empty" colspan="6">None yet</td></tr>`;
+        servedBody.innerHTML = `<tr><td class="empty" colspan="7">None yet</td></tr>`;
         return;
       }
 
+      const isDoctor = !!session && session.role==='doctor';
+      thActions.style.display = isDoctor ? '' : 'none';
+
       served
+        .map((p,i)=>({...p,_idx:i}))
         .sort((a,b)=> new Date(b.dateISO||b.createdAt) - new Date(a.dateISO||a.createdAt))
         .forEach(p=>{
           const nextISO = p.reminderISO || (p.reminder && (p.reminder.match(/\d{4}-\d{2}-\d{2}/)||[])[0]);
           const status = nextISO
               ? (new Date(nextISO) <= new Date(new Date().toISOString().slice(0,10)) ? 'Due' : 'Scheduled')
               : '—';
-
           const badgeClass = status==='Due' ? 'badge--due' : (status==='Scheduled' ? 'badge--ok' : '');
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${p.token ?? '-'}</td>
             <td>${p.name ?? '-'}</td>
-            <td>${fmtDate(p.dateISO || p.createdAt) }</td>
-            <td>${p.notes ?? '-'}</td>
+            <td>${fmtDate(p.dateISO || p.createdAt)}</td>
+            <td>${(p.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
             <td>${nextISO ? fmtDate(nextISO) : '—'}</td>
             <td><span class="badge ${badgeClass}">${status}</span></td>
+            <td>${isDoctor ? `<button class="chip" data-edit="${p._idx}">Edit</button>` : ''}</td>
           `;
-          tbody.appendChild(tr);
+          servedBody.appendChild(tr);
         });
     }
 
+    // === Modal wiring
+    const modal = document.getElementById('editModal');
+    const editNotes = document.getElementById('editNotes');
+    const editNextDate = document.getElementById('editNextDate');
+    const editMeta = document.getElementById('editMeta');
+    const cancelEdit = document.getElementById('cancelEdit');
+    const saveEdit = document.getElementById('saveEdit');
+
+    let editingIndex = null;
+
+    servedBody.addEventListener('click',(e)=>{
+      const btn = e.target.closest('[data-edit]');
+      if(!btn) return;
+      editingIndex = parseInt(btn.dataset.edit,10);
+      const arr = get('servedPatients');
+      const p = arr[editingIndex];
+      editNotes.value = (p?.notes ?? '').toString();
+      const nextISO = p?.reminderISO || (p?.reminder && (p.reminder.match(/\d{4}-\d{2}-\d{2}/)||[])[0]) || '';
+      editNextDate.value = nextISO || '';
+      editMeta.textContent = `${p?.name ?? 'Patient'} • Token ${p?.token ?? '-'}`;
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+    });
+
+    cancelEdit.onclick=()=>{
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      editingIndex = null;
+    };
+
+    saveEdit.onclick=()=>{
+      if(editingIndex===null) return;
+      const arr = get('servedPatients');
+      const p = arr[editingIndex] || {};
+
+      // save fields
+      p.notes = editNotes.value.trim();
+      const nextISO = editNextDate.value || '';
+      p.reminderISO = nextISO || undefined;
+      p.reminder = nextISO ? `Next visit: ${nextISO}` : '';
+      // keep a normalized name to avoid breaking other pages
+      arr[editingIndex] = p;
+      save('servedPatients', arr);
+
+      // refresh UI
+      renderServed();
+
+      // close
+      cancelEdit.onclick();
+    };
+
+    // Close modal on backdrop click / ESC
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) cancelEdit.onclick(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('open')) cancelEdit.onclick(); });
+
     // === UI wiring
-    // scope chips
-    const chipBar = document.querySelectorAll('[data-scope]');
-    chipBar.forEach(c=>c.addEventListener('click',()=>{
-      document.querySelectorAll('[data-scope]').forEach(x=>x.classList.remove('active'));
+    const scopeChips = document.querySelectorAll('[data-scope]');
+    scopeChips.forEach(c=>c.addEventListener('click',()=>{
+      scopeChips.forEach(x=>x.classList.remove('active'));
       c.classList.add('active');
       renderUpcoming(c.dataset.scope, document.getElementById('upSearch').value);
     }));
-
-    // search
     document.getElementById('upSearch').addEventListener('input', (e)=>{
       const active = document.querySelector('[data-scope].active')?.dataset.scope || 'today';
       renderUpcoming(active, e.target.value);
     });
 
-    // init
+    // === Init
     renderUpcoming('today','');
     renderServed();
 
     // live refresh if other tabs update
     window.addEventListener('storage', e=>{
-      if(e.key==='bookings') renderUpcoming(document.querySelector('[data-scope].active')?.dataset.scope || 'today', document.getElementById('upSearch').value);
-      if(e.key==='servedPatients') renderServed();
+      if(e.key==='bookings'){
+        const active = document.querySelector('[data-scope].active')?.dataset.scope || 'today';
+        renderUpcoming(active, document.getElementById('upSearch').value);
+      }
+      if(e.key==='servedPatients'){ renderServed(); }
     });
 
     // SW (optional)
