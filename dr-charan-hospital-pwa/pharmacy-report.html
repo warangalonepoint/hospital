@@ -6,7 +6,7 @@
   <title>Pharmacy – Reports</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=64"/>
+  <link rel="stylesheet" href="styles.css?v=66"/>
   <style>
     .wrap{max-width:1100px;margin:0 auto}
     .section{margin:12px}
@@ -23,6 +23,7 @@
     .kpi h4{font-size:14px;opacity:.85;margin-bottom:6px}
     .kpi .num{font-size:28px;font-weight:800}
     .chart-card{border-radius:16px;padding:16px;box-shadow:var(--shadow);background:var(--card-bg);margin-top:12px}
+    .btn.secondary{border:1px solid rgba(0,0,0,.12);background:var(--card-bg);padding:12px 16px;border-radius:14px;cursor:pointer}
   </style>
 </head>
 <body>
@@ -60,6 +61,10 @@
           <button class="chip" data-quick="7d">Last 7D</button>
           <button class="chip" data-quick="30d">Last 30D</button>
           <button class="chip" data-quick="mtd">MTD</button>
+        </div>
+        <div class="field" style="margin-left:auto">
+          <label>&nbsp;</label>
+          <button id="csvBtn" class="btn secondary">⬇ Export CSV</button>
         </div>
       </div>
     </section>
@@ -107,6 +112,7 @@
     const fromDate=document.getElementById('fromDate');
     const toDate=document.getElementById('toDate');
     const runBtn=document.getElementById('runBtn');
+    const csvBtn=document.getElementById('csvBtn');
     function setQuick(range){
       const now=new Date(), iso=(d)=>d.toISOString().slice(0,10);
       if(range==='today'){ fromDate.value=iso(now); toDate.value=iso(now); }
@@ -136,28 +142,28 @@
           .order('invoice_date', { ascending: true });
         if (error) throw error;
         return data.map(r=>({
-          date: r.invoice_date,
-          number: r.invoice_no || '',
-          total: Number(r.total_rs||0),
-          paid: Number(r.paid_rs||0),
-          balance: Number(r.balance_rs||0)
+          id:r.id, date: r.invoice_date, number: r.invoice_no || '',
+          total: Number(r.total_rs||0), paid: Number(r.paid_rs||0), balance: Number(r.balance_rs||0)
         }));
       } else {
-        // local fallback shape from earlier pharmacy.html
         const arr = JSON.parse(localStorage.getItem('invoices')||'[]');
         return arr.filter(x=> x.date>=fromISO && x.date<=toISO)
-          .map(x=>({ date:x.date, number:x.number||'', total:+x.total||0, paid:+(x.paid||0), balance:+(x.balance||0) }));
+          .map(x=>({ id:x.id||String(Math.random()), date:x.date, number:x.number||'', total:+x.total||0, paid:+(x.paid||0), balance:+(x.balance||0) }));
       }
     }
 
+    let currentRows = [];
     async function fetchAndPaint(){
       const fromISO=fromDate.value, toISO=toDate.value;
       try{
         const rows = await loadInvoices(fromISO,toISO);
+        currentRows = rows.slice(); // cache for CSV
+
         // KPIs
         const kTotal=rows.reduce((s,r)=>s+r.total,0);
         const kPaid =rows.reduce((s,r)=>s+r.paid ,0);
         const kBal  =rows.reduce((s,r)=>s+r.balance,0);
+        kTotal?0:0;
         document.getElementById('kTotal').textContent=money(kTotal);
         document.getElementById('kPaid').textContent =money(kPaid);
         document.getElementById('kBal').textContent  =money(kBal);
@@ -171,7 +177,7 @@
           tb.appendChild(tr);
         });
 
-        // Daily totals for chart
+        // Daily totals
         const byDay={};
         rows.forEach(r=>{ byDay[r.date]=(byDay[r.date]||0)+Number(r.total||0); });
         const labels=Object.keys(byDay).sort();
@@ -182,6 +188,26 @@
 
     runBtn.onclick=fetchAndPaint;
     fetchAndPaint();
+
+    // CSV Export
+    csvBtn.onclick = ()=>{
+      if(!currentRows.length){ alert('No rows to export'); return; }
+      const header = ['Date','Total','Paid','Balance','InvoiceNo'];
+      const lines = [header.join(',')].concat(
+        currentRows.map(r=>[
+          r.date,
+          (Number(r.total)||0).toFixed(2),
+          (Number(r.paid)||0).toFixed(2),
+          (Number(r.balance)||0).toFixed(2),
+          (r.number||'')
+        ].map(x=>String(x).replace(/"/g,'""')).map(x=>`"${x}"`).join(','))
+      );
+      const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `pharmacy_report_${fromDate.value}_${toDate.value}.csv`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
   </script>
 
   <!-- Supabase quiet status chip -->
