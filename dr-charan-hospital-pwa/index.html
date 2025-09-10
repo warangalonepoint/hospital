@@ -1,4 +1,123 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=dr-charan-hospital-pwa/login.html?v=5">
-<title>Redirecting…</title>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dr. Charan Hospital – Home</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="icon" href="assets/logo.png"/>
+  <link rel="stylesheet" href="styles.css?v=60"/>
+  <style>
+    .wrap{max-width:1000px;margin:0 auto}
+    .section{margin:12px;padding:18px;border-radius:var(--radius);background:var(--card-bg);box-shadow:var(--shadow)}
+    .tiles{display:grid;gap:16px;grid-template-columns:1fr}
+    @media(min-width:760px){.tiles{grid-template-columns:1fr 1fr}}
+    .tile{display:block;padding:26px;border-radius:18px;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow);text-decoration:none;color:inherit}
+    .tile h3{font-size:22px;margin:0 0 6px;text-decoration:underline;text-underline-offset:4px}
+    .tile p{opacity:.85;margin:0}
+    .fine{font-size:13px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Banner -->
+    <header class="banner">
+      <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
+    </header>
+
+    <!-- Quick actions -->
+    <nav class="fixed-actions">
+      <a href="login.html" class="chip">🔐 Login</a>
+      <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    </nav>
+
+    <!-- Entry tiles -->
+    <section class="section">
+      <h2 style="margin-bottom:10px">Welcome</h2>
+      <div class="tiles">
+        <a class="tile panel--lilac" href="dashboard.html">
+          <h3>Doctor Dashboard</h3>
+          <p>Patients, follow-ups, analytics (read-only staff view)</p>
+        </a>
+        <a class="tile panel--mint" href="admin.html">
+          <h3>Supervisor Console</h3>
+          <p>Bookings, Pharmacy Billing & Reports, Staff (edit)</p>
+        </a>
+      </div>
+      <p class="fine mt12">Tip: use PIN <strong>4321</strong> for Doctor, <strong>1111</strong> for Supervisor (demo).</p>
+    </section>
+
+    <!-- Connectivity status (rendered by test script) -->
+    <section class="section panel--blue">
+      <h3 style="margin-bottom:6px">System Check</h3>
+      <div id="sbStatus" class="fine">Checking Supabase connection…</div>
+    </section>
+  </div>
+
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    // IMPORTANT: config.js must sit next to this index.html
+    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+    window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const statusEl = document.getElementById('sbStatus');
+
+    // Live connectivity test (read + tiny write)
+    (async () => {
+      try {
+        // 1) READ ping
+        const read = await sb.from('staff').select('*').limit(1);
+        if (read.error) throw read.error;
+
+        // 2) WRITE ping (insert a no-op invoice with total 0, then delete)
+        const today = new Date().toISOString().slice(0,10);
+        const ins = await sb.from('pharmacy_invoices').insert({
+          date: today, total: 0, items: [], created_at: new Date().toISOString()
+        }).select('id').single();
+
+        if (ins.error) throw ins.error;
+        await sb.from('pharmacy_invoices').delete().eq('id', ins.data.id);
+
+        statusEl.textContent = '✅ Supabase connected (read/write OK)';
+        toast('Supabase connected', '#16a34a');
+      } catch (e) {
+        console.error('Supabase test failed:', e);
+        statusEl.textContent = '❌ Supabase FAILED (see console)';
+        toast('Supabase FAILED (see console)', '#dc2626', 4200);
+      }
+    })();
+
+    function toast(msg, bg='#111827', ms=2200){
+      const d=document.createElement('div');
+      d.textContent=msg;
+      d.style.cssText=`position:fixed;bottom:14px;left:14px;padding:8px 12px;border-radius:12px;color:#fff;background:${bg};z-index:9999;box-shadow:var(--shadow)`;
+      document.body.appendChild(d); setTimeout(()=>d.remove(), ms);
+    }
+  </script>
+
+  <!-- Theme + utilities -->
+  <script>
+    // Theme toggle
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light';
+      document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙';
+    };
+
+    // Clear cache (nukes SW + storage)
+    clearCacheBtn.onclick=async()=>{
+      const keep=localStorage.getItem('session'); localStorage.clear(); sessionStorage.clear();
+      if(keep) localStorage.setItem('session', keep);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
+      alert('Cache cleared. Reloading…'); location.reload();
+    };
+
+    // SW
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    }
+  </script>
+</body>
+</html>
