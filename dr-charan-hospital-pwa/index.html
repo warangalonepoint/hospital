@@ -6,7 +6,7 @@
   <title>Dr. Charan Hospital – Home</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=60"/>
+  <link rel="stylesheet" href="styles.css?v=61"/>
   <style>
     .wrap{max-width:1000px;margin:0 auto}
     .section{margin:12px;padding:18px;border-radius:var(--radius);background:var(--card-bg);box-shadow:var(--shadow)}
@@ -47,7 +47,7 @@
       <p class="fine mt12">Tip: use PIN <strong>4321</strong> for Doctor, <strong>1111</strong> for Supervisor (demo).</p>
     </section>
 
-    <!-- Connectivity status (rendered by test script) -->
+    <!-- Connectivity status -->
     <section class="section panel--blue">
       <h3 style="margin-bottom:6px">System Check</h3>
       <div id="sbStatus" class="fine">Checking Supabase connection…</div>
@@ -57,42 +57,34 @@
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module">
-    // IMPORTANT: config.js must sit next to this index.html
     import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
     window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     const statusEl = document.getElementById('sbStatus');
 
-    // Live connectivity test (read + tiny write)
     (async () => {
       try {
-        // 1) READ ping
-        const read = await sb.from('staff').select('*').limit(1);
-        if (read.error) throw read.error;
+        // Quick read-only check (your schema has "invoices")
+        const { data, error } = await sb.from('invoices').select('id').limit(1);
 
-        // 2) WRITE ping (insert a no-op invoice with total 0, then delete)
-        const today = new Date().toISOString().slice(0,10);
-        const ins = await sb.from('pharmacy_invoices').insert({
-          date: today, total: 0, items: [], created_at: new Date().toISOString()
-        }).select('id').single();
+        if (error) throw error;
 
-        if (ins.error) throw ins.error;
-        await sb.from('pharmacy_invoices').delete().eq('id', ins.data.id);
-
-        statusEl.textContent = '✅ Supabase connected (read/write OK)';
+        console.log("✅ Supabase connected. Sample:", data);
+        statusEl.textContent = '✅ Supabase connected';
         toast('Supabase connected', '#16a34a');
       } catch (e) {
-        console.error('Supabase test failed:', e);
+        console.error("❌ Supabase connection failed:", e);
         statusEl.textContent = '❌ Supabase FAILED (see console)';
-        toast('Supabase FAILED (see console)', '#dc2626', 4200);
+        toast('Supabase FAILED', '#dc2626', 4000);
       }
     })();
 
-    function toast(msg, bg='#111827', ms=2200){
+    function toast(msg, bg='#111827', ms=2500){
       const d=document.createElement('div');
       d.textContent=msg;
       d.style.cssText=`position:fixed;bottom:14px;left:14px;padding:8px 12px;border-radius:12px;color:#fff;background:${bg};z-index:9999;box-shadow:var(--shadow)`;
-      document.body.appendChild(d); setTimeout(()=>d.remove(), ms);
+      document.body.appendChild(d);
+      setTimeout(()=>d.remove(), ms);
     }
   </script>
 
@@ -105,7 +97,7 @@
       document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙';
     };
 
-    // Clear cache (nukes SW + storage)
+    // Clear cache
     clearCacheBtn.onclick=async()=>{
       const keep=localStorage.getItem('session'); localStorage.clear(); sessionStorage.clear();
       if(keep) localStorage.setItem('session', keep);
