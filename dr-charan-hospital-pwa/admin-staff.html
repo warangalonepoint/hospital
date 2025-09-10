@@ -3,345 +3,238 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Admin – Staff & Attendance (Supervisor)</title>
+  <title>Staff – Attendance & Roster</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=46"/>
-
+  <link rel="stylesheet" href="styles.css?v=64"/>
   <style>
-    .container{max-width:1000px;margin:0 auto;padding:12px}
-    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px}
-    .tabs .chip{background:var(--card-bg)}
-    .tabs .chip.active{background:var(--accent);color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.35)}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
-    .toolbar input[type="date"]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg)}
-    .table-wrap{background:var(--card-bg);border-radius:16px;padding:12px;box-shadow:var(--shadow);overflow:auto}
-    table{width:100%;border-collapse:collapse;font-size:.95rem;min-width:820px}
-    thead th{padding:10px 12px;text-align:left;position:sticky;top:0;background:var(--card-bg)}
-    tbody td{padding:10px 12px;border-top:1px solid rgba(0,0,0,.06)}
-    tbody tr:hover{background:rgba(0,0,0,.03)}
-    .empty{padding:14px;opacity:.8}
-
-    /* Colorful chips */
-    .chip--blue{background:var(--t-blue);color:var(--c-blue)}
-    .chip--mint{background:var(--t-mint);color:var(--c-mint)}
-    .chip--rose{background:var(--t-rose);color:var(--c-rose)}
-    .chip--lilac{background:var(--t-lilac);color:var(--c-lilac)}
-    .chip--peach{background:var(--t-peach);color:var(--c-peach)}
-
-    /* Section tints */
-    .tint{border-radius:18px;padding:16px;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow)}
-    .tint-blue {background:linear-gradient(135deg,var(--t-blue),#bcdfff)}
-    .tint-mint {background:linear-gradient(135deg,var(--t-mint),#aaf5d0)}
-    .tint-rose {background:linear-gradient(135deg,var(--t-rose),#ffb6cc)}
-    .muted{opacity:.75}
-    .hidden{display:none!important}
-    .right{margin-left:auto}
-    select,input[type="time"],input[type="text"]{padding:7px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg)}
+    .wrap{max-width:1100px;margin:0 auto}
+    .section{margin:12px}
+    .grid{display:grid;gap:16px;grid-template-columns:1fr}
+    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+    .card{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.06);background:var(--card-bg)}
+    .toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:10px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    input,select{padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);font-size:15px}
+    label{font-weight:600}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-top:1px solid rgba(0,0,0,.06);text-align:left}
+    .actions{display:flex;gap:8px}
+    .btn.primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:12px;font-weight:800;cursor:pointer}
+    .btn.ghost{border:1px solid rgba(0,0,0,.12);background:var(--card-bg);padding:10px 14px;border-radius:12px;cursor:pointer}
   </style>
 </head>
 <body>
-  <!-- Banner -->
-  <header class="banner">
-    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
-  </header>
+  <div class="wrap">
+    <!-- Banner -->
+    <header class="banner">
+      <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
+    </header>
 
-  <!-- Fixed actions -->
-  <div class="fixed-actions">
-    <a href="admin.html" class="chip">← Admin Home</a>
-    <button class="chip" id="logoutBtn">Logout</button>
-  </div>
-
-  <main class="container">
-    <div style="display:flex;align-items:center;gap:10px;justify-content:space-between">
-      <h2>Staff & Attendance</h2>
-      <div class="tabs">
-        <button class="chip active" data-tab="att">Attendance</button>
-        <button class="chip" data-tab="roster">Roster</button>
-      </div>
+    <!-- Actions -->
+    <div class="fixed-actions">
+      <a class="chip" href="admin.html">← Admin</a>
+      <button id="logoutBtn" class="chip">Logout</button>
+      <button id="clearCacheBtn" class="chip">Clear Cache</button>
     </div>
 
-    <!-- ATTENDANCE -->
-    <section id="tab-att" class="tint tint-blue">
-      <div class="toolbar">
-        <label>Date <input type="date" id="dayPicker"></label>
-        <button id="reloadBtn" class="chip chip--lilac">Reload</button>
-        <span class="muted">•</span>
-        <button id="createSheetBtn" class="chip chip--blue">Create Day Sheet</button>
-        <button id="addRowBtn" class="chip chip--mint">Add Row</button>
-        <button id="markAllBtn" class="chip chip--peach">Mark All On Duty</button>
-        <button id="exportBtn" class="chip chip--rose">Export CSV</button>
-        <span id="attMsg" class="muted right"></span>
-      </div>
+    <section class="section">
+      <div class="grid">
+        <!-- Roster -->
+        <div class="card panel--lilac">
+          <h2>Roster</h2>
+          <div class="toolbar">
+            <div class="field"><label>Name</label><input id="sName" placeholder="Full name"></div>
+            <div class="field"><label>Role</label><input id="sRole" placeholder="e.g., Nurse"></div>
+            <div class="field"><label>Phone</label><input id="sPhone" placeholder="10-digit" inputmode="numeric" maxlength="10"></div>
+            <div class="field"><label>&nbsp;</label><button id="addStaff" class="btn primary">+ Add Staff</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Status</th></tr></thead>
+              <tbody id="staffBody"></tbody>
+            </table>
+          </div>
+        </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Name</th><th>Role</th><th>Status</th><th>Check-in</th><th>Note</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="attBody"><tr><td colspan="6" class="empty">No data</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ROSTER -->
-    <section id="tab-roster" class="tint tint-mint hidden" style="margin-top:12px">
-      <div class="toolbar">
-        <strong>Roster</strong>
-        <span class="muted">Add / Edit / Activate</span>
-        <button id="addStaffBtn" class="chip chip--blue right">Add Staff</button>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Name</th><th>Role</th><th>Phone</th><th>Active</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="staffBody"><tr><td colspan="5" class="empty">No staff yet</td></tr></tbody>
-        </table>
+        <!-- Attendance -->
+        <div class="card panel--mint">
+          <h2>Attendance</h2>
+          <div class="toolbar">
+            <div class="field"><label for="attDate">Date</label><input type="date" id="attDate"></div>
+            <div class="field"><label>&nbsp;</label><button id="createSheet" class="btn ghost">Create Day Sheet</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Note</th><th>Save</th></tr></thead>
+              <tbody id="attBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
-  </main>
-
-  <!-- Optional Supabase (works without it) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </div>
 
   <script>
-  /************ THEMING & GUARD ************/
-  const themeBtn=document.getElementById('themeToggle');
-  if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; themeBtn.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-  themeBtn.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; themeBtn.textContent=next==='light'?'🌞':'🌙'; };
+    // Theme
+    const t=document.getElementById('themeToggle');
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-  const sess = JSON.parse(localStorage.getItem('session')||'null');
-  if(!sess || sess.role!=='supervisor'){ location.replace('login.html'); }
-  document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    // Guard (supervisor only)
+    const sess = JSON.parse(localStorage.getItem('session')||'{}');
+    if(!sess.role){ location.replace('login.html'); }
+    if(sess.role!=='supervisor'){ location.replace(sess.role==='doctor'?'dashboard.html':'index.html'); }
 
-  /************ LIGHTWEIGHT SB HELPERS (optional) ************/
-  // If you already set window.sb elsewhere, this will use it. If not, everything still works with localStorage.
-  const SB = window.sb || null;
-  async function trySB(fn, fallback){
-    if(!SB){ return (typeof fallback==='function') ? fallback() : fallback; }
-    try{ return await fn(); } catch(e){ console.warn('Supabase error, using fallback:', e); return (typeof fallback==='function') ? fallback(e) : fallback; }
-  }
+    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    clearCacheBtn.onclick=async()=>{ localStorage.clear(); sessionStorage.clear(); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cleared. Reloading…'); location.reload(); };
 
-  /************ UTIL ************/
-  const iso = d => new Date(d).toISOString().slice(0,10);
-  const todayISO = iso(new Date());
-  const msg = (s)=>{ const el=document.getElementById('attMsg'); el.textContent=s; setTimeout(()=>el.textContent='',2200); };
+    // Form elements
+    const sName=document.getElementById('sName'), sRole=document.getElementById('sRole'), sPhone=document.getElementById('sPhone');
+    const addStaff=document.getElementById('addStaff'); const staffBody=document.getElementById('staffBody');
+    const attDate=document.getElementById('attDate'); const createSheet=document.getElementById('createSheet'); const attBody=document.getElementById('attBody');
+    attDate.value = new Date().toISOString().slice(0,10);
 
-  /************ TABS ************/
-  const tabBtns=document.querySelectorAll('[data-tab]');
-  const tabAtt=document.getElementById('tab-att');
-  const tabRoster=document.getElementById('tab-roster');
-  tabBtns.forEach(b=>b.addEventListener('click',()=>{
-    tabBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active');
-    const show=b.dataset.tab; tabAtt.classList.toggle('hidden',show!=='att'); tabRoster.classList.toggle('hidden',show!=='roster');
-  }));
+    // Helpers
+    function money(n){ return (Number(n)||0).toFixed(2); } // not used, kept for parity
+    const todayISO = ()=> new Date().toISOString().slice(0,10);
 
-  /************ ROSTER STORAGE ************/
-  async function rosterFetch(){
-    return trySB(
-      async ()=>{
-        const { data, error } = await SB.from('staff').select('*').order('created_at');
-        if(error) throw error; return data;
-      },
-      ()=>{ try{ return JSON.parse(localStorage.getItem('staffRoster')||'[]'); }catch{ return []; } }
-    );
-  }
-  async function rosterUpsert(row){
-    return trySB(
-      async ()=>{
-        const { data, error } = await SB.from('staff').upsert(row).select().single();
-        if(error) throw error; return data;
-      },
-      ()=>{
-        const arr = JSON.parse(localStorage.getItem('staffRoster')||'[]');
-        const i = arr.findIndex(x=>x.id===row.id || (x.name===row.name && x.role===row.role));
-        if(i>=0) arr[i]={...arr[i],...row}; else { row.id=row.id||crypto.randomUUID?.()||String(Date.now()); arr.push(row); }
-        localStorage.setItem('staffRoster', JSON.stringify(arr));
-        return row;
+    // Load roster
+    async function fetchStaff(){
+      if (window.sb){
+        const { data, error } = await sb.from('staff').select('*').order('created_at', {ascending:false});
+        if (error) throw error;
+        return data;
+      } else {
+        return JSON.parse(localStorage.getItem('staff')||'[]');
       }
-    );
-  }
-
-  /************ ATTENDANCE STORAGE ************/
-  async function attFetch(day){
-    return trySB(
-      async ()=>{
-        const { data, error } = await SB.from('staff_attendance').select('*').eq('day', day).order('created_at');
-        if(error) throw error; return data;
-      },
-      ()=>{ try{ return (JSON.parse(localStorage.getItem('attendance')||'[]')).filter(r=>r.day===day);}catch{return [];} }
-    );
-  }
-  async function attInsert(row){
-    return trySB(
-      async ()=>{
-        const { data, error } = await SB.from('staff_attendance').insert(row).select().single();
-        if(error) throw error; return data;
-      },
-      ()=>{
-        const arr=JSON.parse(localStorage.getItem('attendance')||'[]'); row.id=row.id||crypto.randomUUID?.()||String(Date.now()); arr.push(row); localStorage.setItem('attendance',JSON.stringify(arr)); return row;
-      }
-    );
-  }
-  async function attUpdate(id, fields, localKey){
-    return trySB(
-      async ()=>{
-        const { error } = await SB.from('staff_attendance').update(fields).eq('id',id);
-        if(error) throw error;
-      },
-      ()=>{
-        const arr=JSON.parse(localStorage.getItem('attendance')||'[]');
-        const i=arr.findIndex(x=>x.id===id || (localKey && x.name===localKey));
-        if(i>=0){ arr[i]={...arr[i],...fields}; localStorage.setItem('attendance',JSON.stringify(arr)); }
-      }
-    );
-  }
-
-  /************ ATTENDANCE UI ************/
-  const dayPicker=document.getElementById('dayPicker');
-  dayPicker.value = todayISO;   // Browser will render localized (dd-mm-yyyy) but value is ISO
-  const attBody=document.getElementById('attBody');
-
-  async function renderAttendance(){
-    attBody.innerHTML='';
-    const rows = await attFetch(dayPicker.value);
-    const roster = await rosterFetch();
-    if(!rows.length){
-      attBody.innerHTML='<tr><td colspan="6" class="empty">No data — click "Create Day Sheet" or "Add Row".</td></tr>';
-      return;
     }
-    rows.forEach(r=>{
-      const tr=document.createElement('tr');
-      const selectName = `<select data-id="${r.id}" data-field="staff_id" class="nameSel">
-        ${roster.filter(s=>s.active!==false).map(s=>`<option value="${s.id}" ${r.staff_id===s.id?'selected':''}>${s.name}</option>`).join('')}
-      </select>`;
-      const role = (roster.find(s=>s.id===r.staff_id)||{}).role || r.role || '';
-      tr.innerHTML=`
-        <td>${selectName}</td>
-        <td class="roleCell">${role}</td>
-        <td>
-          <select data-id="${r.id}" data-field="status">
-            <option ${r.status==='On Duty'?'selected':''}>On Duty</option>
-            <option ${r.status==='On Leave'?'selected':''}>On Leave</option>
-            <option ${r.status==='Late'?'selected':''}>Late</option>
-          </select>
-        </td>
-        <td><input type="time" value="${r.checkin||''}" data-id="${r.id}" data-field="checkin"/></td>
-        <td><input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note"/></td>
-        <td><button class="chip chip--lilac" data-save="${r.id}">Save</button></td>
-      `;
-      attBody.appendChild(tr);
-    });
-  }
-
-  // Buttons
-  document.getElementById('reloadBtn').onclick=renderAttendance;
-
-  document.getElementById('createSheetBtn').onclick=async ()=>{
-    const roster = await rosterFetch();
-    if(!roster.length){ alert('No staff in roster yet. Add staff first.'); return; }
-    const day=dayPicker.value;
-    const existing = await attFetch(day);
-    if(existing.length){ msg('Sheet already exists.'); return; }
-    for(const s of roster.filter(x=>x.active!==false)){
-      await attInsert({ day, staff_id: s.id, name: s.name, role: s.role, status:'On Duty', checkin:'', note:'' });
+    async function paintRoster(){
+      try{
+        const rows=await fetchStaff();
+        staffBody.innerHTML='';
+        rows.forEach(r=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${r.name||'—'}</td><td>${r.role||'—'}</td><td>${r.phone||'—'}</td><td>${r.active?'Active':'Inactive'}</td>`;
+          staffBody.appendChild(tr);
+        });
+      }catch(e){ console.error(e); }
     }
-    msg('Day sheet created'); renderAttendance();
-  };
 
-  document.getElementById('addRowBtn').onclick=async ()=>{
-    const roster = await rosterFetch();
-    const first = roster.find(x=>x.active!==false);
-    await attInsert({ day: dayPicker.value, staff_id:first?.id||null, name:first?.name||'Temp', role:first?.role||'', status:'On Duty', checkin:'', note:'' });
-    msg('Row added'); renderAttendance();
-  };
-
-  document.getElementById('markAllBtn').onclick=async ()=>{
-    const rows=await attFetch(dayPicker.value);
-    if(!rows.length){ msg('Create the sheet first.'); return; }
-    await Promise.all(rows.map(r=>attUpdate(r.id,{status:'On Duty'}, r.name)));
-    msg('Everyone marked On Duty'); renderAttendance();
-  };
-
-  document.getElementById('exportBtn').onclick=async ()=>{
-    const day=dayPicker.value;
-    const rows=await attFetch(day);
-    const csv=['Name,Role,Status,Check-in,Note,Day'];
-    rows.forEach(r=>csv.push(`"${r.name||''}","${r.role||''}","${r.status||''}","${r.checkin||''}","${String(r.note||'').replace(/"/g,'""')}","${day}"`));
-    const blob=new Blob([csv.join('\n')],{type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`attendance_${day}.csv`; a.click();
-  };
-
-  // Save one row
-  attBody.addEventListener('click',async e=>{
-    const btn=e.target.closest('[data-save]'); if(!btn) return;
-    const id=btn.dataset.save;
-    const row=btn.closest('tr');
-    const roster = await rosterFetch();
-    const nameSel=row.querySelector('.nameSel');
-    const person = roster.find(s=>s.id===nameSel.value);
-    const status=row.querySelector('[data-field="status"]').value;
-    const checkin=row.querySelector('[data-field="checkin"]').value;
-    const note=row.querySelector('[data-field="note"]').value;
-    await attUpdate(id, { staff_id: person?.id||null, name:person?.name||'', role:person?.role||'', status, checkin, note }, row.cells[0].textContent);
-    row.querySelector('.roleCell').textContent = person?.role || '';
-    msg('Saved');
-  });
-
-  /************ ROSTER UI ************/
-  const staffBody=document.getElementById('staffBody');
-
-  async function renderRoster(){
-    staffBody.innerHTML='';
-    const staff=await rosterFetch();
-    if(!staff.length){ staffBody.innerHTML='<tr><td colspan="5" class="empty">No staff yet</td></tr>'; return; }
-    staff.forEach(s=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td><input type="text" value="${s.name||''}" data-id="${s.id}" data-rf="name"/></td>
-        <td><input type="text" value="${s.role||''}" data-id="${s.id}" data-rf="role"/></td>
-        <td><input type="text" value="${s.phone||''}" data-id="${s.id}" data-rf="phone"/></td>
-        <td><input type="checkbox" ${s.active!==false?'checked':''} data-id="${s.id}" data-rf="active"/></td>
-        <td><button class="chip chip--mint" data-rsave="${s.id}">Save</button></td>
-      `;
-      staffBody.appendChild(tr);
-    });
-  }
-
-  document.getElementById('addStaffBtn').onclick=async ()=>{
-    await rosterUpsert({ name:'', role:'', phone:'', active:true });
-    renderRoster();
-  };
-
-  staffBody.addEventListener('click', async (e)=>{
-    const btn=e.target.closest('[data-rsave]'); if(!btn) return;
-    const id=btn.dataset.rsave;
-    const row=btn.closest('tr');
-    const data={
-      id,
-      name: row.querySelector('[data-rf="name"]').value.trim(),
-      role: row.querySelector('[data-rf="role"]').value.trim(),
-      phone: row.querySelector('[data-rf="phone"]').value.trim(),
-      active: row.querySelector('[data-rf="active"]').checked
+    // Add staff
+    addStaff.onclick = async ()=>{
+      const name=(sName.value||'').trim(), role=(sRole.value||'').trim(), phone=(sPhone.value||'').trim();
+      if(!name || !role){ alert('Name & Role required'); return; }
+      try{
+        if (window.sb){
+          const { error } = await sb.from('staff').insert({ name, role, phone, active:true, created_at:new Date().toISOString() });
+          if (error) throw error;
+        } else {
+          const arr=JSON.parse(localStorage.getItem('staff')||'[]'); arr.unshift({id:Date.now(), name, role, phone, active:true}); localStorage.setItem('staff', JSON.stringify(arr));
+        }
+        sName.value=''; sRole.value=''; sPhone.value='';
+        paintRoster(); // refresh
+        // Also, if the selected day sheet exists, you may want to append this person there.
+      }catch(e){ console.error(e); alert('Add failed'); }
     };
-    await rosterUpsert(data);
-    msg('Roster saved');
-  });
 
-  /************ INIT ************/
-  async function init(){
-    await renderAttendance();
-    await renderRoster();
-  }
-  init();
+    // Attendance
+    async function fetchAttendance(dayISO){
+      if (window.sb){
+        const { data, error } = await sb
+          .from('staff_attendance')
+          .select('*')
+          .eq('day', dayISO)
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+        return data;
+      } else {
+        const arr=JSON.parse(localStorage.getItem('staff_attendance')||'[]');
+        return arr.filter(x=>x.day===dayISO);
+      }
+    }
 
-  // Live refresh on local changes (if two tabs open)
-  window.addEventListener('storage', e=>{
-    if(e.key==='attendance') renderAttendance();
-    if(e.key==='staffRoster') renderRoster();
-  });
+    async function createDaySheet(){
+      const day=attDate.value || todayISO();
+      try{
+        const roster = await fetchStaff();
+        if (window.sb){
+          const rows = roster.map(r=>({ day, staff_id: r.id, name: r.name, role: r.role, status: 'On Duty', note: '' }));
+          const { error } = await sb.from('staff_attendance').insert(rows);
+          if (error) throw error;
+        } else {
+          const arr=JSON.parse(localStorage.getItem('staff_attendance')||'[]');
+          roster.forEach(r=>arr.push({ id:Date.now()+Math.random(), day, staff_id:r.id, name:r.name, role:r.role, status:'On Duty', note:'' }));
+          localStorage.setItem('staff_attendance', JSON.stringify(arr));
+        }
+        paintAttendance();
+      }catch(e){ console.error(e); alert('Could not create day sheet. Maybe it already exists.'); }
+    }
+    createSheet.onclick=createDaySheet;
+
+    async function paintAttendance(){
+      const day=attDate.value || todayISO();
+      const rows=await fetchAttendance(day);
+      attBody.innerHTML='';
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${r.name||'—'}</td>
+          <td>${r.role||'—'}</td>
+          <td>
+            <select data-id="${r.id}" class="att-status">
+              <option ${r.status==='On Duty'?'selected':''}>On Duty</option>
+              <option ${r.status==='On Leave'?'selected':''}>On Leave</option>
+              <option ${r.status==='Absent'?'selected':''}>Absent</option>
+            </select>
+          </td>
+          <td><input data-id="${r.id}" class="att-note" placeholder="Optional note" value="${r.note||''}"></td>
+          <td><button class="btn ghost" data-save="${r.id}">Save</button></td>
+        `;
+        attBody.appendChild(tr);
+      });
+    }
+
+    attDate.addEventListener('change', paintAttendance);
+
+    // Save a single row
+    attBody.addEventListener('click', async (e)=>{
+      const b=e.target.closest('[data-save]'); if(!b) return;
+      const id=b.getAttribute('data-save');
+      const row= b.closest('tr');
+      const status=row.querySelector('.att-status').value;
+      const note  =row.querySelector('.att-note').value;
+      try{
+        if (window.sb){
+          const { error } = await sb.from('staff_attendance').update({ status, note }).eq('id', id);
+          if (error) throw error;
+        } else {
+          const arr=JSON.parse(localStorage.getItem('staff_attendance')||'[]');
+          const idx=arr.findIndex(x=>String(x.id)===String(id));
+          if(idx>-1){ arr[idx].status=status; arr[idx].note=note; localStorage.setItem('staff_attendance', JSON.stringify(arr)); }
+        }
+        b.textContent='Saved'; setTimeout(()=>b.textContent='Save', 1200);
+      }catch(e){ console.error(e); alert('Save failed'); }
+    });
+
+    // Init
+    (async function init(){
+      await paintRoster();
+      await paintAttendance();
+      if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}) }
+    })();
+  </script>
+
+  <!-- Supabase quiet status chip -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+    window.sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const host=document.querySelector('.fixed-actions')||document.body, pill=document.createElement('span');
+    pill.textContent='Supabase: Checking…'; pill.style.cssText='display:inline-block;margin:6px 8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);box-shadow:var(--shadow);font-size:13px';
+    if(host===document.body) Object.assign(pill.style,{position:'fixed',left:'12px',bottom:'12px',zIndex:'9999'}); host.appendChild(pill);
+    (async()=>{ try{ const {error}=await sb.from('invoices').select('id').limit(1); if(error) throw error; pill.textContent='Supabase: OK'; pill.style.borderColor='rgba(22,163,74,.35)'; }
+      catch(e){ console.error(e); pill.textContent='Supabase: FAIL'; pill.style.borderColor='rgba(220,38,38,.45)'; } })();
   </script>
 </body>
 </html>
