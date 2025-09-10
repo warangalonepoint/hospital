@@ -3,119 +3,164 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Staff • Dr. Charan Hospital</title>
+  <title>Staff Attendance – Dr. Charan Hospital</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=23"/>
+  <link rel="stylesheet" href="styles.css?v=41"/>
+  <style>
+    .container{ max-width: 980px; margin:0 auto; padding:12px; }
+    .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+    .filters input[type="date"]{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.1); }
+    .table-wrap{ background: var(--card-bg); border-radius:14px; padding:10px; box-shadow: var(--shadow); overflow:auto; }
+    table{ width:100%; border-collapse:collapse; font-size:.95rem; min-width:720px; }
+    thead th{ text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; background:var(--card-bg); }
+    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); }
+    tbody tr:hover{ background:rgba(0,0,0,.03); }
+    .empty{ padding:14px; opacity:.8; }
+    select{ padding:6px 10px; border-radius:8px; }
+    .chip-sm{ padding:6px 10px; font-size:.85rem; border-radius:999px; cursor:pointer; border:1px solid rgba(0,0,0,.1); }
+  </style>
 </head>
 <body>
   <!-- Banner -->
   <header class="banner">
-    <button id="themeToggle" class="floating-toggle">🌙</button>
+    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed Actions -->
+  <!-- Fixed actions -->
   <div class="fixed-actions">
-    <a class="chip" href="dashboard.html">← Dashboard</a>
+    <a href="dashboard.html" class="chip">← Dashboard</a>
     <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
   </div>
 
-  <!-- Staff Summary -->
-  <section class="section panel--mint">
-    <h2>Staff • Roster & Attendance</h2>
-    <div class="chips range mt12" id="viewChips">
-      <button class="chip chip--blue active" data-view="today">Today</button>
-      <button class="chip chip--peach" data-view="week">This Week</button>
-      <button class="chip chip--lilac" data-view="month">This Month</button>
+  <main class="container">
+    <h2>Staff Attendance</h2>
+
+    <div class="filters">
+      <label>Date <input type="date" id="dayPicker"></label>
+      <button id="reloadBtn" class="chip chip--blue">Reload</button>
     </div>
 
-    <div class="kpi-grid mt12">
-      <div class="kpi panel--blue"><h4>On Duty</h4><div class="num" id="sumOn">0</div></div>
-      <div class="kpi panel--mint"><h4>On Leave</h4><div class="num" id="sumLeave">0</div></div>
-      <div class="kpi panel--peach"><h4>Late</h4><div class="num" id="sumLate">0</div></div>
-      <div class="kpi panel--rose"><h4>Total</h4><div class="num" id="sumTotal">0</div></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Check-in</th>
+            <th>Note</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="attBody">
+          <tr><td colspan="6" class="empty">No data</td></tr>
+        </tbody>
+      </table>
     </div>
-  </section>
+  </main>
 
-  <!-- Attendance Table -->
-  <section class="section panel--peach">
-    <h2>Attendance Log</h2>
-    <div class="chips mt12">
-      <input id="search" class="input" placeholder="Search name/role" style="width:200px"/>
-      <button id="markAllOnDuty" class="chip chip--mint">Mark All On Duty</button>
-      <button id="exportCsv" class="chip chip--blue">Export CSV</button>
-    </div>
-    <table class="table mt12" id="tbl">
-      <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Check-in</th><th>Notes</th></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </section>
+  <!-- Supabase client + init -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="./supabase-init.js?v=1"></script>
 
   <script type="module">
-    // --- Theme toggle
+    // Theme toggle
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
-    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'}
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // --- Role guard
-    const ses=JSON.parse(localStorage.getItem('session')||'{}');
-    if(!['doctor','supervisor'].includes(ses.role)){location.href='login.html'}
+    // Session guard
+    const s = JSON.parse(localStorage.getItem('session')||'null');
+    if(!s || s.role!=='doctor') location.replace('login.html');
 
-    // --- Logout / clear cache
-    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
-    clearCacheBtn.onclick=async()=>{localStorage.clear();if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))};location.reload()}
+    // Logout
+    logoutBtn.onclick=async ()=>{ if(window.supakit?.supabaseSignOut) await window.supakit.supabaseSignOut(); localStorage.removeItem('session'); location.href='login.html'; };
 
-    // --- Demo data
-    const LS_KEY='staffRoster';
-    if(!localStorage.getItem(LS_KEY)){
-      localStorage.setItem(LS_KEY, JSON.stringify([
-        {id:'S1',name:'Rohit',role:'Nurse',status:'On Duty',checkin:'09:00',notes:''},
-        {id:'S2',name:'Swathi',role:'Admin',status:'On Leave',checkin:'—',notes:'Leave'},
-        {id:'S3',name:'Anil',role:'Pharmacist',status:'Late',checkin:'10:15',notes:''}
-      ]));
+    // Helpers
+    const isoDate = d => new Date(d).toISOString().slice(0,10);
+
+    async function fetchAttendance(dayISO){
+      return window.supakit.safeFetch(
+        async ()=>{
+          const { data, error } = await window.sb
+            .from('staff_attendance')
+            .select('*')
+            .eq('day', dayISO)
+            .order('created_at');
+          if(error) throw error;
+          return data;
+        },
+        ()=>{ try{ return JSON.parse(localStorage.getItem('attendance')||'[]').filter(r=>r.day===dayISO);}catch{ return [];} }
+      );
     }
 
-    // --- Render
-    function render(){
-      const rows=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-      const q=search.value.toLowerCase();
-      const filtered=rows.filter(r=>r.name.toLowerCase().includes(q)||r.role.toLowerCase().includes(q));
-      const tbody=document.getElementById('tbody'); tbody.innerHTML='';
-      filtered.forEach(r=>{
-        tbody.innerHTML+=`
-          <tr>
-            <td>${r.name}</td>
-            <td>${r.role}</td>
-            <td><select data-id="${r.id}" class="input"><option ${r.status==='On Duty'?'selected':''}>On Duty</option><option ${r.status==='On Leave'?'selected':''}>On Leave</option><option ${r.status==='Late'?'selected':''}>Late</option></select></td>
-            <td>${r.checkin}</td>
-            <td contenteditable data-id="${r.id}" data-field="notes">${r.notes||''}</td>
-          </tr>`;
-      });
+    async function updateAttendance(id, fields, localName){
+      try{
+        const { error } = await window.sb.from('staff_attendance').update(fields).eq('id',id);
+        if(error) throw error;
+      }catch(e){
+        // fallback update local
+        try{
+          const arr=JSON.parse(localStorage.getItem('attendance')||'[]');
+          const i=arr.findIndex(x=>x.id===id||x.name===localName);
+          if(i>=0){ arr[i]={...arr[i],...fields}; localStorage.setItem('attendance',JSON.stringify(arr)); }
+        }catch{}
+      }
+    }
 
-      sumOn.textContent=rows.filter(r=>r.status==='On Duty').length;
-      sumLeave.textContent=rows.filter(r=>r.status==='On Leave').length;
-      sumLate.textContent=rows.filter(r=>r.status==='Late').length;
-      sumTotal.textContent=rows.length;
+    const attBody=document.getElementById('attBody');
+    let curDayISO=isoDate(new Date());
 
-      tbody.querySelectorAll('select').forEach(sel=>{
-        sel.onchange=()=>{
-          const id=sel.dataset.id;
-          const all=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-          const row=all.find(x=>x.id===id); if(row){row.status=sel.value;localStorage.setItem(LS_KEY,JSON.stringify(all));render();}
-        };
-      });
-      tbody.querySelectorAll('[contenteditable]').forEach(cell=>{
-        cell.onblur=()=>{
-          const id=cell.dataset.id; const field=cell.dataset.field;
-          const all=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-          const row=all.find(x=>x.id===id); if(row){row[field]=cell.textContent;localStorage.setItem(LS_KEY,JSON.stringify(all));}
-        };
+    async function renderAttendance(){
+      attBody.innerHTML='';
+      const rows=await fetchAttendance(curDayISO);
+      if(!rows.length){ attBody.innerHTML='<tr><td colspan="6" class="empty">No data</td></tr>'; return; }
+
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${r.name??'-'}</td>
+          <td>${r.role??'-'}</td>
+          <td>
+            <select data-id="${r.id}" data-field="status">
+              <option ${r.status==='On Duty'?'selected':''}>On Duty</option>
+              <option ${r.status==='On Leave'?'selected':''}>On Leave</option>
+              <option ${r.status==='Late'?'selected':''}>Late</option>
+            </select>
+          </td>
+          <td><input type="time" value="${r.checkin||''}" data-id="${r.id}" data-field="checkin"/></td>
+          <td><input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note"/></td>
+          <td><button class="chip-sm" data-id="${r.id}" data-save>Save</button></td>
+        `;
+        attBody.appendChild(tr);
       });
     }
-    search.oninput=render;
-    markAllOnDuty.onclick=()=>{const all=JSON.parse(localStorage.getItem(LS_KEY)||'[]').map(x=>({...x,status:'On Duty'}));localStorage.setItem(LS_KEY,JSON.stringify(all));render();}
-    exportCsv.onclick=()=>{const rows=JSON.parse(localStorage.getItem(LS_KEY)||'[]');const csv='id,name,role,status,checkin,notes\n'+rows.map(r=>[r.id,r.name,r.role,r.status,r.checkin,r.notes].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv]));a.download='staff.csv';a.click();}
-    render();
+
+    attBody.addEventListener('click',async e=>{
+      const btn=e.target.closest('[data-save]');
+      if(!btn) return;
+      const id=btn.dataset.id;
+      const row=btn.closest('tr');
+      const status=row.querySelector('select').value;
+      const checkin=row.querySelector('input[type="time"]').value;
+      const note=row.querySelector('input[type="text"]').value;
+      await updateAttendance(id,{status,checkin,note}, row.cells[0].textContent);
+      alert('Updated');
+    });
+
+    // UI wiring
+    const dayPicker=document.getElementById('dayPicker');
+    dayPicker.value=curDayISO;
+    dayPicker.onchange=()=>{ curDayISO=dayPicker.value; renderAttendance(); };
+    document.getElementById('reloadBtn').onclick=renderAttendance;
+
+    // Init
+    (async function init(){ await window.supakit.ensureAuth(); await renderAttendance(); })();
+
+    window.addEventListener('storage', e=>{
+      if(e.key==='attendance' && isoDate(new Date())===curDayISO) renderAttendance();
+    });
   </script>
 </body>
 </html>
