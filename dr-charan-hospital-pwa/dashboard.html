@@ -6,7 +6,7 @@
   <title>Doctor Dashboard – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=40"/>
+  <link rel="stylesheet" href="styles.css?v=63"/>
 </head>
 <body>
   <!-- Banner -->
@@ -16,41 +16,31 @@
 
   <!-- Fixed actions -->
   <div class="fixed-actions">
-    <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+    <a href="index.html" class="chip">← Home</a>
+    <button id="logoutBtn" class="chip">Logout</button>
+    <button id="clearCacheBtn" class="chip">Clear Cache</button>
   </div>
 
   <!-- Main cards -->
   <section class="section">
     <div class="card-grid">
       <a href="analytics.html" class="card panel--lilac">
-        <h3>Analytics</h3>
-        <p>KPIs & weekly sales</p>
+        <h3>Analytics</h3><p>KPIs & weekly sales</p>
       </a>
-
       <a href="pharmacy-report.html" class="card panel--blue">
-        <h3>Pharmacy</h3>
-        <p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
+        <h3>Pharmacy</h3><p id="pharmacySummary">Today ₹0.00 • MTD ₹0.00 • Top: —</p>
       </a>
-
       <a href="bookings-status.html" class="card panel--mint">
-        <h3>Booking Status</h3>
-        <p>Today / Week / Month counts</p>
+        <h3>Booking Status</h3><p>Today / Week / Month counts</p>
       </a>
-
       <a href="patients.html" class="card panel--rose">
-        <h3>Patients</h3>
-        <p>Reminders & history • <strong id="followupBadge">0 due today</strong></p>
+        <h3>Patients</h3><p>Reminders & history • <strong id="followupBadge">0 due today</strong></p>
       </a>
-
       <a href="staff.html" class="card panel--peach">
-        <h3>Staff</h3>
-        <p>Roster & status</p>
+        <h3>Staff</h3><p>Roster & attendance (view-only)</p>
       </a>
-
       <a href="settings.html" class="card panel--lilac">
-        <h3>Settings</h3>
-        <p>PINs, Staff, Patients</p>
+        <h3>Settings</h3><p>PINs, Staff, Patients</p>
       </a>
     </div>
   </section>
@@ -68,138 +58,66 @@
     </div>
 
     <div class="kpi-grid mt12">
-      <div class="kpi panel--blue">
-        <h4>Total (₹)</h4>
-        <div class="num" id="kpiTotal">0.00</div>
-      </div>
-      <div class="kpi panel--lilac">
-        <h4>Avg / Day (₹)</h4>
-        <div class="num" id="kpiAvg">0.00</div>
-      </div>
-      <div class="kpi panel--mint">
-        <h4>Invoices</h4>
-        <div class="num" id="kpiInv">0</div>
-      </div>
-      <div class="kpi panel--rose">
-        <h4>Top Item</h4>
-        <div class="num" id="kpiTop">–</div>
-      </div>
-      <div class="kpi panel--sky">
-        <h4>Follow-ups Today</h4>
-        <div class="num" id="kpiFollowups">0</div>
-      </div>
+      <div class="kpi panel--blue"><h4>Total (₹)</h4><div class="num" id="kpiTotal">0.00</div></div>
+      <div class="kpi panel--lilac"><h4>Avg / Day (₹)</h4><div class="num" id="kpiAvg">0.00</div></div>
+      <div class="kpi panel--mint"><h4>Invoices</h4><div class="num" id="kpiInv">0</div></div>
+      <div class="kpi panel--rose"><h4>Top Item</h4><div class="num" id="kpiTop">–</div></div>
+      <div class="kpi panel--blue"><h4>Follow-ups Today</h4><div class="num" id="kpiFollowups">0</div></div>
     </div>
 
-    <div class="chart-wrap">
-      <div class="chart-title">Revenue by Day</div>
-      <canvas id="lineChart" height="160"></canvas>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Top Items (Share)</div>
-      <canvas id="pieChart" height="160"></canvas>
-    </div>
+    <div class="chart-wrap"><div class="chart-title">Revenue by Day</div><canvas id="lineChart" height="160"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Top Items (Share)</div><canvas id="pieChart" height="160"></canvas></div>
   </section>
 
   <script src="assets/chart.umd.min.js"></script>
-
-  <!-- Supabase client + init (shared helpers) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="module" src="./supabase-init.js?v=1"></script>
-
-  <script type="module">
-    // === Theme toggle
+  <script>
+    // Theme toggle
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){
-      document.documentElement.dataset.theme=localStorage.theme;
-      t.textContent=localStorage.theme==='light'?'🌞':'🌙';
-    }
-    t.onclick=()=>{
-      const cur=document.documentElement.dataset.theme||'light';
-      const next=cur==='light'?'dark':'light';
-      document.documentElement.dataset.theme=next;
-      localStorage.theme=next;
-      t.textContent=next==='light'?'🌞':'🌙';
-    };
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // === Session guard (doctor only)
-    (() => {
-      const s = JSON.parse(localStorage.getItem('session') || 'null');
-      if (!s || s.role !== 'doctor') location.replace('login.html');
-    })();
+    // Guard (doctor only)
+    const s = JSON.parse(localStorage.getItem('session')||'null');
+    if(!s || s.role!=='doctor'){ location.replace('login.html'); }
 
-    // === Actions
-    logoutBtn.onclick=async ()=>{
-      if (window.supakit?.supabaseSignOut) await window.supakit.supabaseSignOut();
-      localStorage.removeItem('session'); location.href='login.html';
-    };
-    clearCacheBtn.onclick=async()=>{
-      const keep=localStorage.getItem('session');
-      localStorage.clear(); if(keep) localStorage.setItem('session',keep);
-      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      alert('Cache cleared.'); location.reload();
-    };
+    // Actions
+    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    clearCacheBtn.onclick=async()=>{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session',keep);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cache cleared'); location.reload(); };
 
-    // === Helpers
-    const isoDate = d => new Date(d).toISOString().slice(0,10);
-    const startOfDay = (d)=>{ const x=new Date(d); x.setHours(0,0,0,0); return x; };
-    const money = n => (Number(n)||0).toFixed(2);
+    // Data helpers
+    function getInvoices(){ try{return JSON.parse(localStorage.getItem('invoices')||'[]')}catch{return[]} }
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function money(n){ return (Number(n)||0).toFixed(2); }
 
-    // === Supabase-backed loaders with local fallback
-    async function loadInvoicesRange(fromISO, toISO){
-      return window.supakit.safeFetch(
-        async () => {
-          const { data, error } = await window.sb
-            .from('pharmacy_invoices')
-            .select('bill_ts,total,items')
-            .gte('bill_ts', `${fromISO}T00:00:00Z`)
-            .lte('bill_ts', `${toISO}T23:59:59Z`);
-          if (error) throw error;
-          return (data||[]).map(r => ({
-            date: r.bill_ts,
-            total: Number(r.total)||0,
-            items: Array.isArray(r.items) ? r.items : []
-          }));
-        },
-        () => {
-          // local fallbacks: pharmacyRecords -> invoices
-          try{
-            const keys=['pharmacyRecords','invoices'];
-            for(const k of keys){
-              const arr=JSON.parse(localStorage.getItem(k)||'[]');
-              if(Array.isArray(arr) && arr.length) return arr;
-            }
-          }catch{}
-          return [];
-        }
-      );
-    }
-
-    async function followupsDueTodayCount(){
+    // Follow-ups
+    function getServedPatients(){ try{return JSON.parse(localStorage.getItem('servedPatients')||'[]')}catch{return[]} }
+    function pickISO(str){ const m=(str||'').match(/\d{4}-\d{2}-\d{2}/); return m?m[0]:null; }
+    function followupsDueTodayCount(){
       const todayISO=new Date().toISOString().slice(0,10);
-      return window.supakit.safeFetch(
-        async () => {
-          const { data, error } = await window.sb
-            .from('served_patients')
-            .select('id,reminder_iso')
-            .eq('reminder_iso', todayISO);
-          if (error) throw error;
-          return (data||[]).length;
-        },
-        () => {
-          try{
-            const arr=JSON.parse(localStorage.getItem('servedPatients')||'[]');
-            return arr.filter(p=>{
-              const iso=p.reminderISO || (String(p.reminder||'').match(/\d{4}-\d{2}-\d{2}/)||[])[0];
-              return iso===todayISO;
-            }).length;
-          }catch{ return 0; }
-        }
-      );
+      return getServedPatients().filter(p=>{
+        const iso=p.reminderISO||pickISO(p.reminder);
+        return iso===todayISO;
+      }).length;
+    }
+    function paintFollowups(){
+      const n=followupsDueTodayCount();
+      const k=document.getElementById('kpiFollowups'); if(k) k.textContent=n;
+      const b=document.getElementById('followupBadge'); if(b) b.textContent=`${n} due today`;
     }
 
-    // === Summarize invoices for a given quick-range
-    async function summarize(range='today'){
-      await window.supakit.ensureAuth(); // best effort
+    // Charts
+    const line=new Chart(document.getElementById('lineChart'),{
+      type:'line', data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:2,tension:.3}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
+    });
+    const pie=new Chart(document.getElementById('pieChart'),{
+      type:'pie', data:{labels:[],datasets:[{data:[]}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+
+    function summarize(range='today'){
+      const inv=getInvoices();
       const now=new Date(); let from;
       if(range==='today') from=startOfDay(now);
       else if(range==='7d'){ from=new Date(now); from.setDate(now.getDate()-6); from=startOfDay(from); }
@@ -207,14 +125,11 @@
       else if(range==='ytd'){ from=new Date(now.getFullYear(),0,1); }
       else from=startOfDay(now);
 
-      const toISO=isoDate(now), fromISO=isoDate(from);
-      const picked = await loadInvoicesRange(fromISO, toISO);
-
+      const picked=inv.filter(i=>new Date(i.date||i.createdAt||Date.now())>=from && new Date(i.date||i.createdAt||Date.now())<=now);
       const total=picked.reduce((s,i)=>s+(+i.total||0),0);
       const days=Math.max(1,Math.round((startOfDay(now)-from)/86400000)+1);
       const avg=total/days; const count=picked.length;
 
-      // items aggregate
       const items={};
       picked.forEach(i=>(i.items||[]).forEach(it=>{
         const key=(it.name||'Item'); const amt=(+it.qty||0)*(+it.price||0);
@@ -222,83 +137,57 @@
       }));
       const top=Object.entries(items).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
 
-      // by day
-      const byDay={};
-      for(let d=new Date(fromISO); d<=new Date(toISO); d.setDate(d.getDate()+1)){
-        byDay[isoDate(d)]=0;
-      }
-      picked.forEach(i=>{
-        const d=isoDate(i.date||i.createdAt||Date.now());
-        if(byDay[d]!=null) byDay[d]+=+i.total||0;
-      });
-
-      return { total, avg, count, top, lineLabels:Object.keys(byDay), lineData:Object.values(byDay), pieData:items, _picked:picked };
+      const byDay={}; for(let d=new Date(from); d<=now; d.setDate(d.getDate()+1)) byDay[d.toISOString().slice(0,10)]=0;
+      picked.forEach(i=>{ const d=new Date(i.date||i.createdAt||Date.now()).toISOString().slice(0,10); if(byDay[d]!=null) byDay[d]+=+i.total||0; });
+      return {total,avg,count,top,lineLabels:Object.keys(byDay),lineData:Object.values(byDay),pieData:items};
     }
 
-    // === Charts
-    const line=new Chart(document.getElementById('lineChart'),{
-      type:'line',
-      data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:2,tension:.3}]},
-      options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
-    });
-    const pie=new Chart(document.getElementById('pieChart'),{
-      type:'pie',
-      data:{labels:[],datasets:[{data:[]}]},
-      options:{responsive:true,maintainAspectRatio:false}
-    });
+    function paintSummary(range='today'){
+      const s=summarize(range);
+      kpiTotal.textContent=money(s.total); kpiAvg.textContent=money(s.avg);
+      kpiInv.textContent=s.count; kpiTop.textContent=s.top;
 
-    async function paintSummary(range='today'){
-      const s=await summarize(range);
-      document.getElementById('kpiTotal').textContent=money(s.total);
-      document.getElementById('kpiAvg').textContent=money(s.avg);
-      document.getElementById('kpiInv').textContent=s.count;
-      document.getElementById('kpiTop').textContent=s.top;
-
-      // Update Pharmacy card (Today + MTD + Top)
-      const invToday = s._picked.filter(i=>new Date(i.date||i.createdAt||Date.now()).toDateString()===new Date().toDateString())
-                        .reduce((a,i)=>a+(+i.total||0),0);
-
+      const inv=getInvoices();
+      const today=inv.filter(i=>new Date(i.date||i.createdAt||Date.now()).toDateString()===new Date().toDateString()).reduce((a,i)=>a+(+i.total||0),0);
       const mStart=new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
-      const mFromISO=isoDate(mStart), mToISO=isoDate(new Date());
-      const mtdList = await loadInvoicesRange(mFromISO, mToISO);
-      const mtd = mtdList.reduce((a,i)=>a+(+i.total||0),0);
+      const mtd=inv.filter(i=>new Date(i.date||i.createdAt||Date.now())>=mStart).reduce((a,i)=>a+(+i.total||0),0);
+      const top=s.top||'—';
+      pharmacySummary.textContent=`Today ₹${money(today)} • MTD ₹${money(mtd)} • Top: ${top}`;
 
-      document.getElementById('pharmacySummary').textContent=
-        `Today ₹${money(invToday)} • MTD ₹${money(mtd)} • Top: ${s.top||'—'}`;
-
-      // Follow-ups today
-      const n=await followupsDueTodayCount();
-      const k=document.getElementById('kpiFollowups'); if(k) k.textContent=n;
-      const b=document.getElementById('followupBadge'); if(b) b.textContent=`${n} due today`;
-
-      // Charts
       line.data.labels=s.lineLabels; line.data.datasets[0].data=s.lineData; line.update();
       const labels=Object.keys(s.pieData), vals=Object.values(s.pieData);
       pie.data.labels=labels.length?labels:['No data']; pie.data.datasets[0].data=vals.length?vals:[1]; pie.update();
     }
 
-    // === Init
     const rangeBar=document.querySelector('.range');
     function setActive(name){
       rangeBar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       const el=rangeBar.querySelector(`[data-range="${name}"]`); if(el) el.classList.add('active');
-      paintSummary(name);
+      paintSummary(name); paintFollowups();
     }
-
-    // wire quick ranges
-    rangeBar.addEventListener('click',e=>{
-      const btn=e.target.closest('.chip'); if(!btn)return;
-      setActive(btn.dataset.range);
-    });
-
-    // initial
+    rangeBar.addEventListener('click',e=>{ const btn=e.target.closest('.chip'); if(!btn)return; setActive(btn.dataset.range); });
     setActive('today');
 
-    // live follow-ups refresh if other tabs update local fallback
-    window.addEventListener('storage',e=>{ if(e.key==='servedPatients') paintSummary(document.querySelector('.range .active')?.dataset.range || 'today'); });
+    // SW
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js').catch(()=>{}) }
+  </script>
 
-    // === SW
-    if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
+  <!-- Supabase quiet status chip -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+    window.sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const host = document.querySelector('.fixed-actions') || document.body;
+    const pill = document.createElement('span');
+    pill.textContent = 'Supabase: Checking…';
+    pill.style.cssText = 'display:inline-block;margin:6px 8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);box-shadow:var(--shadow);font-size:13px';
+    if (host===document.body){ Object.assign(pill.style,{position:'fixed',left:'12px',bottom:'12px',zIndex:'9999'}); }
+    host.appendChild(pill);
+
+    (async()=>{ try{ const {error}=await sb.from('invoices').select('id').limit(1);
+      if(error) throw error; pill.textContent='Supabase: OK'; pill.style.borderColor='rgba(22,163,74,.35)'; }
+      catch(e){ console.error(e); pill.textContent='Supabase: FAIL'; pill.style.borderColor='rgba(220,38,38,.45)'; } })();
   </script>
 </body>
 </html>
