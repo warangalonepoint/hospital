@@ -229,3 +229,153 @@ html[data-theme="dark"] .fixed-actions .chip {
 /* ========= Helpers ========= */
 .muted { color: var(--muted); }
 .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
+
+/* === POLISH: Tabs (chips), inputs, selects, date fields, buttons === */
+
+/* Tabs / filter chips */
+.chips { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.chip{
+  --ring: rgba(37,99,235,.35);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: var(--card-bg);
+  color: var(--fg);
+  font-weight: 600;
+  line-height: 1;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+}
+.chip:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+.chip:active{ transform: translateY(0); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+/* Active state for all chip types (incl. Today / This Week / This Month) */
+.chip.active{
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(37,99,235,.35);
+}
+
+/* Size variants if you need smaller pills in tight toolbars */
+.chip.chip--sm{ padding: 6px 10px; font-size:.9rem; }
+
+/* Inputs: text, date, search */
+input[type="text"],
+input[type="search"],
+input[type="date"],
+textarea,
+select{
+  appearance: none;
+  background: var(--card-bg);
+  color: var(--fg);
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.2;
+  box-shadow: var(--shadow);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+textarea{ min-height: 92px; resize: vertical; }
+
+/* Compact field style for tables/rows (attendance selects, search bars) */
+.input--sm,
+select.select--sm,
+input[type="date"].input--sm{
+  padding: 8px 10px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.06);
+  font-size: .95rem;
+}
+
+/* Focus ring (keyboard + click) */
+input:focus,
+textarea:focus,
+select:focus{
+  outline: none;
+  border-color: rgba(37,99,235,.55);
+  box-shadow:
+    0 0 0 3px rgba(37,99,235,.10),
+    0 8px 20px rgba(37,99,235,.15);
+}
+
+/* Placeholder color subtle */
+::placeholder{ color: color-mix(in srgb, var(--muted) 80%, #fff 20%); }
+
+/* Select dropdown chevron */
+select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat: no-repeat;
+  padding-right: 28px;
+}
+
+/* Button polish (Mark All / Export CSV, etc.) */
+.btn,
+button.chip.action{
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(37,99,235,.25);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+}
+.btn:hover,
+button.chip.action:hover{ transform: translateY(-1px); box-shadow: 0 12px 24px rgba(37,99,235,.28); }
+.btn:active,
+button.chip.action:active{ transform: translateY(0); box-shadow: 0 6px 16px rgba(37,99,235,.22); }
+.btn--ghost{
+  background: transparent; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, #fff 65%);
+}
+
+/* Toolbars – even spacing for search + buttons */
+.toolbar{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+}
+.toolbar .left, .toolbar .right{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+/* Tables (subtle header weight to balance new inputs) */
+table thead th{ font-weight: 700; opacity:.95; }
+
+/* Dark mode tuning so fields don’t glow too bright */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="search"],
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select{
+  background: #171b23;
+  border-color: rgba(255,255,255,.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+html[data-theme="dark"] .chip{ border-color: rgba(255,255,255,.12); }
+
+/* === Desktop banner: show full image (no crop), mobile unchanged === */
+@media (min-width:1024px){
+  header.banner{
+    height: 180px; /* pick 160–200px to taste */
+    border-radius: 20px;
+    margin: 16px auto 12px;
+    max-width: 1140px;
+
+    /* SHOW FULL ART on desktop */
+    background: #0b2a44 url('./assets/banner.png') center / contain no-repeat;
+  }
+
+  /* if any page uses an <img> inside the banner, also make it non-cropping */
+  header.banner img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+}
