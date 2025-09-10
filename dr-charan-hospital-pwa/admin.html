@@ -6,7 +6,7 @@
   <title>Supervisor – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=24"/>
+  <link rel="stylesheet" href="styles.css?v=45"/>
 
   <style>
     /* Page accents (re-using your “thick tint” look) */
@@ -71,9 +71,15 @@
           <p>Multi-item invoices, discounts, payments</p>
         </a>
 
-        <a class="tile tint-rose" style="grid-column: 1 / -1" href="pharmacy-report.html">
+        <a class="tile tint-rose" href="pharmacy-report.html">
           <h3>Pharmacy – Reports</h3>
           <p>Daily / Weekly / Monthly / Yearly sales & items</p>
+        </a>
+
+        <!-- NEW: Staff editor tile -->
+        <a class="tile tint-purple" href="admin-staff.html">
+          <h3>Staff – Attendance & Roster</h3>
+          <p>Create day sheet, mark, edit, export</p>
         </a>
       </div>
     </section>
@@ -133,9 +139,9 @@
     function iso(d){ return new Date(d).toISOString().slice(0,10); }
 
     async function getInvoicesAll(){
-      // If you later expose Supabase helpers, prefer them:
-      if (window.Store && Store.getAllInvoices) return Store.getAllInvoices();
-      return JSON.parse(localStorage.getItem('invoices')||'[]');
+      // Keep local fallback; swap to Supabase later if you want
+      try{ return JSON.parse(localStorage.getItem('pharmacyRecords')||'[]'); }
+      catch{ return []; }
     }
 
     function sumLines(items){
