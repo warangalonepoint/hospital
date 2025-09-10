@@ -4,190 +4,196 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Pharmacy – Reports</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=22"/>
+  <link rel="stylesheet" href="styles.css?v=64"/>
+  <style>
+    .wrap{max-width:1100px;margin:0 auto}
+    .section{margin:12px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+    .field{display:flex;flex-direction:column;gap:6px}
+    input,select{padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);font-size:15px}
+    label{font-weight:600}
+    .table-wrap{overflow:auto;border-radius:12px;box-shadow:var(--shadow);background:var(--card-bg)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 12px;border-top:1px solid rgba(0,0,0,.06);text-align:left;white-space:nowrap}
+    .kpis{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+    @media(min-width:800px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    .kpi{border-radius:16px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.06)}
+    .kpi h4{font-size:14px;opacity:.85;margin-bottom:6px}
+    .kpi .num{font-size:28px;font-weight:800}
+    .chart-card{border-radius:16px;padding:16px;box-shadow:var(--shadow);background:var(--card-bg);margin-top:12px}
+  </style>
 </head>
 <body>
-  <!-- Banner -->
-  <header class="banner">
-    <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
-  </header>
+  <div class="wrap">
+    <!-- Banner -->
+    <header class="banner">
+      <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
+    </header>
 
-  <!-- Fixed Actions -->
-  <div class="fixed-actions">
-    <a class="chip" href="dashboard.html">← Dashboard</a>
-    <button class="chip" id="logoutBtn">Logout</button>
-    <button class="chip" id="clearCacheBtn">Clear Cache</button>
+    <!-- Actions -->
+    <div class="fixed-actions">
+      <a href="admin.html" class="chip">← Admin</a>
+      <a href="pharmacy.html" class="chip">➕ New Invoice</a>
+      <button id="clearCacheBtn" class="chip">Clear Cache</button>
+    </div>
+
+    <!-- Filters -->
+    <section class="section panel--lilac">
+      <h2>Report Filters</h2>
+      <div class="toolbar mt12">
+        <div class="field">
+          <label for="fromDate">From</label>
+          <input type="date" id="fromDate">
+        </div>
+        <div class="field">
+          <label for="toDate">To</label>
+          <input type="date" id="toDate">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="runBtn" class="btn">Run</button>
+        </div>
+        <div class="chips">
+          <button class="chip" data-quick="today">Today</button>
+          <button class="chip" data-quick="7d">Last 7D</button>
+          <button class="chip" data-quick="30d">Last 30D</button>
+          <button class="chip" data-quick="mtd">MTD</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="section">
+      <div class="kpis">
+        <div class="kpi panel--blue"><h4>Total (₹)</h4><div class="num" id="kTotal">0.00</div></div>
+        <div class="kpi panel--mint"><h4>Paid (₹)</h4><div class="num" id="kPaid">0.00</div></div>
+        <div class="kpi panel--peach"><h4>Balance (₹)</h4><div class="num" id="kBal">0.00</div></div>
+        <div class="kpi panel--rose"><h4>Invoices</h4><div class="num" id="kCount">0</div></div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="section">
+      <div class="chart-card">
+        <div class="chart-title">Daily Revenue</div>
+        <canvas id="lineChart" height="200"></canvas>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="section">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Total (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Invoice #</th></tr>
+          </thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+    </section>
   </div>
-
-  <!-- Report -->
-  <section class="section">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-      <h2>Pharmacy Records</h2>
-      <div class="chips range">
-        <button class="chip chip--blue"  data-range="day">Daily</button>
-        <button class="chip chip--mint"  data-range="week">Weekly</button>
-        <button class="chip chip--peach" data-range="month">Monthly</button>
-        <button class="chip chip--lilac" data-range="year">Yearly</button>
-      </div>
-    </div>
-
-    <div class="kpi-grid mt12">
-      <div class="kpi panel--blue">
-        <h4>Total (selected)</h4>
-        <div class="num" id="rTotal">0.00</div>
-      </div>
-      <div class="kpi panel--mint">
-        <h4>Invoices</h4>
-        <div class="num" id="rCount">0</div>
-      </div>
-      <div class="kpi panel--peach">
-        <h4>Avg / Invoice ₹</h4>
-        <div class="num" id="rAvg">0.00</div>
-      </div>
-      <div class="kpi panel--rose">
-        <h4>Top Item</h4>
-        <div class="num" id="rTop">—</div>
-      </div>
-    </div>
-
-    <div class="chart-wrap">
-      <div class="chart-title" id="axisTitle">Revenue by Day</div>
-      <canvas id="axisChart" height="160"></canvas>
-    </div>
-
-    <div class="chart-wrap">
-      <div class="chart-title">Top Items (Share)</div>
-      <canvas id="pieChart" height="160"></canvas>
-    </div>
-  </section>
 
   <script src="assets/chart.umd.min.js"></script>
   <script>
-    // Theme
+    // Theme & utilities
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){document.documentElement.dataset.theme=localStorage.theme;t.textContent=localStorage.theme==='light'?'🌞':'🌙'}
-    t.onclick=()=>{const cur=document.documentElement.dataset.theme||'light';const next=cur==='light'?'dark':'light';document.documentElement.dataset.theme=next;localStorage.theme=next;t.textContent=next==='light'?'🌞':'🌙'};
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
+    clearCacheBtn.onclick=async()=>{ if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } location.reload(); }
 
-    // Guard (doctor & supervisor can view)
-    (()=>{
-      const s=JSON.parse(localStorage.getItem('session')||'null');
-      if(!s || !['doctor','supervisor'].includes(s.role)) location.replace('login.html');
-    })();
-
-    // Actions
-    logoutBtn.onclick=()=>{localStorage.removeItem('session');location.href='login.html'}
-    clearCacheBtn.onclick=async()=>{try{const keep=localStorage.getItem('session');localStorage.clear();if(keep)localStorage.setItem('session',keep); if('caches'in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))} alert('Cache cleared.');location.reload()}catch{}}
-
-    // Data helpers
-    function invoices(){try{return JSON.parse(localStorage.getItem('invoices')||'[]')}catch{return []}}
-    function startOf(d,unit){
-      const x=new Date(d);
-      if(unit==='day'){x.setHours(0,0,0,0)}
-      if(unit==='week'){const day=x.getDay();const diff=(day+6)%7; x.setDate(x.getDate()-diff); x.setHours(0,0,0,0)}
-      if(unit==='month'){x.setDate(1);x.setHours(0,0,0,0)}
-      if(unit==='year'){x.setMonth(0,1);x.setHours(0,0,0,0)}
-      return x;
+    // Dates
+    const fromDate=document.getElementById('fromDate');
+    const toDate=document.getElementById('toDate');
+    const runBtn=document.getElementById('runBtn');
+    function setQuick(range){
+      const now=new Date(), iso=(d)=>d.toISOString().slice(0,10);
+      if(range==='today'){ fromDate.value=iso(now); toDate.value=iso(now); }
+      else if(range==='7d'){ const f=new Date(now); f.setDate(now.getDate()-6); fromDate.value=iso(f); toDate.value=iso(now); }
+      else if(range==='30d'){ const f=new Date(now); f.setDate(now.getDate()-29); fromDate.value=iso(f); toDate.value=iso(now); }
+      else if(range==='mtd'){ const f=new Date(now.getFullYear(), now.getMonth(), 1); fromDate.value=iso(f); toDate.value=iso(now); }
     }
-    function labelFor(d,unit){
-      const z=new Date(d);
-      if(unit==='day') return z.toISOString().slice(0,10);
-      if(unit==='week'){const end=new Date(z); end.setDate(z.getDate()+6); return z.toISOString().slice(5,10)+'–'+end.toISOString().slice(5,10)}
-      if(unit==='month') return z.toLocaleString('en-GB',{month:'short',year:'numeric'});
-      if(unit==='year') return ''+z.getFullYear();
-    }
+    document.querySelector('.chips').addEventListener('click',e=>{
+      const b=e.target.closest('.chip'); if(!b) return; setQuick(b.dataset.quick); fetchAndPaint();
+    });
+    setQuick('today');
 
-    const axis = new Chart(document.getElementById('axisChart'),{
-      type:'bar',
-      data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:0}]},
+    // Chart
+    const line=new Chart(document.getElementById('lineChart'),{
+      type:'line', data:{labels:[],datasets:[{label:'Revenue',data:[],borderWidth:2,tension:.3}]},
       options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
     });
-    const pie = new Chart(document.getElementById('pieChart'),{
-      type:'pie',
-      data:{labels:[],datasets:[{data:[]}]},
-      options:{responsive:true,maintainAspectRatio:false}
-    });
 
-    function summarize(unit){
-      const list=invoices();
-      const now=new Date();
-      const from=startOf(now,unit);
-      // create buckets (up to reasonable spans)
-      const buckets={}, labels=[];
-      let steps=0, cursor=new Date(from);
-      while(cursor<=now && steps<370){
-        const key=labelFor(cursor,unit);
-        buckets[key]=0; labels.push(key);
-        if(unit==='day'){cursor.setDate(cursor.getDate()+1)}
-        if(unit==='week'){cursor.setDate(cursor.getDate()+7)}
-        if(unit==='month'){cursor.setMonth(cursor.getMonth()+1)}
-        if(unit==='year'){cursor.setFullYear(cursor.getFullYear()+1)}
-        steps++;
+    // Fetch + paint
+    function money(n){ return (Number(n)||0).toFixed(2); }
+    async function loadInvoices(fromISO,toISO){
+      if (window.sb){
+        const { data, error } = await sb
+          .from('invoices')
+          .select('id, invoice_no, invoice_date, total_rs, paid_rs, balance_rs')
+          .gte('invoice_date', fromISO).lte('invoice_date', toISO)
+          .order('invoice_date', { ascending: true });
+        if (error) throw error;
+        return data.map(r=>({
+          date: r.invoice_date,
+          number: r.invoice_no || '',
+          total: Number(r.total_rs||0),
+          paid: Number(r.paid_rs||0),
+          balance: Number(r.balance_rs||0)
+        }));
+      } else {
+        // local fallback shape from earlier pharmacy.html
+        const arr = JSON.parse(localStorage.getItem('invoices')||'[]');
+        return arr.filter(x=> x.date>=fromISO && x.date<=toISO)
+          .map(x=>({ date:x.date, number:x.number||'', total:+x.total||0, paid:+(x.paid||0), balance:+(x.balance||0) }));
       }
-      const picked=list.filter(i=>new Date(i.date||i.createdAt||Date.now())>=from && new Date(i.date||i.createdAt||Date.now())<=now);
-      const total=picked.reduce((s,i)=>s+(+i.total||0),0);
-      const count=picked.length;
-      const avg=count?total/count:0;
+    }
 
-      const itemMap={};
-      picked.forEach(i=>{
-        (i.items||[]).forEach(it=>{
-          const k=(it.name||'Item').trim();
-          const v=(+it.qty||0)*(+it.price||0);
-          itemMap[k]=(itemMap[k]||0)+v;
+    async function fetchAndPaint(){
+      const fromISO=fromDate.value, toISO=toDate.value;
+      try{
+        const rows = await loadInvoices(fromISO,toISO);
+        // KPIs
+        const kTotal=rows.reduce((s,r)=>s+r.total,0);
+        const kPaid =rows.reduce((s,r)=>s+r.paid ,0);
+        const kBal  =rows.reduce((s,r)=>s+r.balance,0);
+        document.getElementById('kTotal').textContent=money(kTotal);
+        document.getElementById('kPaid').textContent =money(kPaid);
+        document.getElementById('kBal').textContent  =money(kBal);
+        document.getElementById('kCount').textContent=rows.length;
+
+        // Table
+        const tb=document.getElementById('tblBody'); tb.innerHTML='';
+        rows.forEach(r=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${r.date}</td><td>${money(r.total)}</td><td>${money(r.paid)}</td><td>${money(r.balance)}</td><td>${r.number||'—'}</td>`;
+          tb.appendChild(tr);
         });
-        const d=new Date(i.date||i.createdAt||Date.now());
-        // find bucket key of this invoice
-        let key;
-        if(unit==='day'){key=d.toISOString().slice(0,10)}
-        if(unit==='week'){const s=startOf(d,'week'); key=labelFor(s,'week')}
-        if(unit==='month'){const s=startOf(d,'month'); key=labelFor(s,'month')}
-        if(unit==='year'){const s=startOf(d,'year'); key=labelFor(s,'year')}
-        if(buckets[key]!=null) buckets[key]+= (+i.total||0);
-      });
 
-      const top=Object.entries(itemMap).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
-      return {total,count,avg,top,labels,series:Object.values(buckets),itemMap};
+        // Daily totals for chart
+        const byDay={};
+        rows.forEach(r=>{ byDay[r.date]=(byDay[r.date]||0)+Number(r.total||0); });
+        const labels=Object.keys(byDay).sort();
+        const vals=labels.map(k=>byDay[k]);
+        line.data.labels=labels; line.data.datasets[0].data=vals; line.update();
+      }catch(e){ console.error(e); alert('Failed to load reports'); }
     }
 
-    function paint(unit){
-      const s=summarize(unit);
-      rTotal.textContent=(+s.total).toFixed(2);
-      rCount.textContent=''+s.count;
-      rAvg.textContent=(+s.avg).toFixed(2);
-      rTop.textContent=s.top;
+    runBtn.onclick=fetchAndPaint;
+    fetchAndPaint();
+  </script>
 
-      axis.data.labels=s.labels;
-      axis.data.datasets[0].data=s.series;
-      axis.update();
-
-      const l=Object.keys(s.itemMap), v=Object.values(s.itemMap);
-      pie.data.labels=l.length?l:['No data'];
-      pie.data.datasets[0].data=v.length?v:[1];
-      pie.update();
-
-      // title
-      axisTitle.textContent = unit==='day' ? 'Revenue by Day'
-        : unit==='week' ? 'Revenue by Week'
-        : unit==='month' ? 'Revenue by Month'
-        : 'Revenue by Year';
-    }
-
-    // range chips
-    const bar=document.querySelector('.range');
-    function setActive(u){
-      bar.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-      const el=bar.querySelector(`[data-range="${u}"]`); if(el) el.classList.add('active');
-      paint(u);
-    }
-    bar.addEventListener('click',e=>{
-      const b=e.target.closest('.chip'); if(!b) return;
-      setActive(b.dataset.range);
-    });
-    setActive('day');
-
-    // SW
-    if('serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}
+  <!-- Supabase quiet status chip -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+    window.sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const host=document.querySelector('.fixed-actions')||document.body, pill=document.createElement('span');
+    pill.textContent='Supabase: Checking…'; pill.style.cssText='display:inline-block;margin:6px 8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);box-shadow:var(--shadow);font-size:13px';
+    if(host===document.body) Object.assign(pill.style,{position:'fixed',left:'12px',bottom:'12px',zIndex:'9999'}); host.appendChild(pill);
+    (async()=>{ try{ const {error}=await sb.from('invoices').select('id').limit(1); if(error) throw error; pill.textContent='Supabase: OK'; pill.style.borderColor='rgba(22,163,74,.35)'; }
+      catch(e){ console.error(e); pill.textContent='Supabase: FAIL'; pill.style.borderColor='rgba(220,38,38,.45)'; } })();
   </script>
 </body>
 </html>
