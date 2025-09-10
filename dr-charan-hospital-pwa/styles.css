@@ -215,3 +215,25 @@ html[data-theme="dark"] .fixed-actions .chip { border-color: rgba(255,255,255,0.
 /* ========= Helpers ========= */
 .muted { color: var(--muted); }
 .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
+/* === Desktop banner: half height (mobile untouched) === */
+@media (min-width:1024px){
+  header.banner{
+    height: 160px;  /* half of 320px */
+    max-width: 1140px;
+    margin: 16px auto 12px;
+    border-radius: 20px;
+    background: #0b2a44 url('./assets/banner.png') center / contain no-repeat;
+  }
+  header.banner img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  header.banner .floating-toggle{
+    position: absolute;
+    right: 14px;
+    top: 14px;
+    z-index: 2;
+  }
+}
