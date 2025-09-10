@@ -6,53 +6,75 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=31"/>
+  <link rel="stylesheet" href="styles.css?v=34"/>
 
   <style>
+    /* ---- Layout basics ---- */
     .container { max-width: 980px; margin: 0 auto; padding: 12px; }
     .section { padding: 12px 0; }
     .card { border-radius: 18px; }
     .subtle { opacity:.8; font-size:.95rem; }
+    .mt12 { margin-top:12px; }
 
+    /* ---- Chips / tabs ---- */
     .chip-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .chip.active{ box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset; transform: translateY(-1px); }
 
-    .searchbar{ width:100%; max-width:560px; display:block; margin:10px 0 14px; }
+    /* ---- Form ---- */
+    .searchbar{
+      width:100%; max-width:560px; display:block; margin:10px 0 14px;
+      padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.12);
+      background: var(--surface, #fff);
+    }
 
-    .table-wrap{ background: var(--surface, rgba(255,255,255,.5)); border-radius: 14px; padding: 10px; box-shadow: var(--shadow, 0 6px 24px rgba(0,0,0,.08)); overflow:auto; }
-    table{ width:100%; border-collapse: collapse; font-size: .95rem; }
-    thead th{ text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; background: var(--thead, rgba(240,240,245,.6)); backdrop-filter: blur(6px); }
+    /* ---- Tables ---- */
+    .table-wrap{
+      background: #fff; /* solid to prevent panel color showing through */
+      border-radius: 14px; padding: 10px;
+      box-shadow: var(--shadow, 0 6px 24px rgba(0,0,0,.08));
+      overflow:auto; -webkit-overflow-scrolling: touch;
+    }
+    table{ width:100%; border-collapse: collapse; font-size: .95rem; min-width: 720px; }
+    thead th{
+      text-align:left; padding:10px 12px; white-space:nowrap;
+      position: sticky; top: 0; z-index: 1;
+      background: #fff; /* match .table-wrap */
+    }
     tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); vertical-align: top; }
     tbody tr:hover{ background: rgba(0,0,0,.03); }
+    /* column widths */
+    th.col-token, td.col-token { width: 80px; }
+    th.col-name,  td.col-name  { min-width: 140px; }
+    th.col-phone, td.col-phone { min-width: 120px; white-space:nowrap; }
+    th.col-date,  td.col-date  { width: 120px; white-space:nowrap; }
+    th.col-time,  td.col-time  { width: 110px; white-space:nowrap; }
+    th.col-notes, td.col-notes { min-width: 260px; white-space: normal; } /* wrap notes only */
+    th.col-actions, td.col-actions { width: 110px; white-space:nowrap; }
 
+    /* ---- Empty state ---- */
     .empty{ padding:14px; opacity:.8; }
+
+    /* ---- Badges ---- */
     .badge{ display:inline-block; padding:2px 8px; border-radius:12px; font-size:.8rem; }
     .badge--today{ background:#e7f1ff; color:#1a4d9b; }
     .badge--due{ background:#fff4e5; color:#7a3c00; }
     .badge--ok{ background:#e7f8ee; color:#146c43; }
 
-    [data-theme="dark"] thead th{ background: rgba(30,30,38,.6); }
-    [data-theme="dark"] .table-wrap{ background: rgba(22,22,28,.6); }
+    /* ---- Dark theme tweaks ---- */
+    [data-theme="dark"] .table-wrap{ background: #1d1f27; }
+    [data-theme="dark"] thead th{ background: #1d1f27; }
     [data-theme="dark"] tbody tr:hover{ background: rgba(255,255,255,.04); }
 
-    /* Edit modal */
-    .modal {
-      position: fixed; inset: 0; display:none;
-      align-items: center; justify-content: center;
-      background: rgba(0,0,0,.35); z-index: 50; padding: 16px;
-    }
+    /* ---- Edit modal ---- */
+    .modal { position: fixed; inset: 0; display:none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.35); z-index: 50; padding: 16px; }
     .modal.open{ display:flex; }
-    .modal-card{
-      width:100%; max-width: 560px; border-radius: 16px; padding: 16px;
-      background: var(--surface, #fff); box-shadow: 0 16px 40px rgba(0,0,0,.18);
-    }
+    .modal-card{ width:100%; max-width: 560px; border-radius: 16px; padding: 16px;
+      background: var(--surface, #fff); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
     .modal h3{ margin:0 0 8px; }
     .form-row{ display:flex; gap:10px; flex-wrap:wrap; }
     .form-row > *{ flex:1; min-width: 180px; }
-    textarea, input[type="date"]{
-      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.12);
-      min-height: 92px;
-    }
+    textarea, input[type="date"]{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.12); min-height: 92px; }
     input[type="date"]{ min-height: unset; }
     .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
   </style>
@@ -76,7 +98,7 @@
       <h2 style="margin:0 0 6px">Upcoming Patients</h2>
       <div class="subtle">Source: Bookings created by Supervisor</div>
 
-      <div class="chip-row" style="margin:14px 0 6px">
+      <div class="chip-row mt12">
         <button class="chip chip--blue active" data-scope="today">Today</button>
         <button class="chip chip--mint" data-scope="all">All</button>
       </div>
@@ -87,12 +109,12 @@
         <table id="upTable">
           <thead>
             <tr>
-              <th>Token</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Notes</th>
+              <th class="col-token">Token</th>
+              <th class="col-name">Name</th>
+              <th class="col-phone">Phone</th>
+              <th class="col-date">Date</th>
+              <th class="col-time">Time</th>
+              <th class="col-notes">Notes</th>
             </tr>
           </thead>
           <tbody id="upBody">
@@ -110,13 +132,13 @@
         <table id="servedTable">
           <thead>
             <tr>
-              <th>Token</th>
-              <th>Name</th>
-              <th>Date</th>
-              <th>Treatment Notes</th>
-              <th>Next Visit</th>
+              <th class="col-token">Token</th>
+              <th class="col-name">Name</th>
+              <th class="col-date">Date</th>
+              <th class="col-notes">Treatment Notes</th>
+              <th class="col-date">Next Visit</th>
               <th>Status</th>
-              <th id="thActions">Actions</th>
+              <th class="col-actions" id="thActions">Actions</th>
             </tr>
           </thead>
           <tbody id="servedBody">
@@ -146,20 +168,12 @@
     </div>
   </div>
 
+  <script src="assets/chart.umd.min.js"></script>
   <script>
-    // === Theme toggle (same as elsewhere)
+    // === Theme toggle
     const t=document.getElementById('themeToggle');
-    if(localStorage.theme){
-      document.documentElement.dataset.theme=localStorage.theme;
-      t.textContent=localStorage.theme==='light'?'🌞':'🌙';
-    }
-    t.onclick=()=>{
-      const cur=document.documentElement.dataset.theme||'light';
-      const next=cur==='light'?'dark':'light';
-      document.documentElement.dataset.theme=next;
-      localStorage.theme=next;
-      t.textContent=next==='light'?'🌞':'🌙';
-    };
+    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
     // === Session guard (doctor only)
     const session = JSON.parse(localStorage.getItem('session') || 'null');
@@ -167,12 +181,7 @@
 
     // === Actions
     logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
-    clearCacheBtn.onclick=async()=>{
-      const keep=localStorage.getItem('session');
-      localStorage.clear(); if(keep) localStorage.setItem('session',keep);
-      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
-      alert('Cache cleared.'); location.reload();
-    };
+    clearCacheBtn.onclick=async()=>{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session',keep); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cache cleared.'); location.reload(); };
 
     // === Data helpers
     const get = (k, fallback=[]) => { try{ return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }catch{ return fallback; } };
@@ -204,12 +213,12 @@
         const date = b.dateOnly || fmtDate(dISO);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${b.token ?? '-'}</td>
-          <td>${b.name ?? '-'}</td>
-          <td>${b.phone ?? '-'}</td>
-          <td><span class="badge badge--today">${date}</span></td>
-          <td>${time}</td>
-          <td>${b.notes ?? '-'}</td>
+          <td class="col-token">${b.token ?? '-'}</td>
+          <td class="col-name">${b.name ?? '-'}</td>
+          <td class="col-phone">${b.phone ?? '-'}</td>
+          <td class="col-date"><span class="badge badge--today">${date}</span></td>
+          <td class="col-time">${time}</td>
+          <td class="col-notes">${(b.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -242,13 +251,13 @@
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${p.token ?? '-'}</td>
-            <td>${p.name ?? '-'}</td>
-            <td>${fmtDate(p.dateISO || p.createdAt)}</td>
-            <td>${(p.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
-            <td>${nextISO ? fmtDate(nextISO) : '—'}</td>
+            <td class="col-token">${p.token ?? '-'}</td>
+            <td class="col-name">${p.name ?? '-'}</td>
+            <td class="col-date">${fmtDate(p.dateISO || p.createdAt)}</td>
+            <td class="col-notes">${(p.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
+            <td class="col-date">${nextISO ? fmtDate(nextISO) : '—'}</td>
             <td><span class="badge ${badgeClass}">${status}</span></td>
-            <td>${isDoctor ? `<button class="chip" data-edit="${p._idx}">Edit</button>` : ''}</td>
+            <td class="col-actions">${isDoctor ? `<button class="chip" data-edit="${p._idx}">Edit</button>` : ''}</td>
           `;
           servedBody.appendChild(tr);
         });
@@ -288,20 +297,12 @@
       if(editingIndex===null) return;
       const arr = get('servedPatients');
       const p = arr[editingIndex] || {};
-
-      // save fields
       p.notes = editNotes.value.trim();
       const nextISO = editNextDate.value || '';
       p.reminderISO = nextISO || undefined;
       p.reminder = nextISO ? `Next visit: ${nextISO}` : '';
-      // keep a normalized name to avoid breaking other pages
-      arr[editingIndex] = p;
-      save('servedPatients', arr);
-
-      // refresh UI
+      arr[editingIndex] = p; save('servedPatients', arr);
       renderServed();
-
-      // close
       cancelEdit.onclick();
     };
 
