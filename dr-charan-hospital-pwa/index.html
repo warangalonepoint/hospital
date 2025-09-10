@@ -3,57 +3,52 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Dr. Charan Hospital – Portal</title>
+  <title>Dr. Charan Hospital – PWA</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=26"/>
+  <link rel="stylesheet" href="styles.css?v=25"/>
 </head>
-<script>
-if (new URL(location).searchParams.get('debug')==='1') {
-  window.addEventListener('error', e => alert('JS Error: ' + e.message));
-  window.addEventListener('unhandledrejection', e => alert('Promise Error: ' + (e.reason?.message||e.reason)));
-}
-</script>
-  <body>
+<body>
   <div class="wrap">
     <!-- Banner -->
     <header class="banner">
       <button id="themeToggle" class="chip floating-toggle" aria-label="Theme">🌙</button>
     </header>
 
-    <!-- Actions -->
+    <!-- Toolbar -->
     <nav class="toolbar">
       <a class="chip" href="login.html">🔐 Login</a>
       <button id="clearCacheBtn" class="chip">Clear Cache</button>
     </nav>
 
     <!-- Welcome -->
-    <section class="section">
+    <section class="section tint">
       <h2>Welcome</h2>
-      <div class="tile-grid">
-        <a class="tile panel--lilac" href="dashboard.html">
-          <h3>Doctor Dashboard</h3>
-          <p>Patients, follow-ups, analytics (read-only staff view)</p>
-        </a>
-        <a class="tile panel--mint" href="admin.html">
-          <h3>Supervisor Console</h3>
-          <p>Bookings, Pharmacy Billing & Reports, Staff (edit)</p>
-        </a>
-      </div>
-      <p class="muted mt12">
+      <p>
+        <strong><a href="dashboard.html">Doctor Dashboard</a></strong><br/>
+        Patients, follow-ups, analytics (read-only staff view)
+      </p>
+      <p>
+        <strong><a href="admin.html">Supervisor Console</a></strong><br/>
+        Bookings, Pharmacy Billing & Reports, Staff (edit)
+      </p>
+      <p style="font-size:13px; opacity:.8;">
         Tip: use PIN <b>4321</b> for Doctor, <b>1111</b> for Supervisor (demo).
       </p>
     </section>
 
     <!-- System Check -->
-    <section class="section tint tint-lilac">
+    <section class="section tint">
       <h3>System Check</h3>
-      <p id="syscheck-status">⏳ Checking Supabase connection...</p>
+      <div id="syscheck">⏳ Checking Supabase connection…</div>
     </section>
   </div>
 
+  <!-- Scripts -->
   <script type="module">
-    // === Theme toggle
+    import { supabase } from "./config.js";
+
+    // Theme toggle
     const t = document.getElementById('themeToggle');
     if (localStorage.theme) {
       document.documentElement.dataset.theme = localStorage.theme;
@@ -67,7 +62,7 @@ if (new URL(location).searchParams.get('debug')==='1') {
       t.textContent = next === 'light' ? '🌞' : '🌙';
     };
 
-    // === Clear cache
+    // Clear cache
     document.getElementById('clearCacheBtn').onclick = async () => {
       localStorage.clear();
       sessionStorage.clear();
@@ -78,66 +73,26 @@ if (new URL(location).searchParams.get('debug')==='1') {
       alert('Cache cleared. Reloading…');
       location.reload();
     };
-  </script>
 
-  <!-- ===== Supabase System Check (correct path: ./config.js) ===== -->
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-    import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';  // <-- fixed import
-
-    const statusEl = document.getElementById('syscheck-status');
-
-    // Helper: timeout so it never spins forever
-    async function withTimeout(promise, ms, label='operation') {
-      let timer;
-      const t = new Promise((_, rej) => {
-        timer = setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms);
-      });
+    // Supabase system check
+    async function systemCheck() {
+      const el = document.getElementById("syscheck");
       try {
-        const res = await Promise.race([promise, t]);
-        clearTimeout(timer);
-        return res;
-      } catch (e) {
-        clearTimeout(timer);
-        throw e;
-      }
-    }
-
-    async function checkSupabase() {
-      try {
-        // Basic sanity
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in ./config.js');
+        const { data, error } = await supabase.from("staff").select("*").limit(1);
+        if (error) {
+          el.textContent = "❌ Supabase connection failed: " + error.message;
+          el.style.color = "red";
+        } else {
+          el.textContent = "✅ Supabase connection OK (" + data.length + " row(s) found)";
+          el.style.color = "green";
         }
-
-        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // Small SELECT to ensure RLS + CORS are OK
-        const { data, error } = await withTimeout(
-          sb.from('staff').select('id').limit(1),
-          7000,
-          'Supabase query'
-        );
-
-        if (error) throw error;
-
-        statusEl.textContent = '✅ Connected to Supabase';
-        statusEl.style.color = 'green';
       } catch (err) {
-        console.error('System Check failed:', err);
-        let hint = '';
-        const msg = (err?.message || '').toLowerCase();
-        if (msg.includes('timed out')) {
-          hint = 'Likely CORS. Add https://warangalonepoint.github.io in Settings → API → Allowed CORS origins.';
-        } else if (msg.includes('missing supabase_url') || msg.includes('anon')) {
-          hint = 'Open ./config.js and fill SUPABASE_URL + SUPABASE_ANON_KEY.';
-        }
-        statusEl.textContent = `❌ Connection failed. ${hint || 'Open Console for details.'}`;
-        statusEl.style.color = 'red';
+        el.textContent = "❌ JS Error: " + err.message;
+        el.style.color = "red";
       }
     }
 
-    checkSupabase();
+    systemCheck();
   </script>
 </body>
 </html>
