@@ -6,71 +6,63 @@
   <title>Patients – Dr. Charan Hospital</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=34"/>
-
+  <link rel="stylesheet" href="styles.css?v=41"/>
   <style>
-    /* ---- Layout basics ---- */
+    /* page-local polish that complements styles.css */
     .container { max-width: 980px; margin: 0 auto; padding: 12px; }
     .section { padding: 12px 0; }
     .card { border-radius: 18px; }
     .subtle { opacity:.8; font-size:.95rem; }
     .mt12 { margin-top:12px; }
 
-    /* ---- Chips / tabs ---- */
     .chip-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .chip.active{ box-shadow: 0 0 0 2px rgba(0,0,0,.08) inset; transform: translateY(-1px); }
 
-    /* ---- Form ---- */
     .searchbar{
       width:100%; max-width:560px; display:block; margin:10px 0 14px;
       padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.12);
-      background: var(--surface, #fff);
+      background: var(--card-bg);
     }
 
-    /* ---- Tables ---- */
     .table-wrap{
-      background: #fff; /* solid to prevent panel color showing through */
+      background: var(--card-bg);
       border-radius: 14px; padding: 10px;
-      box-shadow: var(--shadow, 0 6px 24px rgba(0,0,0,.08));
+      box-shadow: var(--shadow);
       overflow:auto; -webkit-overflow-scrolling: touch;
     }
     table{ width:100%; border-collapse: collapse; font-size: .95rem; min-width: 720px; }
     thead th{
       text-align:left; padding:10px 12px; white-space:nowrap;
       position: sticky; top: 0; z-index: 1;
-      background: #fff; /* match .table-wrap */
+      background: var(--card-bg);
     }
     tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); vertical-align: top; }
     tbody tr:hover{ background: rgba(0,0,0,.03); }
-    /* column widths */
+
     th.col-token, td.col-token { width: 80px; }
     th.col-name,  td.col-name  { min-width: 140px; }
     th.col-phone, td.col-phone { min-width: 120px; white-space:nowrap; }
     th.col-date,  td.col-date  { width: 120px; white-space:nowrap; }
     th.col-time,  td.col-time  { width: 110px; white-space:nowrap; }
-    th.col-notes, td.col-notes { min-width: 260px; white-space: normal; } /* wrap notes only */
+    th.col-notes, td.col-notes { min-width: 260px; white-space: normal; }
     th.col-actions, td.col-actions { width: 110px; white-space:nowrap; }
 
-    /* ---- Empty state ---- */
     .empty{ padding:14px; opacity:.8; }
-
-    /* ---- Badges ---- */
     .badge{ display:inline-block; padding:2px 8px; border-radius:12px; font-size:.8rem; }
     .badge--today{ background:#e7f1ff; color:#1a4d9b; }
     .badge--due{ background:#fff4e5; color:#7a3c00; }
     .badge--ok{ background:#e7f8ee; color:#146c43; }
 
-    /* ---- Dark theme tweaks ---- */
     [data-theme="dark"] .table-wrap{ background: #1d1f27; }
     [data-theme="dark"] thead th{ background: #1d1f27; }
     [data-theme="dark"] tbody tr:hover{ background: rgba(255,255,255,.04); }
 
-    /* ---- Edit modal ---- */
+    /* Edit modal */
     .modal { position: fixed; inset: 0; display:none; align-items: center; justify-content: center;
       background: rgba(0,0,0,.35); z-index: 50; padding: 16px; }
     .modal.open{ display:flex; }
     .modal-card{ width:100%; max-width: 560px; border-radius: 16px; padding: 16px;
-      background: var(--surface, #fff); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
+      background: var(--card-bg); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
     .modal h3{ margin:0 0 8px; }
     .form-row{ display:flex; gap:10px; flex-wrap:wrap; }
     .form-row > *{ flex:1; min-width: 180px; }
@@ -168,8 +160,11 @@
     </div>
   </div>
 
-  <script src="assets/chart.umd.min.js"></script>
-  <script>
+  <!-- Supabase client + init -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="./supabase-init.js?v=1"></script>
+
+  <script type="module">
     // === Theme toggle
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
@@ -180,35 +175,88 @@
     if (!session || session.role !== 'doctor') location.replace('login.html');
 
     // === Actions
-    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    logoutBtn.onclick=async ()=>{ if (window.supakit?.supabaseSignOut) await window.supakit.supabaseSignOut(); localStorage.removeItem('session'); location.href='login.html'; };
     clearCacheBtn.onclick=async()=>{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session',keep); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cache cleared.'); location.reload(); };
 
-    // === Data helpers
-    const get = (k, fallback=[]) => { try{ return JSON.parse(localStorage.getItem(k) || JSON.stringify(fallback)); }catch{ return fallback; } };
-    const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    // === Utils
     const isoDate = d => new Date(d).toISOString().slice(0,10);
     const fmtDate = d => { const x=new Date(d); return isNaN(x)?'':isoDate(x); };
     const fmtTime12 = d => { const x=new Date(d); if(isNaN(x)) return ''; let h=x.getHours(),m=x.getMinutes(); const ampm=h>=12?'PM':'AM'; h=h%12||12; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`; };
     const isToday = d => new Date(d).toDateString() === new Date().toDateString();
 
-    // === UPCOMING
-    function renderUpcoming(scope='today', q=''){
-      const tbody = document.getElementById('upBody');
-      tbody.innerHTML='';
-      const bookings = get('bookings'); // token,name,phone,date/time/slotISO,notes
+    // === Data access with Supabase + fallback
+    async function fetchBookings(scope='today'){
+      return window.supakit.safeFetch(
+        async () => {
+          const q = window.sb.from('bookings').select('*').order('slot_ts');
+          if(scope==='today'){
+            const t = isoDate(new Date());
+            q.gte('slot_ts', `${t}T00:00:00Z`).lte('slot_ts', `${t}T23:59:59Z`);
+          }
+          const { data, error } = await q;
+          if(error) throw error;
+          return data;
+        },
+        () => { try{ return JSON.parse(localStorage.getItem('bookings')||'[]'); }catch{ return []; } }
+      );
+    }
+
+    async function fetchServed(){
+      return window.supakit.safeFetch(
+        async () => {
+          const { data, error } = await window.sb
+            .from('served_patients')
+            .select('*')
+            .order('date_iso', { ascending:false });
+          if(error) throw error;
+          return data;
+        },
+        () => { try{ return JSON.parse(localStorage.getItem('servedPatients')||'[]'); }catch{ return []; } }
+      );
+    }
+
+    async function updateServedRow(id, fields, localIdx=null){
+      // Try online first
+      try{
+        const { error } = await window.sb.from('served_patients').update(fields).eq('id', id);
+        if(error) throw error;
+        return true;
+      }catch(e){
+        // Fallback: update local array
+        try{
+          const arr = JSON.parse(localStorage.getItem('servedPatients')||'[]');
+          const i = localIdx ?? arr.findIndex(x => x.id === id);
+          if(i >= 0){
+            if(fields.notes !== undefined) arr[i].notes = fields.notes;
+            if(fields.reminder_iso !== undefined){
+              arr[i].reminderISO = fields.reminder_iso || undefined;
+              arr[i].reminder   = fields.reminder_iso ? `Next visit: ${fields.reminder_iso}` : '';
+            }
+            localStorage.setItem('servedPatients', JSON.stringify(arr));
+          }
+        }catch{}
+        return false;
+      }
+    }
+
+    // === Renderers
+    const upBody = document.getElementById('upBody');
+    async function renderUpcoming(scope='today', q=''){
+      upBody.innerHTML='';
+      const bookings = await fetchBookings(scope);
       const filtered = bookings.filter(b=>{
-        const inScope = scope==='all' ? true : isToday(b.date||b.slotISO||b.createdAt);
         const text = `${b.token||''} ${b.name||''} ${b.phone||''} ${b.notes||''}`.toLowerCase();
+        const inScope = scope==='all' ? true : isToday(b.slot_ts || b.date || b.createdAt);
         return inScope && text.includes(q.toLowerCase());
       });
 
       if(!filtered.length){
-        tbody.innerHTML = `<tr><td class="empty" colspan="6">No bookings</td></tr>`;
+        upBody.innerHTML = `<tr><td class="empty" colspan="6">No bookings</td></tr>`;
         return;
       }
 
       filtered.forEach(b=>{
-        const dISO = b.date || b.slotISO || b.createdAt;
+        const dISO = b.slot_ts || b.date || b.createdAt;
         const time = b.time || fmtTime12(dISO);
         const date = b.dateOnly || fmtDate(dISO);
         const tr = document.createElement('tr');
@@ -220,18 +268,21 @@
           <td class="col-time">${time}</td>
           <td class="col-notes">${(b.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
         `;
-        tbody.appendChild(tr);
+        upBody.appendChild(tr);
       });
     }
 
-    // === SERVED + EDIT
     const servedBody = document.getElementById('servedBody');
     const thActions = document.getElementById('thActions');
 
-    function renderServed(){
+    let servedCache = []; // hold last fetched to map index->id
+
+    async function renderServed(){
       servedBody.innerHTML='';
-      const served = get('servedPatients'); // token,name,dateISO,notes,reminderISO/reminder
-      if(!served.length){
+      const served = await fetchServed();
+      servedCache = served.map((p,i)=>({ ...p, _idx:i }));
+
+      if(!servedCache.length){
         servedBody.innerHTML = `<tr><td class="empty" colspan="7">None yet</td></tr>`;
         return;
       }
@@ -239,12 +290,13 @@
       const isDoctor = !!session && session.role==='doctor';
       thActions.style.display = isDoctor ? '' : 'none';
 
-      served
-        .map((p,i)=>({...p,_idx:i}))
-        .sort((a,b)=> new Date(b.dateISO||b.createdAt) - new Date(a.dateISO||a.createdAt))
+      servedCache
+        .sort((a,b)=> new Date(b.date_iso||b.created_at||b.createdAt) - new Date(a.date_iso||a.created_at||a.createdAt))
         .forEach(p=>{
-          const nextISO = p.reminderISO || (p.reminder && (p.reminder.match(/\d{4}-\d{2}-\d{2}/)||[])[0]);
-          const status = nextISO
+          // normalize fields across local + supabase
+          const dateISO   = p.date_iso || p.dateISO || (p.created_at && p.created_at.slice(0,10)) || p.createdAt;
+          const nextISO   = p.reminder_iso || p.reminderISO || (p.reminder && (String(p.reminder).match(/\d{4}-\d{2}-\d{2}/)||[])[0]);
+          const status    = nextISO
               ? (new Date(nextISO) <= new Date(new Date().toISOString().slice(0,10)) ? 'Due' : 'Scheduled')
               : '—';
           const badgeClass = status==='Due' ? 'badge--due' : (status==='Scheduled' ? 'badge--ok' : '');
@@ -253,7 +305,7 @@
           tr.innerHTML = `
             <td class="col-token">${p.token ?? '-'}</td>
             <td class="col-name">${p.name ?? '-'}</td>
-            <td class="col-date">${fmtDate(p.dateISO || p.createdAt)}</td>
+            <td class="col-date">${fmtDate(dateISO)}</td>
             <td class="col-notes">${(p.notes ?? '-').toString().replace(/\n/g,'<br/>')}</td>
             <td class="col-date">${nextISO ? fmtDate(nextISO) : '—'}</td>
             <td><span class="badge ${badgeClass}">${status}</span></td>
@@ -277,10 +329,9 @@
       const btn = e.target.closest('[data-edit]');
       if(!btn) return;
       editingIndex = parseInt(btn.dataset.edit,10);
-      const arr = get('servedPatients');
-      const p = arr[editingIndex];
+      const p = servedCache.find(x => x._idx === editingIndex);
       editNotes.value = (p?.notes ?? '').toString();
-      const nextISO = p?.reminderISO || (p?.reminder && (p.reminder.match(/\d{4}-\d{2}-\d{2}/)||[])[0]) || '';
+      const nextISO = p?.reminder_iso || p?.reminderISO || (p?.reminder && (String(p.reminder).match(/\d{4}-\d{2}-\d{2}/)||[])[0]) || '';
       editNextDate.value = nextISO || '';
       editMeta.textContent = `${p?.name ?? 'Patient'} • Token ${p?.token ?? '-'}`;
       modal.classList.add('open');
@@ -293,16 +344,20 @@
       editingIndex = null;
     };
 
-    saveEdit.onclick=()=>{
+    saveEdit.onclick=async ()=>{
       if(editingIndex===null) return;
-      const arr = get('servedPatients');
-      const p = arr[editingIndex] || {};
-      p.notes = editNotes.value.trim();
-      const nextISO = editNextDate.value || '';
-      p.reminderISO = nextISO || undefined;
-      p.reminder = nextISO ? `Next visit: ${nextISO}` : '';
-      arr[editingIndex] = p; save('servedPatients', arr);
-      renderServed();
+      const p = servedCache.find(x => x._idx === editingIndex);
+      if(!p) return;
+
+      const notes   = editNotes.value.trim();
+      const nextISO = editNextDate.value || null;
+
+      // prefer Supabase id; fallback to local index update
+      const id = p.id || null;
+      await updateServedRow(id, { notes, reminder_iso: nextISO }, p._idx);
+
+      // Refresh UI
+      await renderServed();
       cancelEdit.onclick();
     };
 
@@ -312,27 +367,30 @@
 
     // === UI wiring
     const scopeChips = document.querySelectorAll('[data-scope]');
-    scopeChips.forEach(c=>c.addEventListener('click',()=>{
+    scopeChips.forEach(c=>c.addEventListener('click',async ()=>{
       scopeChips.forEach(x=>x.classList.remove('active'));
       c.classList.add('active');
-      renderUpcoming(c.dataset.scope, document.getElementById('upSearch').value);
+      await renderUpcoming(c.dataset.scope, document.getElementById('upSearch').value);
     }));
-    document.getElementById('upSearch').addEventListener('input', (e)=>{
+    document.getElementById('upSearch').addEventListener('input', async (e)=>{
       const active = document.querySelector('[data-scope].active')?.dataset.scope || 'today';
-      renderUpcoming(active, e.target.value);
+      await renderUpcoming(active, e.target.value);
     });
 
     // === Init
-    renderUpcoming('today','');
-    renderServed();
+    (async function init(){
+      await window.supakit.ensureAuth();
+      await renderUpcoming('today','');
+      await renderServed();
+    })();
 
-    // live refresh if other tabs update
-    window.addEventListener('storage', e=>{
+    // live refresh if other tabs update local fallback
+    window.addEventListener('storage', async e=>{
       if(e.key==='bookings'){
         const active = document.querySelector('[data-scope].active')?.dataset.scope || 'today';
-        renderUpcoming(active, document.getElementById('upSearch').value);
+        await renderUpcoming(active, document.getElementById('upSearch').value);
       }
-      if(e.key==='servedPatients'){ renderServed(); }
+      if(e.key==='servedPatients'){ await renderServed(); }
     });
 
     // SW (optional)
