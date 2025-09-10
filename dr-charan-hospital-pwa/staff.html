@@ -3,22 +3,26 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Staff Attendance – Dr. Charan Hospital</title>
+  <title>Staff – Attendance & Roster</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=41"/>
+  <link rel="stylesheet" href="styles.css?v=42"/>
   <style>
-    .container{ max-width: 980px; margin:0 auto; padding:12px; }
-    .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0; }
-    .filters input[type="date"]{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.1); }
-    .table-wrap{ background: var(--card-bg); border-radius:14px; padding:10px; box-shadow: var(--shadow); overflow:auto; }
-    table{ width:100%; border-collapse:collapse; font-size:.95rem; min-width:720px; }
-    thead th{ text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; background:var(--card-bg); }
-    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); }
-    tbody tr:hover{ background:rgba(0,0,0,.03); }
-    .empty{ padding:14px; opacity:.8; }
-    select{ padding:6px 10px; border-radius:8px; }
-    .chip-sm{ padding:6px 10px; font-size:.85rem; border-radius:999px; cursor:pointer; border:1px solid rgba(0,0,0,.1); }
+    .container{max-width:1000px;margin:0 auto;padding:12px}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px}
+    .tabs .chip.active{background:var(--accent);color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.35)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    .table-wrap{background:var(--card-bg);border-radius:14px;padding:10px;box-shadow:var(--shadow);overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:.95rem;min-width:820px}
+    thead th{padding:10px 12px;text-align:left;position:sticky;top:0;background:var(--card-bg)}
+    tbody td{padding:10px 12px;border-top:1px solid rgba(0,0,0,.06)}
+    tbody tr:hover{background:rgba(0,0,0,.03)}
+    .empty{padding:14px;opacity:.8}
+    .inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .inline input[type="text"], .inline input[type="time"], .inline select{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.12)}
+    .muted{opacity:.75}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .hidden{display:none!important}
   </style>
 </head>
 <body>
@@ -34,94 +38,178 @@
   </div>
 
   <main class="container">
-    <h2>Staff Attendance</h2>
-
-    <div class="filters">
-      <label>Date <input type="date" id="dayPicker"></label>
-      <button id="reloadBtn" class="chip chip--blue">Reload</button>
+    <div class="section-title">
+      <h2>Staff</h2>
+      <div class="tabs">
+        <button class="chip active" data-tab="att">Attendance</button>
+        <button class="chip" data-tab="roster">Roster</button>
+      </div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Check-in</th>
-            <th>Note</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="attBody">
-          <tr><td colspan="6" class="empty">No data</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- ============ ATTENDANCE ============ -->
+    <section id="tab-att" class="section">
+      <div class="toolbar">
+        <label class="inline">Date
+          <input type="date" id="dayPicker">
+        </label>
+        <button id="reloadBtn" class="chip">Reload</button>
+        <span class="muted">•</span>
+        <button id="createSheetBtn" class="chip chip--blue">Create Day Sheet</button>
+        <button id="addRowBtn" class="chip">Add Row</button>
+        <button id="markAllBtn" class="chip">Mark All On Duty</button>
+        <button id="exportBtn" class="chip">Export CSV</button>
+        <span id="attMsg" class="muted" style="margin-left:auto"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Check-in</th>
+              <th>Note</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="attBody">
+            <tr><td colspan="6" class="empty">No data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ ROSTER ============ -->
+    <section id="tab-roster" class="section hidden">
+      <div class="toolbar">
+        <strong>Roster</strong>
+        <span class="muted">(Doctor can add/edit)</span>
+        <button id="addStaffBtn" class="chip chip--blue" style="margin-left:auto">Add Staff</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Role</th><th>Phone</th><th>Active</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="staffBody">
+            <tr><td colspan="5" class="empty">No staff yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
-  <!-- Supabase client + init -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="./supabase-init.js?v=1"></script>
 
   <script type="module">
-    // Theme toggle
+    // === Theme
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
     t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // Session guard
-    const s = JSON.parse(localStorage.getItem('session')||'null');
-    if(!s || s.role!=='doctor') location.replace('login.html');
+    // === Auth guard
+    const sess = JSON.parse(localStorage.getItem('session')||'null');
+    if(!sess || !sess.role) location.replace('login.html');
+    const isDoctor = sess.role==='doctor';
 
-    // Logout
+    // === Logout
     logoutBtn.onclick=async ()=>{ if(window.supakit?.supabaseSignOut) await window.supakit.supabaseSignOut(); localStorage.removeItem('session'); location.href='login.html'; };
 
-    // Helpers
+    // === Helpers
     const isoDate = d => new Date(d).toISOString().slice(0,10);
+    const todayISO = isoDate(new Date());
+    const msg = (s)=>{ const el=document.getElementById('attMsg'); el.textContent=s; setTimeout(()=>el.textContent='',2000); };
+
+    // === Tabs
+    const tabBtns=document.querySelectorAll('[data-tab]');
+    const tabAtt=document.getElementById('tab-att');
+    const tabRoster=document.getElementById('tab-roster');
+    tabBtns.forEach(b=>b.addEventListener('click',()=>{
+      tabBtns.forEach(x=>x.classList.remove('active')); b.classList.add('active');
+      const show=b.dataset.tab; tabAtt.classList.toggle('hidden',show!=='att'); tabRoster.classList.toggle('hidden',show!=='roster');
+    }));
+
+    // === Data access (Supabase with local fallback)
+    async function fetchRoster(){
+      return window.supakit.safeFetch(
+        async ()=>{
+          const { data, error } = await window.sb.from('staff').select('*').order('created_at');
+          if(error) throw error; return data;
+        },
+        ()=>{ try{ return JSON.parse(localStorage.getItem('staffRoster')||'[]'); }catch{return [];} }
+      );
+    }
+    async function upsertStaff(row){
+      try{
+        const { data, error } = await window.sb.from('staff').upsert(row).select().single();
+        if(error) throw error; return data;
+      }catch(e){
+        // local fallback
+        const arr = JSON.parse(localStorage.getItem('staffRoster')||'[]');
+        const i = arr.findIndex(x=>x.id===row.id || (x.name===row.name && x.role===row.role));
+        if(i>=0) arr[i]={...arr[i],...row}; else { row.id=row.id||crypto.randomUUID?.()||String(Date.now()); arr.push(row); }
+        localStorage.setItem('staffRoster', JSON.stringify(arr));
+        return row;
+      }
+    }
 
     async function fetchAttendance(dayISO){
       return window.supakit.safeFetch(
         async ()=>{
-          const { data, error } = await window.sb
-            .from('staff_attendance')
+          const { data, error } = await window.sb.from('staff_attendance')
             .select('*')
             .eq('day', dayISO)
             .order('created_at');
-          if(error) throw error;
-          return data;
+          if(error) throw error; return data;
         },
-        ()=>{ try{ return JSON.parse(localStorage.getItem('attendance')||'[]').filter(r=>r.day===dayISO);}catch{ return [];} }
+        ()=>{ try{ return JSON.parse(localStorage.getItem('attendance')||'[]').filter(r=>r.day===dayISO);}catch{return [];} }
       );
     }
-
-    async function updateAttendance(id, fields, localName){
+    async function insertAttendance(row){
+      try{
+        const { data, error } = await window.sb.from('staff_attendance').insert(row).select().single();
+        if(error) throw error; return data;
+      }catch(e){
+        const arr = JSON.parse(localStorage.getItem('attendance')||'[]'); row.id=row.id||crypto.randomUUID?.()||String(Date.now()); arr.push(row); localStorage.setItem('attendance',JSON.stringify(arr)); return row;
+      }
+    }
+    async function updateAttendance(id, fields, localKey){
       try{
         const { error } = await window.sb.from('staff_attendance').update(fields).eq('id',id);
         if(error) throw error;
       }catch(e){
-        // fallback update local
-        try{
-          const arr=JSON.parse(localStorage.getItem('attendance')||'[]');
-          const i=arr.findIndex(x=>x.id===id||x.name===localName);
-          if(i>=0){ arr[i]={...arr[i],...fields}; localStorage.setItem('attendance',JSON.stringify(arr)); }
-        }catch{}
+        const arr = JSON.parse(localStorage.getItem('attendance')||'[]');
+        const i = arr.findIndex(x=>x.id===id || (x.name===localKey));
+        if(i>=0){ arr[i]={...arr[i],...fields}; localStorage.setItem('attendance',JSON.stringify(arr)); }
       }
     }
 
+    // === Attendance UI
     const attBody=document.getElementById('attBody');
-    let curDayISO=isoDate(new Date());
+    const dayPicker=document.getElementById('dayPicker');
+    dayPicker.value=todayISO;
 
     async function renderAttendance(){
       attBody.innerHTML='';
-      const rows=await fetchAttendance(curDayISO);
-      if(!rows.length){ attBody.innerHTML='<tr><td colspan="6" class="empty">No data</td></tr>'; return; }
-
+      const rows = await fetchAttendance(dayPicker.value);
+      if(!rows.length){
+        attBody.innerHTML='<tr><td colspan="6" class="empty">No data — click "Create Day Sheet" or "Add Row".</td></tr>';
+        return;
+      }
+      // also fetch roster for selects
+      const roster = await fetchRoster();
       rows.forEach(r=>{
         const tr=document.createElement('tr');
+        const selectName = `<select data-id="${r.id}" data-field="staff_id" class="nameSel">
+          ${roster.filter(s=>s.active!==false).map(s=>`<option value="${s.id}" ${r.staff_id===s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>`;
+        const role = roster.find(s=>s.id===r.staff_id)?.role || r.role || '';
         tr.innerHTML=`
-          <td>${r.name??'-'}</td>
-          <td>${r.role??'-'}</td>
+          <td>${selectName}</td>
+          <td class="roleCell">${role}</td>
           <td>
             <select data-id="${r.id}" data-field="status">
               <option ${r.status==='On Duty'?'selected':''}>On Duty</option>
@@ -129,37 +217,143 @@
               <option ${r.status==='Late'?'selected':''}>Late</option>
             </select>
           </td>
-          <td><input type="time" value="${r.checkin||''}" data-id="${r.id}" data-field="checkin"/></td>
-          <td><input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note"/></td>
-          <td><button class="chip-sm" data-id="${r.id}" data-save>Save</button></td>
+          <td><input type="time" value="${r.checkin||''}" data-id="${r.id}" data-field="checkin"></td>
+          <td><input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note"></td>
+          <td>
+            <button class="chip" data-save="${r.id}">Save</button>
+          </td>
         `;
         attBody.appendChild(tr);
       });
     }
 
+    // Create Day Sheet: import all active staff
+    document.getElementById('createSheetBtn').onclick=async ()=>{
+      const roster = await fetchRoster();
+      if(!roster.length){ alert('No staff in roster yet. Add staff first.'); return; }
+      const day=dayPicker.value;
+      const existing = await fetchAttendance(day);
+      if(existing.length){ msg('Sheet already exists.'); return; }
+      for(const s of roster.filter(x=>x.active!==false)){
+        await insertAttendance({ day, staff_id: s.id, name: s.name, role: s.role, status: 'On Duty', checkin: '', note: '' });
+      }
+      msg('Day sheet created'); renderAttendance();
+    };
+
+    // Add Row: blank row you can assign to a temp or new staff
+    document.getElementById('addRowBtn').onclick=async ()=>{
+      const roster = await fetchRoster();
+      const first = roster.find(x=>x.active!==false);
+      const day=dayPicker.value;
+      const row = await insertAttendance({ day, staff_id: first?.id || null, name: first?.name || 'Temp', role: first?.role || '', status: 'On Duty', checkin:'', note:'' });
+      msg('Row added'); renderAttendance();
+    };
+
+    // Mark all on duty (only if rows exist)
+    document.getElementById('markAllBtn').onclick=async ()=>{
+      const day=dayPicker.value;
+      const rows=await fetchAttendance(day);
+      if(!rows.length){ msg('Create the sheet first.'); return; }
+      await Promise.all(rows.map(r=>updateAttendance(r.id,{status:'On Duty'} , r.name)));
+      msg('Everyone marked On Duty'); renderAttendance();
+    };
+
+    // Save handlers
     attBody.addEventListener('click',async e=>{
       const btn=e.target.closest('[data-save]');
       if(!btn) return;
-      const id=btn.dataset.id;
+      const id=btn.dataset.save;
       const row=btn.closest('tr');
-      const status=row.querySelector('select').value;
-      const checkin=row.querySelector('input[type="time"]').value;
-      const note=row.querySelector('input[type="text"]').value;
-      await updateAttendance(id,{status,checkin,note}, row.cells[0].textContent);
-      alert('Updated');
+      const nameSel=row.querySelector('.nameSel');
+      const roster = await fetchRoster();
+      const selected = roster.find(s=>s.id===nameSel.value);
+
+      const status=row.querySelector('[data-field="status"]').value;
+      const checkin=row.querySelector('[data-field="checkin"]').value;
+      const note=row.querySelector('[data-field="note"]').value;
+
+      await updateAttendance(id, {
+        staff_id: selected?.id || null,
+        name: selected?.name || '',
+        role: selected?.role || '',
+        status, checkin, note
+      }, row.cells[0].textContent);
+
+      row.querySelector('.roleCell').textContent = selected?.role || '';
+      msg('Saved');
     });
 
-    // UI wiring
-    const dayPicker=document.getElementById('dayPicker');
-    dayPicker.value=curDayISO;
-    dayPicker.onchange=()=>{ curDayISO=dayPicker.value; renderAttendance(); };
+    // Export CSV
+    document.getElementById('exportBtn').onclick=async ()=>{
+      const day=dayPicker.value;
+      const rows=await fetchAttendance(day);
+      const csv=['Name,Role,Status,Check-in,Note,Day'];
+      rows.forEach(r=>csv.push(`"${r.name||''}","${r.role||''}","${r.status||''}","${r.checkin||''}","${(r.note||'').replace(/"/g,'""')}","${day}"`));
+      const blob=new Blob([csv.join('\n')],{type:'text/csv'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`attendance_${day}.csv`; a.click();
+    };
+
+    // Reload/date change
     document.getElementById('reloadBtn').onclick=renderAttendance;
+    dayPicker.onchange=renderAttendance;
 
-    // Init
-    (async function init(){ await window.supakit.ensureAuth(); await renderAttendance(); })();
+    // === Roster UI (doctor only)
+    const staffBody=document.getElementById('staffBody');
+    async function renderRoster(){
+      staffBody.innerHTML='';
+      const staff=await fetchRoster();
+      if(!staff.length){ staffBody.innerHTML='<tr><td colspan="5" class="empty">No staff yet</td></tr>'; return; }
+      staff.forEach(s=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td><input type="text" value="${s.name||''}" data-id="${s.id}" data-rfield="name" ${!isDoctor?'disabled':''}></td>
+          <td><input type="text" value="${s.role||''}" data-id="${s.id}" data-rfield="role" ${!isDoctor?'disabled':''}></td>
+          <td><input type="text" value="${s.phone||''}" data-id="${s.id}" data-rfield="phone" ${!isDoctor?'disabled':''}></td>
+          <td><input type="checkbox" ${s.active!==false?'checked':''} data-id="${s.id}" data-rfield="active" ${!isDoctor?'disabled':''}></td>
+          <td>${isDoctor?`<button class="chip" data-rsave="${s.id}">Save</button>`:''}</td>
+        `;
+        staffBody.appendChild(tr);
+      });
+    }
 
+    if(!isDoctor){
+      document.getElementById('addStaffBtn').style.display='none';
+    }
+
+    document.getElementById('addStaffBtn').onclick=async ()=>{
+      if(!isDoctor){ alert('Only doctor can add staff'); return; }
+      const row = await upsertStaff({ name:'', role:'', phone:'', active:true });
+      await renderRoster();
+    };
+
+    staffBody.addEventListener('click', async (e)=>{
+      const btn=e.target.closest('[data-rsave]');
+      if(!btn) return;
+      const id=btn.dataset.rsave;
+      const row=btn.closest('tr');
+      const data={
+        id,
+        name: row.querySelector('[data-rfield="name"]').value.trim(),
+        role: row.querySelector('[data-rfield="role"]').value.trim(),
+        phone: row.querySelector('[data-rfield="phone"]').value.trim(),
+        active: row.querySelector('[data-rfield="active"]').checked
+      };
+      await upsertStaff(data);
+      msg('Roster saved');
+      // keep attendance day sheet roles in sync (optional)
+    });
+
+    // === Init
+    (async function init(){
+      await window.supakit.ensureAuth();
+      await renderAttendance();
+      await renderRoster();
+    })();
+
+    // live refresh if local fallback changes
     window.addEventListener('storage', e=>{
-      if(e.key==='attendance' && isoDate(new Date())===curDayISO) renderAttendance();
+      if(e.key==='attendance') renderAttendance();
+      if(e.key==='staffRoster') renderRoster();
     });
   </script>
 </body>
