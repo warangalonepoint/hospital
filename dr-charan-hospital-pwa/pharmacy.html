@@ -6,40 +6,28 @@
   <title>Pharmacy – Billing</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=50"/>
-
+  <link rel="stylesheet" href="styles.css?v=63"/>
   <style>
-    /* ===== Polished form blocks ===== */
     .wrap{max-width:1000px;margin:0 auto}
     .section{margin:12px}
     .field{display:flex;flex-direction:column;gap:6px}
-    .grid{display:grid;gap:12px}
-    .grid-2{grid-template-columns:1fr}
+    .grid{display:grid;gap:12px}.grid-2{grid-template-columns:1fr}
     @media(min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
-
-    input, select, textarea{
-      padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);
-      background:var(--card-bg);color:var(--fg);outline:none;font-size:15px
-    }
+    input,select{padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);font-size:15px}
     label{font-weight:600}
 
-    /* ===== Items (compact, readable) ===== */
     .items-card{border-radius:16px;padding:14px;box-shadow:var(--shadow);background:var(--card-bg)}
     .items-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
     .table-wrap{overflow:auto;border-radius:12px;box-shadow:var(--shadow);background:var(--card-bg)}
     table.items{width:100%;border-collapse:collapse;table-layout:fixed;min-width:600px}
     table.items th{padding:10px 8px;text-align:left}
-    table.items td{padding:8px;border-top:1px solid rgba(0,0,0,.06);vertical-align:middle}
-    table.items input[type="text"],table.items input[type="number"]{
-      width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.14);background:var(--card-bg);color:var(--fg);border-radius:12px
-    }
-    table.items input::placeholder{opacity:.55}
+    table.items td{padding:8px;border-top:1px solid rgba(0,0,0,.06)}
+    table.items input[type="text"],table.items input[type="number"]{width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.14);background:var(--card-bg);color:var(--fg);border-radius:12px}
     .col-item{width:48%}.col-qty{width:14%}.col-price{width:18%}.col-total{width:20%;text-align:right;white-space:nowrap}
     .ltotal{font-weight:800}
     .actions{display:flex;gap:8px;justify-content:flex-end}
     .trash{border-radius:12px;padding:8px 10px;border:1px solid rgba(0,0,0,.12);background:var(--t-rose);color:var(--c-rose);cursor:pointer}
 
-    /* ===== Summary ===== */
     .summary-grid{display:grid;gap:12px;grid-template-columns:1fr}
     @media(min-width:720px){.summary-grid{grid-template-columns:1fr 1fr}}
     .summary-actions{display:flex;gap:12px;flex-wrap:wrap}
@@ -49,12 +37,8 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- Banner -->
-    <header class="banner">
-      <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
-    </header>
+    <header class="banner"><button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button></header>
 
-    <!-- Fixed actions -->
     <div class="fixed-actions">
       <a href="admin.html" class="chip">← Dashboard</a>
       <a href="pharmacy-report.html" class="chip">📊 Reports</a>
@@ -62,47 +46,25 @@
       <button id="clearCacheBtn" class="chip">Clear Cache</button>
     </div>
 
-    <!-- Invoice details -->
     <section class="section panel--blue">
       <h2>Invoice Details</h2>
       <div class="grid grid-2 mt12">
-        <div class="field">
-          <label for="invNo">Invoice #</label>
-          <input id="invNo" placeholder="e.g., INV-001"/>
-        </div>
-        <div class="field">
-          <label for="invDate">Date</label>
-          <input type="date" id="invDate"/>
-        </div>
-        <div class="field">
-          <label for="docName">Doctor (optional)</label>
-          <input id="docName" placeholder="Dr. Name"/>
-        </div>
-        <div class="field">
-          <label for="payMode">Payment Mode</label>
-          <select id="payMode">
-            <option>Cash</option><option>UPI</option><option>Card</option><option>Credit</option>
-          </select>
-        </div>
+        <div class="field"><label for="invNo">Invoice #</label><input id="invNo" placeholder="e.g., INV-001"/></div>
+        <div class="field"><label for="invDate">Date</label><input type="date" id="invDate"/></div>
+        <div class="field"><label for="docName">Doctor (optional)</label><input id="docName" placeholder="Dr. Name"/></div>
+        <div class="field"><label for="payMode">Payment Mode</label>
+          <select id="payMode"><option>Cash</option><option>UPI</option><option>Card</option><option>Credit</option></select></div>
       </div>
     </section>
 
-    <!-- Patient -->
     <section class="section panel--lilac">
       <h2>Patient</h2>
       <div class="grid grid-2 mt12">
-        <div class="field">
-          <label for="patientName">Patient Name</label>
-          <input id="patientName" placeholder="Full name"/>
-        </div>
-        <div class="field">
-          <label for="patientPhone">Patient Phone</label>
-          <input id="patientPhone" placeholder="10-digit" inputmode="numeric" maxlength="10"/>
-        </div>
+        <div class="field"><label for="patientName">Patient Name</label><input id="patientName" placeholder="Full name"/></div>
+        <div class="field"><label for="patientPhone">Patient Phone</label><input id="patientPhone" placeholder="10-digit" inputmode="numeric" maxlength="10"/></div>
       </div>
     </section>
 
-    <!-- Items -->
     <section class="section panel--mint">
       <div class="items-card">
         <div class="items-toolbar">
@@ -114,47 +76,25 @@
         </div>
         <div class="table-wrap">
           <table class="items">
-            <thead>
-              <tr>
-                <th class="col-item">Item</th>
-                <th class="col-qty">Qty</th>
-                <th class="col-price">Price (₹)</th>
-                <th class="col-total">Line Total (₹)</th>
-                <th class="col-total">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="itemsBody"><!-- rows by JS --></tbody>
+            <thead><tr>
+              <th class="col-item">Item</th><th class="col-qty">Qty</th><th class="col-price">Price (₹)</th>
+              <th class="col-total">Line Total (₹)</th><th class="col-total">Actions</th>
+            </tr></thead>
+            <tbody id="itemsBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- Summary -->
     <section class="section panel--peach">
       <h2>Summary</h2>
       <div class="summary-grid mt12">
-        <div class="field">
-          <label for="discPct">Invoice Discount %</label>
-          <input id="discPct" type="number" min="0" step="0.01" value="0"/>
-        </div>
-        <div class="field">
-          <label for="discRs">Invoice Discount ₹</label>
-          <input id="discRs" type="number" min="0" step="0.01" value="0"/>
-        </div>
-        <div class="field">
-          <label for="totalRs">Total ₹</label>
-          <input id="totalRs" type="number" min="0" step="0.01" value="0"/>
-        </div>
-        <div class="field">
-          <label for="paidRs">Paid ₹</label>
-          <input id="paidRs" type="number" min="0" step="0.01" value="0"/>
-        </div>
-        <div class="field">
-          <label for="balanceRs">Balance ₹</label>
-          <input id="balanceRs" type="number" min="0" step="0.01" value="0" readonly/>
-        </div>
+        <div class="field"><label for="discPct">Invoice Discount %</label><input id="discPct" type="number" min="0" step="0.01" value="0"/></div>
+        <div class="field"><label for="discRs">Invoice Discount ₹</label><input id="discRs" type="number" min="0" step="0.01" value="0"/></div>
+        <div class="field"><label for="totalRs">Total ₹</label><input id="totalRs" type="number" min="0" step="0.01" value="0"/></div>
+        <div class="field"><label for="paidRs">Paid ₹</label><input id="paidRs" type="number" min="0" step="0.01" value="0"/></div>
+        <div class="field"><label for="balanceRs">Balance ₹</label><input id="balanceRs" type="number" min="0" step="0.01" value="0" readonly/></div>
       </div>
-
       <div class="summary-actions mt12">
         <button id="draftBtn" class="btn secondary">💾 Save Draft</button>
         <button id="saveBtn" class="btn primary">Finalize &amp; Save</button>
@@ -164,54 +104,39 @@
     </section>
   </div>
 
-  <!-- Supabase client (demo mode) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="module">
-    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
-    window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-  </script>
-
+  <!-- Theme + guard -->
   <script>
-    // === Theme + actions
     const t=document.getElementById('themeToggle');
     if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
     t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
-    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
-    clearCacheBtn.onclick=async()=>{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session',keep); if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cache cleared'); location.reload(); };
 
-    // === Guard (supervisor can bill)
     const sess = JSON.parse(localStorage.getItem('session')||'null');
     if(!sess || (sess.role!=='supervisor' && sess.role!=='doctor')){ location.replace('login.html'); }
 
-    // === Prefill date
+    logoutBtn.onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
+    clearCacheBtn.onclick=async()=>{ const keep=localStorage.getItem('session'); localStorage.clear(); if(keep) localStorage.setItem('session',keep);
+      if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } alert('Cache cleared'); location.reload(); };
+
     document.getElementById('invDate').value = new Date().toISOString().slice(0,10);
   </script>
 
-  <!-- Items table logic -->
+  <!-- Items logic -->
   <script>
   (function(){
     const body = document.getElementById('itemsBody');
     const addBtn = document.getElementById('addItemBtn');
     const clearBtn = document.getElementById('clearItemsBtn');
-
     const money = n => (Number(n)||0).toFixed(2);
 
     function rowTemplate(item='', qty=1, price=0){
       const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random());
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="col-item">
-          <input type="text" placeholder="Item name" value="${item}" data-id="${id}" data-field="item">
-        </td>
-        <td class="col-qty">
-          <input type="number" min="1" step="1" value="${qty}" data-id="${id}" data-field="qty">
-        </td>
-        <td class="col-price">
-          <input type="number" min="0" step="0.01" value="${price}" data-id="${id}" data-field="price">
-        </td>
+        <td class="col-item"><input type="text" placeholder="Item name" value="${item}" data-id="${id}" data-field="item"></td>
+        <td class="col-qty"><input type="number" min="1" step="1" value="${qty}" data-id="${id}" data-field="qty"></td>
+        <td class="col-price"><input type="number" min="0" step="0.01" value="${price}" data-id="${id}" data-field="price"></td>
         <td class="col-total ltotal" data-id="${id}" data-field="ltotal" style="text-align:right">${money(qty*price)}</td>
-        <td class="actions"><button class="trash" data-del="${id}">Remove</button></td>
-      `;
+        <td class="actions"><button class="trash" data-del="${id}">Remove</button></td>`;
       return tr;
     }
 
@@ -223,126 +148,99 @@
         return { name, qty, price, amount: qty*price };
       });
     }
-
     function emitChanged(){ document.dispatchEvent(new CustomEvent('items:changed',{ detail: getItems() })); }
-
     function recalcRow(el){
-      const tr = el.closest('tr');
-      const qty   = Number(tr.querySelector('[data-field="qty"]').value || 0);
-      const price = Number(tr.querySelector('[data-field="price"]').value || 0);
-      tr.querySelector('[data-field="ltotal"]').textContent = money(qty*price);
-      emitChanged();
+      const tr = el.closest('tr'); const qty=Number(tr.querySelector('[data-field="qty"]').value||0);
+      const price=Number(tr.querySelector('[data-field="price"]').value||0);
+      tr.querySelector('[data-field="ltotal"]').textContent = money(qty*price); emitChanged();
     }
 
     addBtn.addEventListener('click', ()=>{ body.appendChild(rowTemplate()); emitChanged(); });
     clearBtn.addEventListener('click', ()=>{ body.innerHTML=''; emitChanged(); });
+    body.addEventListener('input', (e)=>{ const f=e.target.dataset.field; if(f==='item'||f==='qty'||f==='price') recalcRow(e.target); });
+    body.addEventListener('click', (e)=>{ const del=e.target.closest('[data-del]'); if(!del)return; del.closest('tr').remove(); emitChanged(); });
 
-    body.addEventListener('input', (e)=>{
-      const f = e.target.dataset.field;
-      if(f==='item' || f==='qty' || f==='price') recalcRow(e.target);
-    });
-    body.addEventListener('click', (e)=>{
-      const del = e.target.closest('[data-del]'); if(!del) return;
-      del.closest('tr').remove(); emitChanged();
-    });
-
-    // Start with one row
-    body.appendChild(rowTemplate());
-    emitChanged();
+    body.appendChild(rowTemplate()); emitChanged();
   })();
   </script>
 
-  <!-- Summary wiring + save -->
+  <!-- Summary + save -->
   <script>
   (()=> {
     const $ = (s)=>document.querySelector(s);
     const money = (n)=> (Number(n)||0).toFixed(2);
 
     const el = {
-      discPct:  $('#discPct'),
-      discRs:   $('#discRs'),
-      totalRs:  $('#totalRs'),
-      paidRs:   $('#paidRs'),
-      balance:  $('#balanceRs'),
-      saveBtn:  $('#saveBtn'),
-      draftBtn: $('#draftBtn'),
-      date:     $('#invDate'),
-      patient:  $('#patientName'),
-      phone:    $('#patientPhone'),
-      docName:  $('#docName'),
-      payMode:  $('#payMode'),
-      invNo:    $('#invNo')
+      discPct:  $('#discPct'),  discRs:   $('#discRs'), totalRs:  $('#totalRs'),
+      paidRs:   $('#paidRs'),   balance:  $('#balanceRs'),
+      saveBtn:  $('#saveBtn'),  draftBtn: $('#draftBtn'),
+      date:     $('#invDate'),  patient:  $('#patientName'), phone: $('#patientPhone'),
+      docName:  $('#docName'),  payMode:  $('#payMode'),    invNo: $('#invNo')
     };
 
     let items = [];
-
     function compute(){
       const subtotal = items.reduce((s,i)=> s + (Number(i.amount)||0), 0);
-      const pct = Number(el.discPct?.value||0);
-      let   rs  = Number(el.discRs?.value||0);
+      const pct = Number(el.discPct?.value||0); let rs = Number(el.discRs?.value||0);
       if (pct>0 && (!el.discRs || rs===0)) rs = subtotal*pct/100;
-
-      const total = Math.max(0, subtotal - rs);
-      if (el.totalRs) el.totalRs.value = money(total);
-
-      const paid = Number(el.paidRs?.value||0);
-      const bal  = Math.max(0, total - paid);
+      const total = Math.max(0, subtotal - rs); if (el.totalRs) el.totalRs.value = money(total);
+      const paid = Number(el.paidRs?.value||0); const bal = Math.max(0, total - paid);
       if (el.balance) el.balance.value = money(bal);
     }
-
     document.addEventListener('items:changed', (ev)=>{ items = ev.detail||[]; compute(); });
     [el.discPct, el.discRs, el.paidRs].forEach(inp=> inp && inp.addEventListener('input', compute));
 
     async function saveInvoice({draft=false}={}){
       const dateISO = (el.date?.value && !isNaN(Date.parse(el.date.value))) ? el.date.value : new Date().toISOString().slice(0,10);
-
       const payload = {
-        number: el.invNo?.value || '',
-        date: dateISO,
+        number: el.invNo?.value || '', date: dateISO,
         total: Number(el.totalRs?.value || 0),
         items: items.map(i=>({ name:i.name||'', qty:+i.qty||0, price:+i.price||0, amount:+i.amount||0 })),
-        meta: {
-          patient: el.patient?.value||'',
-          phone: el.phone?.value||'',
-          doctor: el.docName?.value||'',
-          paymode: el.payMode?.value||'',
-          draft
-        }
+        meta: { patient: el.patient?.value||'', phone: el.phone?.value||'', doctor: el.docName?.value||'', paymode: el.payMode?.value||'', draft }
       };
-
       try{
         if(window.sb){
-          const { error } = await sb.from('pharmacy_invoices').insert({
-            date: payload.date, total: payload.total, items: payload.items, created_at: new Date().toISOString()
+          const { error } = await sb.from('invoices').insert({
+            invoice_no: payload.number || null,
+            invoice_date: payload.date,
+            patient_name: payload.meta.patient || null,
+            patient_phone: payload.meta.phone || null,
+            doctor_name: payload.meta.doctor || null,
+            total_rs: payload.total, paid_rs: Number(el.paidRs?.value||0),
+            balance_rs: Number(el.balance?.value||0),
+            discount_rs: Number(el.discRs?.value||0), discount_pct: Number(el.discPct?.value||0),
+            created_at: new Date().toISOString()
           });
           if(error) throw error;
         }else{
           const arr = JSON.parse(localStorage.getItem('invoices')||'[]'); arr.push({id:Date.now(), ...payload}); localStorage.setItem('invoices',JSON.stringify(arr));
         }
         alert(draft?'Draft saved.':'Invoice saved.');
-        // reset form quickly
-        document.getElementById('itemsBody').innerHTML='';
-        document.dispatchEvent(new CustomEvent('items:changed',{detail:[]}));
-        ['discPct','discRs','paidRs'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=0; });
-        compute();
+        document.getElementById('itemsBody').innerHTML=''; document.dispatchEvent(new CustomEvent('items:changed',{detail:[]}));
+        ['discPct','discRs','paidRs'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=0; }); compute();
       }catch(e){ console.error(e); alert('Save failed. Check console.'); }
     }
-
     el.saveBtn?.addEventListener('click', (e)=>{ e.preventDefault(); saveInvoice({draft:false}); });
     el.draftBtn?.addEventListener('click',(e)=>{ e.preventDefault(); saveInvoice({draft:true}); });
-
-    // print/share are stubs (keep your existing handlers if any)
     printBtn?.addEventListener('click', ()=>window.print());
     shareBtn?.addEventListener('click', async ()=>{
       const txt=`Invoice: ₹${el.totalRs?.value||'0.00'} | Patient: ${(el.patient?.value||'').trim()}`;
-      try{
-        if(navigator.share){ await navigator.share({title:'Invoice', text:txt}); }
-        else{ await navigator.clipboard.writeText(txt); alert('Copied invoice summary'); }
-      }catch{}
+      try{ if(navigator.share){ await navigator.share({title:'Invoice', text:txt}); } else { await navigator.clipboard.writeText(txt); alert('Copied invoice summary'); } }catch{}
     });
-
     compute();
   })();
+  </script>
+
+  <!-- Supabase quiet status chip -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
+    window.sb = window.sb || supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const host=document.querySelector('.fixed-actions')||document.body, pill=document.createElement('span');
+    pill.textContent='Supabase: Checking…'; pill.style.cssText='display:inline-block;margin:6px 8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);box-shadow:var(--shadow);font-size:13px';
+    if(host===document.body) Object.assign(pill.style,{position:'fixed',left:'12px',bottom:'12px',zIndex:'9999'}); host.appendChild(pill);
+    (async()=>{ try{ const {error}=await sb.from('invoices').select('id').limit(1); if(error) throw error; pill.textContent='Supabase: OK'; pill.style.borderColor='rgba(22,163,74,.35)'; }
+      catch(e){ console.error(e); pill.textContent='Supabase: FAIL'; pill.style.borderColor='rgba(220,38,38,.45)'; } })();
   </script>
 </body>
 </html>
