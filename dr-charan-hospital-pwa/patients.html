@@ -6,13 +6,13 @@
   <title>Patients — Reminders & History (Read-only)</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=66"/>
+  <link rel="stylesheet" href="styles.css?v=67"/>
   <style>
     .wrap{max-width:1100px;margin:0 auto}
     .section{margin:12px}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
     .field{display:flex;flex-direction:column;gap:6px}
-    input{padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);font-size:15px}
+    input,select{padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);font-size:15px}
     label{font-weight:600}
     .table-wrap{overflow:auto;border-radius:12px;box-shadow:var(--shadow);background:var(--card-bg)}
     table{width:100%;border-collapse:collapse}
@@ -22,6 +22,9 @@
     .soon{background:var(--t-peach);color:var(--c-peach)}
     .ok{background:var(--t-mint);color:var(--c-mint)}
     .muted{color:var(--muted)}
+    .wa-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:#25D366;color:#083F2D;font-weight:700;text-decoration:none}
+    .wa-btn[disabled]{opacity:.5;pointer-events:none}
+    .btn-cell{white-space:nowrap}
   </style>
 </head>
 <body>
@@ -48,7 +51,7 @@
         </div>
         <div class="field">
           <label for="mode">Filter</label>
-          <select id="mode" style="padding:12px 14px;border-radius:14px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg);color:var(--fg);">
+          <select id="mode">
             <option value="today">Due today</option>
             <option value="7d">Next 7 days</option>
             <option value="all">All</option>
@@ -72,7 +75,7 @@
         <table>
           <thead>
             <tr>
-              <th>Name</th><th>Phone</th><th>Last Visit</th><th>Next Visit</th><th>Status</th><th>Notes (latest)</th>
+              <th>Name</th><th>Phone</th><th>Last Visit</th><th>Next Visit</th><th>Status</th><th>Notes (latest)</th><th>Reminder</th>
             </tr>
           </thead>
           <tbody id="tblBody"></tbody>
@@ -105,10 +108,7 @@
     // Helpers
     const iso = d => new Date(d).toISOString().slice(0,10);
     const todayISO = () => new Date().toISOString().slice(0,10);
-    const within7 = (d,today) => {
-      const dd=new Date(d), tt=new Date(today);
-      const diff=(dd-tt)/86400000; return diff>=0 && diff<=7;
-    };
+    const within7 = (d,today) => { const dd=new Date(d), tt=new Date(today); const diff=(dd-tt)/86400000; return diff>=0 && diff<=7; };
     function badge(next){
       if(!next) return `<span class="pill ok">—</span>`;
       const t=todayISO();
@@ -117,39 +117,39 @@
       if(within7(next,t)) return `<span class="pill soon">Soon</span>`;
       return `<span class="pill ok">Upcoming</span>`;
     }
+    function sanitizePhone(p){
+      const digits=(p||'').replace(/\D/g,''); // keep only numbers
+      // If it looks like a 10-digit India number without country code, prepend +91
+      if(digits.length===10) return '91'+digits;
+      return digits; // assume it already includes country code (no + for wa.me)
+    }
+    function waLink(name, phone, nextVisit){
+      if(!phone || !nextVisit) return null;
+      const num = sanitizePhone(phone);
+      if(!num) return null;
+      const msg = `Hello ${name||''},%0A%0AYour next visit is scheduled on ${nextVisit}.%0A%0A– Dr. Charan Hospital`;
+      return `https://wa.me/${num}?text=${msg}`;
+    }
 
     // Data
     async function loadPatients(){
       if (window.sb){
-        // Get patients
+        // Patients
         const p = await sb.from('patients').select('id,name,phone,created_at');
         if (p.error) throw p.error;
-
-        // Latest note per patient (to get last/next dates + note)
+        // Latest notes (for last/next + text)
         const n = await sb.from('patient_notes')
           .select('patient_id, visit_date, next_visit, notes')
           .order('created_at', { ascending:false });
-
         if (n.error) throw n.error;
-
         const latestMap = {};
-        (n.data||[]).forEach(row=>{
-          if(!latestMap[row.patient_id]) latestMap[row.patient_id] = row; // first is latest due to ordering
-        });
-
+        (n.data||[]).forEach(row=>{ if(!latestMap[row.patient_id]) latestMap[row.patient_id]=row; });
         return (p.data||[]).map(pt=>{
-          const ln = latestMap[pt.id] || {};
-          return {
-            id: pt.id,
-            name: pt.name || '—',
-            phone: pt.phone || '',
-            last_visit: ln.visit_date || null,
-            next_visit: ln.next_visit || null,
-            notes: ln.notes || ''
-          };
+          const ln=latestMap[pt.id]||{};
+          return { id:pt.id, name:pt.name||'—', phone:pt.phone||'', last_visit:ln.visit_date||null, next_visit:ln.next_visit||null, notes:ln.notes||'' };
         });
       } else {
-        // Fallback from your local demo structure
+        // Fallback to local demo
         const served = JSON.parse(localStorage.getItem('servedPatients')||'[]');
         return served.map(x=>({
           id: x.id || String(Math.random()),
@@ -195,6 +195,11 @@
 
         tblBody.innerHTML='';
         rows.forEach(r=>{
+          const link = waLink(r.name, r.phone, r.next_visit);
+          const btn  = link
+            ? `<a class="wa-btn" href="${link}" target="_blank" rel="noopener">WhatsApp</a>`
+            : `<a class="wa-btn" disabled title="Phone or next-visit missing">WhatsApp</a>`;
+
           const tr=document.createElement('tr');
           tr.innerHTML = `
             <td>${r.name}</td>
@@ -203,6 +208,7 @@
             <td>${r.next_visit||'—'}</td>
             <td>${badge(r.next_visit)}</td>
             <td><div class="muted" style="max-width:420px">${(r.notes||'').replace(/\n/g,'<br>')||'—'}</div></td>
+            <td class="btn-cell">${btn}</td>
           `;
           tblBody.appendChild(tr);
         });
@@ -213,7 +219,7 @@
     }
 
     runBtn.onclick = fetchAndPaint;
-    q.addEventListener('input', ()=>{ /* live filter */ fetchAndPaint(); });
+    q.addEventListener('input', fetchAndPaint);
     mode.addEventListener('change', fetchAndPaint);
     on.addEventListener('change', fetchAndPaint);
 
