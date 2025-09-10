@@ -18,7 +18,19 @@
     .fine{font-size:13px;color:var(--muted)}
   </style>
 </head>
-<body>
+<script>
+  // kill direct access to index.html
+  if (!localStorage.getItem('session')) {
+    // if no login, always go to login
+    location.replace('login.html');
+  } else {
+    const sess = JSON.parse(localStorage.getItem('session'));
+    if (sess.role === 'doctor')      location.replace('dashboard.html');
+    else if (sess.role === 'supervisor') location.replace('admin.html');
+    else                              location.replace('login.html');
+  }
+</script>
+  <body>
   <div class="wrap">
     <!-- Banner -->
     <header class="banner">
