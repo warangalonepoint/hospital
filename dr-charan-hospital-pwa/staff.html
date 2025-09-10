@@ -6,21 +6,28 @@
   <title>Staff – Read-only (Doctor)</title>
   <link rel="manifest" href="manifest.webmanifest"/>
   <link rel="icon" href="assets/logo.png"/>
-  <link rel="stylesheet" href="styles.css?v=43"/>
+  <link rel="stylesheet" href="styles.css?v=47"/>
+
   <style>
-    .container{ max-width:1000px; margin:0 auto; padding:12px; }
-    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:10px 0; }
-    .toolbar input[type="date"]{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.12); }
-    .table-wrap{ background:var(--card-bg); border-radius:14px; padding:10px; box-shadow:var(--shadow); overflow:auto; }
-    table{ width:100%; border-collapse:collapse; font-size:.95rem; min-width:720px; }
-    thead th{ text-align:left; padding:10px 12px; position:sticky; top:0; background:var(--card-bg); }
-    tbody td{ padding:10px 12px; border-top:1px solid rgba(0,0,0,.06); }
-    tbody tr:hover{ background:rgba(0,0,0,.03); }
-    .empty{ padding:14px; opacity:.8; }
-    .badge{ display:inline-block; padding:2px 8px; border-radius:12px; font-size:.8rem; }
-    .badge--ok{ background:#e7f8ee; color:#146c43; }
-    .badge--due{ background:#fff4e5; color:#7a3c00; }
-    .muted{ opacity:.75; }
+    .container{max-width:1000px;margin:0 auto;padding:12px}
+
+    .section{border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+    .section h3{margin-bottom:10px;font-size:18px;display:flex;align-items:center;justify-content:space-between}
+    .section small{font-weight:normal;font-size:13px;opacity:.75}
+
+    .tint-blue {background:linear-gradient(135deg,var(--t-blue),#bcdfff)}
+    .tint-mint {background:linear-gradient(135deg,var(--t-mint),#aaf5d0)}
+    .tint-lilac{background:linear-gradient(135deg,var(--t-lilac),#cab8ff)}
+
+    .toolbar{display:flex;gap:10px;align-items:center}
+    .toolbar input[type="date"]{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.12);background:var(--card-bg)}
+
+    .table-wrap{background:var(--card-bg);border-radius:12px;overflow:auto;box-shadow:var(--shadow)}
+    table{width:100%;border-collapse:collapse;font-size:.95rem;min-width:600px}
+    thead th{padding:10px 12px;text-align:left;position:sticky;top:0;background:var(--card-bg)}
+    tbody td{padding:10px 12px;border-top:1px solid rgba(0,0,0,.06)}
+    tbody tr:hover{background:rgba(0,0,0,.03)}
+    .empty{padding:14px;opacity:.8;text-align:center}
   </style>
 </head>
 <body>
@@ -29,175 +36,119 @@
     <button id="themeToggle" class="floating-toggle" aria-label="Theme">🌙</button>
   </header>
 
-  <!-- Fixed actions -->
+  <!-- Actions -->
   <div class="fixed-actions">
     <a href="dashboard.html" class="chip">← Dashboard</a>
-    <button class="chip" id="logoutBtn">Logout</button>
+    <button id="logoutBtn" class="chip">Logout</button>
   </div>
 
   <main class="container">
-    <h2>Staff</h2>
-
-    <!-- Attendance (read-only) -->
-    <section class="section">
-      <div class="toolbar">
-        <strong>Today’s Attendance</strong>
-        <span class="muted">View only</span>
-        <span style="flex:1"></span>
-        <label>Date <input type="date" id="dayPicker"></label>
-        <button id="reloadBtn" class="chip">Reload</button>
-      </div>
-
+    <!-- Attendance -->
+    <section class="section tint-blue">
+      <h3>
+        Today’s Attendance <small>View only</small>
+        <div class="toolbar">
+          <input type="date" id="dayPicker"/>
+          <button id="reloadBtn" class="chip">Reload</button>
+        </div>
+      </h3>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Check-in</th>
-              <th>Note</th>
-            </tr>
+            <tr><th>Name</th><th>Role</th><th>Status</th><th>Check-in</th><th>Note</th></tr>
           </thead>
-          <tbody id="attBody">
-            <tr><td colspan="5" class="empty">No data</td></tr>
-          </tbody>
+          <tbody id="attBody"><tr><td colspan="5" class="empty">No data</td></tr></tbody>
         </table>
       </div>
     </section>
 
-    <!-- Roster (read-only) -->
-    <section class="section">
-      <div class="toolbar">
-        <strong>Active Roster</strong>
-        <span class="muted">View only</span>
-        <span style="flex:1"></span>
+    <!-- Roster -->
+    <section class="section tint-mint">
+      <h3>
+        Active Roster <small>View only</small>
         <button id="reloadRosterBtn" class="chip">Reload</button>
-      </div>
-
+      </h3>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Phone</th>
-              <th>Active</th>
-            </tr>
+            <tr><th>Name</th><th>Role</th><th>Phone</th><th>Active</th></tr>
           </thead>
-          <tbody id="staffBody">
-            <tr><td colspan="4" class="empty">No staff yet</td></tr>
-          </tbody>
+          <tbody id="staffBody"><tr><td colspan="4" class="empty">No staff yet</td></tr></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <!-- Supabase client + init -->
+  <!-- Optional Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="module" src="./supabase-init.js?v=1"></script>
 
-  <script type="module">
-    // Theme
-    const t=document.getElementById('themeToggle');
-    if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
-    t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const nxt=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=nxt; localStorage.theme=nxt; t.textContent=nxt==='light'?'🌞':'🌙'; };
+  <script>
+  // Theme toggle
+  const t=document.getElementById('themeToggle');
+  if(localStorage.theme){ document.documentElement.dataset.theme=localStorage.theme; t.textContent=localStorage.theme==='light'?'🌞':'🌙'; }
+  t.onclick=()=>{ const cur=document.documentElement.dataset.theme||'light'; const next=cur==='light'?'dark':'light'; document.documentElement.dataset.theme=next; localStorage.theme=next; t.textContent=next==='light'?'🌞':'🌙'; };
 
-    // Guard (doctor view)
-    const s = JSON.parse(localStorage.getItem('session')||'null');
-    if(!s || !s.role){ location.replace('login.html'); }
-    // Read-only regardless of role.
+  // Guard
+  const sess=JSON.parse(localStorage.getItem('session')||'null');
+  if(!sess || sess.role!=='doctor'){ location.replace('login.html'); }
+  document.getElementById('logoutBtn').onclick=()=>{ localStorage.removeItem('session'); location.href='login.html'; };
 
-    // Logout
-    logoutBtn.onclick=async ()=>{ if(window.supakit?.supabaseSignOut) await window.supakit.supabaseSignOut(); localStorage.removeItem('session'); location.href='login.html'; };
+  const SB=window.sb||null;
+  async function trySB(fn,fallback){ if(!SB) return fallback(); try{ return await fn(); }catch(e){ return fallback(e);} }
 
-    // Helpers
-    const isoDate = d => new Date(d).toISOString().slice(0,10);
-    const todayISO = isoDate(new Date());
+  const iso = d => new Date(d).toISOString().slice(0,10);
+  const todayISO=iso(new Date());
+  document.getElementById('dayPicker').value=todayISO;
 
-    // Data access (read-only)
-    async function fetchAttendance(dayISO){
-      return window.supakit.safeFetch(
-        async ()=>{
-          const { data, error } = await window.sb
-            .from('staff_attendance')
-            .select('*')
-            .eq('day', dayISO)
-            .order('created_at');
-          if(error) throw error; return data;
-        },
-        ()=>{ try{ return JSON.parse(localStorage.getItem('attendance')||'[]').filter(r=>r.day===dayISO);}catch{return [];} }
-      );
-    }
-    async function fetchRoster(){
-      return window.supakit.safeFetch(
-        async ()=>{
-          const { data, error } = await window.sb
-            .from('staff')
-            .select('*')
-            .eq('active', true)
-            .order('created_at');
-          if(error) throw error; return data;
-        },
-        ()=>{ try{ return (JSON.parse(localStorage.getItem('staffRoster')||'[]')||[]).filter(x=>x.active!==false);}catch{return [];} }
-      );
-    }
+  async function fetchRoster(){
+    return trySB(
+      async()=>{ const {data,error}=await SB.from('staff').select('*').order('created_at'); if(error) throw error; return data; },
+      ()=>JSON.parse(localStorage.getItem('staffRoster')||'[]')
+    );
+  }
+  async function fetchAttendance(day){
+    return trySB(
+      async()=>{ const {data,error}=await SB.from('staff_attendance').select('*').eq('day',day).order('created_at'); if(error) throw error; return data; },
+      ()=>JSON.parse(localStorage.getItem('attendance')||'[]').filter(r=>r.day===day)
+    );
+  }
 
-    // Renderers
+  async function renderAttendance(){
     const attBody=document.getElementById('attBody');
-    async function renderAttendance(dayISO){
-      attBody.innerHTML='';
-      const rows = await fetchAttendance(dayISO);
-      if(!rows.length){ attBody.innerHTML='<tr><td colspan="5" class="empty">No data</td></tr>'; return; }
-      rows.forEach(r=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${r.name||'-'}</td>
-          <td>${r.role||'-'}</td>
-          <td>${r.status||'-'}</td>
-          <td>${r.checkin||'-'}</td>
-          <td>${r.note?String(r.note).replace(/</g,'&lt;').replace(/\n/g,'<br/>'):'-'}</td>
-        `;
-        attBody.appendChild(tr);
-      });
-    }
-
-    const staffBody=document.getElementById('staffBody');
-    async function renderRoster(){
-      staffBody.innerHTML='';
-      const staff = await fetchRoster();
-      if(!staff.length){ staffBody.innerHTML='<tr><td colspan="4" class="empty">No staff yet</td></tr>'; return; }
-      staff.forEach(s=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${s.name||'-'}</td>
-          <td>${s.role||'-'}</td>
-          <td>${s.phone||'-'}</td>
-          <td><span class="badge ${s.active!==false?'badge--ok':'badge--due'}">${s.active!==false?'Active':'Inactive'}</span></td>
-        `;
-        staffBody.appendChild(tr);
-      });
-    }
-
-    // UI wiring
-    const dayPicker=document.getElementById('dayPicker');
-    dayPicker.value = todayISO;
-    document.getElementById('reloadBtn').onclick = ()=>renderAttendance(dayPicker.value);
-    document.getElementById('reloadRosterBtn').onclick = renderRoster;
-    dayPicker.onchange = ()=>renderAttendance(dayPicker.value);
-
-    // Init
-    (async function init(){
-      await window.supakit.ensureAuth();
-      await renderAttendance(todayISO);
-      await renderRoster();
-    })();
-
-    // Live refresh if local fallback changes
-    window.addEventListener('storage', e=>{
-      if(e.key==='attendance'){ renderAttendance(dayPicker.value); }
-      if(e.key==='staffRoster'){ renderRoster(); }
+    attBody.innerHTML='';
+    const rows=await fetchAttendance(document.getElementById('dayPicker').value);
+    if(!rows.length){ attBody.innerHTML='<tr><td colspan="5" class="empty">No data</td></tr>'; return; }
+    rows.forEach(r=>{
+      attBody.innerHTML+=`<tr>
+        <td>${r.name||''}</td>
+        <td>${r.role||''}</td>
+        <td>${r.status||''}</td>
+        <td>${r.checkin||''}</td>
+        <td>${r.note||''}</td>
+      </tr>`;
     });
+  }
+
+  async function renderRoster(){
+    const staffBody=document.getElementById('staffBody');
+    staffBody.innerHTML='';
+    const staff=await fetchRoster();
+    if(!staff.length){ staffBody.innerHTML='<tr><td colspan="4" class="empty">No staff yet</td></tr>'; return; }
+    staff.forEach(s=>{
+      staffBody.innerHTML+=`<tr>
+        <td>${s.name||''}</td>
+        <td>${s.role||''}</td>
+        <td>${s.phone||''}</td>
+        <td>${s.active!==false?'✔️':'—'}</td>
+      </tr>`;
+    });
+  }
+
+  document.getElementById('reloadBtn').onclick=renderAttendance;
+  document.getElementById('reloadRosterBtn').onclick=renderRoster;
+
+  renderAttendance();
+  renderRoster();
   </script>
 </body>
 </html>
